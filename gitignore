@@ -1,0 +1,301 @@
+# ============================================
+# 로일(LoIl) - Git Ignore
+# ============================================
+
+# ============================================
+# Python
+# ============================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Virtual Environment
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# ============================================
+# 환경변수 & 설정
+# ============================================
+.env
+.env.local
+.env.*.local
+config.local.py
+secrets.yaml
+
+# API 키 (중요!)
+*_key.json
+service-account.json
+service-account-*.json
+credentials.json
+google-credentials.json
+
+# ============================================
+# 데이터베이스
+# ============================================
+*.db
+*.sqlite
+*.sqlite3
+*.sql
+backup/
+dumps/
+*.dump
+
+# ============================================
+# 로그
+# ============================================
+*.log
+logs/
+*.log.*
+
+# ============================================
+# IDE & Editor
+# ============================================
+
+# VSCode
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+
+# PyCharm
+.idea/
+*.iml
+*.iws
+.idea_modules/
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+*.swp
+*.swo
+*~
+
+# Emacs
+*~
+\#*
+.\#*
+
+# ============================================
+# OS
+# ============================================
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# ============================================
+# 테스트 & 커버리지
+# ============================================
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.hypothesis/
+coverage.xml
+*.cover
+.cache
+nosetests.xml
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pyre/
+.pytype/
+
+# ============================================
+# 임시 파일
+# ============================================
+tmp/
+temp/
+*.tmp
+*.bak
+*.swp
+*.backup
+
+# ============================================
+# 문서 빌드
+# ============================================
+docs/_build/
+docs/.doctrees/
+site/
+_site/
+
+# ============================================
+# Node.js (웹 개발용)
+# ============================================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.npm
+.eslintcache
+.yarn/
+.pnp.*
+
+# ============================================
+# 빌드 산출물
+# ============================================
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# ============================================
+# Jupyter Notebook
+# ============================================
+.ipynb_checkpoints
+*.ipynb
+
+# ============================================
+# 배포 관련
+# ============================================
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfstate.backup
+
+# Docker
+docker-compose.override.yml
+.docker/
+
+# ============================================
+# 프로젝트 특정
+# ============================================
+
+# 사용자 업로드 파일
+uploads/
+user_data/
+user-uploads/
+
+# 캐시
+.cache/
+*.cache
+
+# 백업
+.backup/
+backup_*/
+backups/
+
+# 테스트 데이터
+test_data/
+fixtures/local/
+
+# 개인 메모
+NOTES.md
+TODO.md
+PERSONAL.md
+PRIVATE.md
+
+# 구글 시트 크레덴셜
+*-credentials.json
+client_secret*.json
+
+# ============================================
+# 보안 (절대 커밋 금지!)
+# ============================================
+*.pem
+*.key
+*.crt
+*.p12
+*secret*
+*password*
+*token*
+*private*
+*SECRET*
+*PASSWORD*
+*TOKEN*
+*PRIVATE*
+
+# API 키 파일들
+api_keys.txt
+api_keys.json
+keys/
+secrets/
+
+# ============================================
+# Discord Bot 특정
+# ============================================
+bot.log
+bot_*.log
+discord.log
+
+# ============================================
+# 데이터베이스 백업
+# ============================================
+*.sql.gz
+*.dump.gz
+db_backup/
+
+# ============================================
+# CI/CD
+# ============================================
+.github/workflows/secrets/
+
+# ============================================
+# 기타
+# ============================================
+.DS_Store
+*.retry
+.vscode-server/
