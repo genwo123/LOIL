@@ -1,0 +1,479 @@
+{
+  "version": "1.0.0",
+  "last_updated": "2025-02-10",
+  "description": "Lost Ark Synergy Data for LoIl Discord Bot",
+  
+  "synergy_types": {
+    "crit_rate": {
+      "name": "치명타 확률 증가",
+      "name_en": "Critical Rate Increase",
+      "value": "10%",
+      "providers": [
+        "배틀마스터", "건슬링어", "아르카나", 
+        "데빌헌터", "스트라이커", "기상술사"
+      ]
+    },
+    "crit_damage": {
+      "name": "치명타 피해 증가",
+      "name_en": "Critical Damage Increase",
+      "value": "8%",
+      "providers": [
+        "창술사", "홀리나이트(딜)", "발키리(딜)"
+      ],
+      "note": "홀나(심판), 발키리(빛기) 각인 시"
+    },
+    "attack_power": {
+      "name": "공격력 증가",
+      "name_en": "Attack Power Increase",
+      "value": "6%",
+      "providers": [
+        "기공사", "스카우터", "바드", 
+        "홀리나이트", "도화가"
+      ]
+    },
+    "damage_amplification": {
+      "name": "받는 피해 증가",
+      "name_en": "Damage Amplification",
+      "value": "4-6%",
+      "providers": [
+        "바드", "홀리나이트", "도화가", 
+        "소울이터", "소서리스", "버서커", 
+        "데모닉", "호크아이", "브레이커", 
+        "인파이터", "슬레이어", "가디언나이트"
+      ]
+    },
+    "defense_reduction": {
+      "name": "방어력 감소",
+      "name_en": "Defense Reduction",
+      "value": "12%",
+      "providers": [
+        "워로드(전태)", "서머너", "블래스터", 
+        "디스트로이어", "리퍼", "환수사"
+      ],
+      "note": "워로드는 전투 태세 각인 시"
+    },
+    "positional_damage": {
+      "name": "헤드어택/백어택 피해 증가",
+      "name_en": "Positional Damage Increase",
+      "value": "5-9%",
+      "providers": [
+        "워로드", "블레이드"
+      ]
+    },
+    "stagger_damage": {
+      "name": "무력화 피해 증가",
+      "name_en": "Stagger Damage Increase",
+      "value": "증가",
+      "providers": [
+        "디스트로이어", "인파이터", "블래스터"
+      ]
+    },
+    "attack_speed": {
+      "name": "공격속도 증가",
+      "name_en": "Attack Speed Increase",
+      "value": "8-12.8%",
+      "providers": [
+        "배틀마스터", "블레이드", "스트라이커", 
+        "기상술사(질풍)", "바드", "도화가"
+      ]
+    },
+    "movement_speed": {
+      "name": "이동속도 증가",
+      "name_en": "Movement Speed Increase",
+      "value": "8-30%",
+      "providers": [
+        "배틀마스터", "블레이드", "호크아이(두동)", 
+        "기상술사(질풍)", "도화가", "홀리나이트"
+      ]
+    },
+    "mana_recovery": {
+      "name": "마나 회복",
+      "name_en": "Mana Recovery",
+      "value": "12-50%",
+      "providers": [
+        "바드", "홀리나이트", "도화가", "서머너"
+      ]
+    }
+  },
+  
+  "job_synergies": {
+    "warrior": {
+      "berserker": {
+        "synergies": ["damage_amplification"],
+        "values": {
+          "damage_amplification": "6%"
+        },
+        "engraving_dependent": false
+      },
+      "destroyer": {
+        "synergies": ["defense_reduction", "stagger_damage"],
+        "values": {
+          "defense_reduction": "12%",
+          "stagger_damage": "증가"
+        },
+        "engraving_dependent": false
+      },
+      "warlord": {
+        "synergies": ["positional_damage", "damage_amplification"],
+        "values": {
+          "positional_damage": "5%",
+          "damage_amplification": "4%"
+        },
+        "engraving_dependent": true,
+        "engravings": {
+          "lonely_knight": {
+            "synergies": ["positional_damage", "damage_amplification"],
+            "values": {
+              "positional_damage": "5%",
+              "damage_amplification": "4%"
+            },
+            "note": "방감 없음"
+          },
+          "combat_readiness": {
+            "synergies": ["positional_damage", "damage_amplification", "defense_reduction"],
+            "values": {
+              "positional_damage": "5%",
+              "damage_amplification": "4%",
+              "defense_reduction": "12%"
+            }
+          }
+        }
+      },
+      "holyknight": {
+        "synergies": ["attack_power", "damage_amplification", "movement_speed", "mana_recovery"],
+        "values": {
+          "attack_power": "6%",
+          "damage_amplification": "증가",
+          "movement_speed": "증가",
+          "mana_recovery": "50%"
+        },
+        "engraving_dependent": true,
+        "engravings": {
+          "blessing_aura": {
+            "synergies": ["attack_power", "damage_amplification", "movement_speed", "mana_recovery"],
+            "note": "서폿 각인"
+          },
+          "judgment": {
+            "synergies": ["crit_damage"],
+            "values": {
+              "crit_damage": "8%"
+            },
+            "note": "딜러 각인"
+          }
+        }
+      },
+      "slayer": {
+        "synergies": ["damage_amplification"],
+        "values": {
+          "damage_amplification": "6%"
+        },
+        "engraving_dependent": false
+      },
+      "valkyrie": {
+        "synergies": [],
+        "engraving_dependent": true,
+        "engravings": {
+          "liberator": {
+            "synergies": [],
+            "note": "서폿 각인"
+          },
+          "light_knight": {
+            "synergies": ["crit_damage"],
+            "values": {
+              "crit_damage": "8%"
+            },
+            "note": "딜러 각인"
+          }
+        }
+      }
+    },
+    
+    "martial_artist": {
+      "battlemaster": {
+        "synergies": ["crit_rate", "attack_speed", "movement_speed"],
+        "values": {
+          "crit_rate": "10%",
+          "attack_speed": "8%",
+          "movement_speed": "16%"
+        },
+        "engraving_dependent": false
+      },
+      "infighter": {
+        "synergies": ["damage_amplification", "stagger_damage"],
+        "values": {
+          "damage_amplification": "6%",
+          "stagger_damage": "증가"
+        },
+        "engraving_dependent": false
+      },
+      "soulmaster": {
+        "synergies": ["attack_power"],
+        "values": {
+          "attack_power": "6%"
+        },
+        "engraving_dependent": false,
+        "note": "내공 방출 스킬 채용 시"
+      },
+      "lancemaster": {
+        "synergies": ["crit_damage"],
+        "values": {
+          "crit_damage": "8%"
+        },
+        "engraving_dependent": false,
+        "note": "치명타 시에만 적용"
+      },
+      "striker": {
+        "synergies": ["crit_rate", "attack_speed"],
+        "values": {
+          "crit_rate": "10%",
+          "attack_speed": "8%"
+        },
+        "engraving_dependent": false
+      },
+      "breaker": {
+        "synergies": ["damage_amplification"],
+        "values": {
+          "damage_amplification": "6%"
+        },
+        "engraving_dependent": false
+      }
+    },
+    
+    "gunner": {
+      "devilhunter": {
+        "synergies": ["crit_rate"],
+        "values": {
+          "crit_rate": "10%"
+        },
+        "engraving_dependent": false
+      },
+      "blaster": {
+        "synergies": ["defense_reduction", "stagger_damage"],
+        "values": {
+          "defense_reduction": "12%",
+          "stagger_damage": "증가"
+        },
+        "engraving_dependent": false
+      },
+      "hawkeye": {
+        "synergies": ["damage_amplification"],
+        "values": {
+          "damage_amplification": "6%"
+        },
+        "engraving_dependent": true,
+        "engravings": {
+          "death_strike": {
+            "synergies": ["damage_amplification"],
+            "values": {
+              "damage_amplification": "6%"
+            }
+          },
+          "second_companion": {
+            "synergies": ["damage_amplification", "movement_speed"],
+            "values": {
+              "damage_amplification": "6%",
+              "movement_speed": "8%"
+            }
+          }
+        }
+      },
+      "scouter": {
+        "synergies": ["attack_power"],
+        "values": {
+          "attack_power": "6%"
+        },
+        "engraving_dependent": false
+      },
+      "gunslinger": {
+        "synergies": ["crit_rate"],
+        "values": {
+          "crit_rate": "10%"
+        },
+        "engraving_dependent": false
+      }
+    },
+    
+    "mage": {
+      "arcana": {
+        "synergies": ["crit_rate"],
+        "values": {
+          "crit_rate": "10%"
+        },
+        "engraving_dependent": false
+      },
+      "summoner": {
+        "synergies": ["defense_reduction", "mana_recovery"],
+        "values": {
+          "defense_reduction": "12%",
+          "mana_recovery": "40%"
+        },
+        "engraving_dependent": false,
+        "note": "마나회복은 트라이포드 선택 시"
+      },
+      "bard": {
+        "synergies": ["attack_power", "damage_amplification", "attack_speed", "mana_recovery"],
+        "values": {
+          "attack_power": "증가",
+          "damage_amplification": "증가",
+          "attack_speed": "증가",
+          "mana_recovery": "12%"
+        },
+        "engraving_dependent": true,
+        "engravings": {
+          "desperate_salvation": {
+            "synergies": ["attack_power", "damage_amplification", "attack_speed", "mana_recovery"],
+            "note": "서폿 각인"
+          },
+          "true_courage": {
+            "synergies": ["defense_reduction", "attack_speed"],
+            "values": {
+              "defense_reduction": "감소",
+              "attack_speed": "증가"
+            },
+            "note": "딜러 각인"
+          }
+        }
+      },
+      "sorceress": {
+        "synergies": ["damage_amplification"],
+        "values": {
+          "damage_amplification": "6%"
+        },
+        "engraving_dependent": false
+      }
+    },
+    
+    "assassin": {
+      "demonic": {
+        "synergies": ["damage_amplification"],
+        "values": {
+          "damage_amplification": "6%"
+        },
+        "engraving_dependent": false
+      },
+      "blade": {
+        "synergies": ["positional_damage", "damage_amplification", "attack_speed", "movement_speed"],
+        "values": {
+          "positional_damage": "5%",
+          "damage_amplification": "4%",
+          "attack_speed": "12.8%",
+          "movement_speed": "12.8%"
+        },
+        "engraving_dependent": false
+      },
+      "reaper": {
+        "synergies": ["defense_reduction"],
+        "values": {
+          "defense_reduction": "12%"
+        },
+        "engraving_dependent": false
+      },
+      "souleater": {
+        "synergies": ["damage_amplification"],
+        "values": {
+          "damage_amplification": "6%"
+        },
+        "engraving_dependent": false
+      }
+    },
+    
+    "specialist": {
+      "artist": {
+        "synergies": ["attack_power", "damage_amplification", "attack_speed", "movement_speed", "mana_recovery"],
+        "values": {
+          "attack_power": "6%",
+          "damage_amplification": "증가",
+          "attack_speed": "18%",
+          "movement_speed": "30%",
+          "mana_recovery": "21%"
+        },
+        "engraving_dependent": true,
+        "engravings": {
+          "full_bloom": {
+            "synergies": ["attack_power"],
+            "values": {
+              "attack_power": "6%"
+            },
+            "note": "서폿 각인"
+          },
+          "recurrence": {
+            "synergies": ["attack_power"],
+            "values": {
+              "attack_power": "6%"
+            },
+            "note": "딜러 각인"
+          }
+        }
+      },
+      "aeromancer": {
+        "synergies": ["crit_rate"],
+        "values": {
+          "crit_rate": "10%"
+        },
+        "engraving_dependent": true,
+        "engravings": {
+          "wind_fury": {
+            "synergies": ["crit_rate", "attack_speed", "movement_speed"],
+            "values": {
+              "crit_rate": "10%",
+              "attack_speed": "12%",
+              "movement_speed": "12%"
+            }
+          },
+          "drizzle": {
+            "synergies": ["crit_rate"],
+            "values": {
+              "crit_rate": "10%"
+            },
+            "note": "공격력 감소 10%"
+          }
+        }
+      },
+      "summoner_specialist": {
+        "synergies": ["defense_reduction"],
+        "values": {
+          "defense_reduction": "12%"
+        },
+        "engraving_dependent": false
+      }
+    },
+    
+    "guardian_knight": {
+      "guardian_knight": {
+        "synergies": ["damage_amplification"],
+        "values": {
+          "damage_amplification": "6%"
+        },
+        "engraving_dependent": false
+      }
+    }
+  },
+  
+  "synergy_priority": {
+    "essential": {
+      "description": "무조건 채용되는 시너지",
+      "synergies": ["crit_rate", "defense_reduction", "damage_amplification"]
+    },
+    "conditional": {
+      "description": "세팅에 따라 채용률이 다른 시너지",
+      "synergies": ["attack_speed", "movement_speed", "mana_recovery"]
+    },
+    "situational": {
+      "description": "특정 상황에서만 유용",
+      "synergies": ["stagger_damage", "positional_damage"]
+    }
+  },
+  
+  "notes": {
+    "engraving_dependent_jobs": [
+      "워로드", "홀리나이트", "발키리", "호크아이", 
+      "바드", "기상술사", "도화가"
+    ],
+    "hybrid_notation": "하이브리드 직업은 (폿)/(딜) 표기로 구분",
+    "special_conditions": {
+      "창술사": "치명타 피해증가는 치명타 시에만 적용",
+      "서머너": "마나회복 40%는 트라이포드 선택 시",
+      "기공사": "내공 방출 스킬 채용 시 시너지 적용"
+    }
+  }
+}

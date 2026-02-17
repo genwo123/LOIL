@@ -1,0 +1,563 @@
+{
+  "version": "1.0.0",
+  "last_updated": "2025-02-10",
+  "description": "Lost Ark Raid Data for LoIl Discord Bot",
+  
+  "raid_categories": {
+    "legion_raids": {
+      "name": "군단장 레이드",
+      "party_size": 8,
+      "raids": {
+        "valtan": {
+          "name": "발탄",
+          "name_en": "Valtan",
+          "difficulties": {
+            "hard": {
+              "min_level": 1445,
+              "gates": 2,
+              "gold_total": 1800,
+              "rewards": {
+                "gate1": {"gold": 700, "extra": 450},
+                "gate2": {"gold": 1100, "extra": 600}
+              }
+            },
+            "normal": {
+              "min_level": 1415,
+              "gates": 2,
+              "gold_total": 1200,
+              "rewards": {
+                "gate1": {"gold": 500, "extra": 300},
+                "gate2": {"gold": 700, "extra": 400}
+              }
+            },
+            "solo": {
+              "min_level": 1415,
+              "gates": 2,
+              "gold_total": 1200,
+              "rewards": {
+                "gate1": {"gold": 500, "extra": 75},
+                "gate2": {"gold": 700, "extra": 100}
+              }
+            }
+          }
+        },
+        "vykas": {
+          "name": "비아키스",
+          "name_en": "Vykas",
+          "difficulties": {
+            "hard": {
+              "min_level": 1460,
+              "gates": 2,
+              "gold_total": 2400,
+              "rewards": {
+                "gate1": {"gold": 900, "extra": 500},
+                "gate2": {"gold": 1500, "extra": 650}
+              }
+            },
+            "normal": {
+              "min_level": 1430,
+              "gates": 2,
+              "gold_total": 1600,
+              "rewards": {
+                "gate1": {"gold": 600, "extra": 300},
+                "gate2": {"gold": 1000, "extra": 450}
+              }
+            },
+            "solo": {
+              "min_level": 1430,
+              "gates": 2,
+              "gold_total": 1600,
+              "rewards": {
+                "gate1": {"gold": 600, "extra": 100},
+                "gate2": {"gold": 1000, "extra": 150}
+              }
+            }
+          }
+        },
+        "kakul_saydon": {
+          "name": "쿠크세이튼",
+          "name_en": "Kouku-Saton",
+          "difficulties": {
+            "normal": {
+              "min_level": 1475,
+              "gates": 3,
+              "gold_total": 3000,
+              "rewards": {
+                "gate1": {"gold": 600, "extra": 300},
+                "gate2": {"gold": 900, "extra": 500},
+                "gate3": {"gold": 1500, "extra": 700}
+              }
+            },
+            "solo": {
+              "min_level": 1475,
+              "gates": 3,
+              "gold_total": 3000,
+              "rewards": {
+                "gate1": {"gold": 600, "extra": 100},
+                "gate2": {"gold": 900, "extra": 150},
+                "gate3": {"gold": 1500, "extra": 200}
+              }
+            }
+          }
+        },
+        "brelshaza": {
+          "name": "아브렐슈드",
+          "name_en": "Brelshaza",
+          "difficulties": {
+            "hard": {
+              "min_level": 1540,
+              "gates": 4,
+              "gold_total": 5600,
+              "rewards": {
+                "gate1": {"gold": 1200, "extra": 400, "items": "몽환의 사념 6개"},
+                "gate2": {"gold": 1200, "extra": 400, "items": "몽환의 사념 6개"},
+                "gate3": {"gold": 1200, "extra": 500, "items": "몽환의 사념 7개"},
+                "gate4": {"gold": 2000, "extra": 800, "items": "몽환의 사념 10개"}
+              }
+            },
+            "normal": {
+              "min_level": 1490,
+              "gates": 4,
+              "gold_total": 4600,
+              "rewards": {
+                "gate1": {"gold": 1000, "extra": 250, "items": "몽환의 사념 4개"},
+                "gate2": {"gold": 1000, "extra": 300, "items": "몽환의 사념 4개"},
+                "gate3": {"gold": 1000, "extra": 400, "items": "몽환의 사념 5개"},
+                "gate4": {"gold": 1600, "extra": 600, "items": "몽환의 사념 7개"}
+              }
+            },
+            "solo": {
+              "min_level": 1490,
+              "gates": 4,
+              "gold_total": 4600,
+              "rewards": {
+                "gate1": {"gold": 1000, "extra": 100},
+                "gate2": {"gold": 1000, "extra": 150},
+                "gate3": {"gold": 1000, "extra": 200},
+                "gate4": {"gold": 1600, "extra": 375}
+              }
+            }
+          }
+        },
+        "iliacan": {
+          "name": "일리아칸",
+          "name_en": "Illiacan",
+          "difficulties": {
+            "hard": {
+              "min_level": 1600,
+              "gates": 3,
+              "gold_total": 6000,
+              "rewards": {
+                "gate1": {"gold": 1200, "extra": 300, "items": "쇠락의 눈동자 7개"},
+                "gate2": {"gold": 2000, "extra": 500, "items": "쇠락의 눈동자 7개"},
+                "gate3": {"gold": 2800, "extra": 700, "items": "쇠락의 눈동자 8개"}
+              }
+            },
+            "normal": {
+              "min_level": 1580,
+              "gates": 3,
+              "gold_total": 4700,
+              "rewards": {
+                "gate1": {"gold": 850, "extra": 190, "items": "쇠락의 눈동자 3개"},
+                "gate2": {"gold": 1550, "extra": 230, "items": "쇠락의 눈동자 3개"},
+                "gate3": {"gold": 2300, "extra": 330, "items": "쇠락의 눈동자 5개"}
+              }
+            },
+            "solo": {
+              "min_level": 1580,
+              "gates": 3,
+              "gold_total": 4700,
+              "rewards": {
+                "gate1": {"gold": 850, "extra": 190},
+                "gate2": {"gold": 1550, "extra": 230},
+                "gate3": {"gold": 2300, "extra": 330}
+              }
+            }
+          }
+        },
+        "kamen": {
+          "name": "카멘",
+          "name_en": "Kamen",
+          "difficulties": {
+            "hard": {
+              "min_level": 1630,
+              "gates": 4,
+              "gold_total": 13000,
+              "rewards": {
+                "gate1": {"gold": 2000, "extra": 500, "items": "어둠의 불 12개, 마력의 샘물 6개"},
+                "gate2": {"gold": 2400, "extra": 600, "items": "어둠의 불 16개, 마력의 샘물 9개"},
+                "gate3": {"gold": 3600, "extra": 900, "items": "어둠의 불 24개, 마력의 샘물 12개"},
+                "gate4": {"gold": 5000, "extra": 1250, "items": "어둠의 불 24개, 마력의 샘물 12개"}
+              }
+            },
+            "normal": {
+              "min_level": 1610,
+              "gates": 3,
+              "gold_total": 6400,
+              "rewards": {
+                "gate1": {"gold": 1600, "extra": 360, "items": "어둠의 불 6개, 마력의 샘물 2개"},
+                "gate2": {"gold": 2000, "extra": 440, "items": "어둠의 불 8개, 마력의 샘물 3개"},
+                "gate3": {"gold": 2800, "extra": 640, "items": "어둠의 불 12개, 마력의 샘물 4개"}
+              }
+            },
+            "solo": {
+              "min_level": 1610,
+              "gates": 3,
+              "gold_total": 6400,
+              "rewards": {
+                "gate1": {"gold": 1600, "extra": 360, "items": "어둠의 불 6개, 마력의 샘물 2개"},
+                "gate2": {"gold": 2000, "extra": 440, "items": "어둠의 불 8개, 마력의 샘물 3개"},
+                "gate3": {"gold": 2800, "extra": 640, "items": "어둠의 불 12개, 마력의 샘물 4개"}
+              }
+            }
+          }
+        }
+      }
+    },
+    
+    "abyss_dungeons": {
+      "name": "어비스 던전",
+      "party_size": 4,
+      "raids": {
+        "kayangel": {
+          "name": "카양겔",
+          "name_en": "Kayangel",
+          "difficulties": {
+            "hard": {
+              "min_level": 1580,
+              "gates": 3,
+              "gold_total": 4300,
+              "rewards": {
+                "gate1": {"gold": 900, "extra": 225, "items": "관조의 빛무리 1개, 시련의 빛 14개"},
+                "gate2": {"gold": 1400, "extra": 350, "items": "관조의 빛무리 1개, 시련의 빛 16개"},
+                "gate3": {"gold": 2000, "extra": 500, "items": "관조의 빛무리 3개, 시련의 빛 20개"}
+              }
+            },
+            "normal": {
+              "min_level": 1540,
+              "gates": 3,
+              "gold_total": 3300,
+              "rewards": {
+                "gate1": {"gold": 750, "extra": 180, "items": "시련의 빛 11개"},
+                "gate2": {"gold": 1100, "extra": 200, "items": "관조의 빛무리 1개, 시련의 빛 12개"},
+                "gate3": {"gold": 1450, "extra": 270, "items": "관조의 빛무리 2개, 시련의 빛 17개"}
+              }
+            },
+            "solo": {
+              "min_level": 1540,
+              "gates": 3,
+              "gold_total": 3300,
+              "rewards": {
+                "gate1": {"gold": 750, "extra": 180},
+                "gate2": {"gold": 1100, "extra": 200},
+                "gate3": {"gold": 1450, "extra": 270}
+              }
+            }
+          }
+        },
+        "ivory_tower": {
+          "name": "혼돈의 상아탑",
+          "name_en": "Ivory Tower of Chaos",
+          "difficulties": {
+            "hard": {
+              "min_level": 1620,
+              "gates": 3,
+              "gold_total": 7200,
+              "rewards": {
+                "gate1": {"gold": 1400, "extra": 350, "items": "빛나는 지혜의 기운 8개"},
+                "gate2": {"gold": 2000, "extra": 500, "items": "빛나는 지혜의 기운 8개"},
+                "gate3": {"gold": 3800, "extra": 950, "items": "빛나는 지혜의 엘릭서 2개, 빛나는 지혜의 기운 16개"}
+              }
+            },
+            "normal": {
+              "min_level": 1600,
+              "gates": 3,
+              "gold_total": 5200,
+              "rewards": {
+                "gate1": {"gold": 1200, "extra": 180, "items": "빛나는 지혜의 기운 4개"},
+                "gate2": {"gold": 1600, "extra": 220, "items": "빛나는 지혜의 기운 4개"},
+                "gate3": {"gold": 2400, "extra": 300, "items": "빛나는 지혜의 엘릭서 1개, 빛나는 지혜의 기운 8개"}
+              }
+            },
+            "solo": {
+              "min_level": 1600,
+              "gates": 3,
+              "gold_total": 5200,
+              "rewards": {
+                "gate1": {"gold": 1200, "extra": 250},
+                "gate2": {"gold": 1600, "extra": 350},
+                "gate3": {"gold": 2400, "extra": 550}
+              }
+            }
+          }
+        }
+      }
+    },
+    
+    "kazeros_raids": {
+      "name": "카제로스 레이드",
+      "party_size": 8,
+      "raids": {
+        "echidna": {
+          "name": "에키드나",
+          "name_en": "Echidna",
+          "act": "서막",
+          "difficulties": {
+            "hard": {
+              "min_level": 1640,
+              "gates": 2,
+              "gold_total": 7200,
+              "rewards": {
+                "gate1": {"gold": 2200, "extra": 720, "items": "알키오네의 눈 3개"},
+                "gate2": {"gold": 5000, "extra": 1630, "items": "알키오네의 눈 6개, 운명의 돌 3개"}
+              }
+            },
+            "normal": {
+              "min_level": 1620,
+              "gates": 2,
+              "gold_total": 6100,
+              "rewards": {
+                "gate1": {"gold": 1900, "extra": 310, "items": "아그리스의 비늘 3개"},
+                "gate2": {"gold": 4200, "extra": 700, "items": "아그리스의 비늘 6개"}
+              }
+            },
+            "solo": {
+              "min_level": 1620,
+              "gates": 2,
+              "gold_total": 6100,
+              "rewards": {
+                "gate1": {"gold": 1900, "extra": 310, "items": "아그리스의 비늘 3개"},
+                "gate2": {"gold": 4200, "extra": 700, "items": "아그리스의 비늘 6개"}
+              }
+            }
+          }
+        },
+        "aegir": {
+          "name": "에기르",
+          "name_en": "Aegir",
+          "act": "1막",
+          "difficulties": {
+            "hard": {
+              "min_level": 1680,
+              "gates": 2,
+              "gold_total": 18000,
+              "rewards": {
+                "gate1": {"gold": 5500, "extra": 1820, "items": "업화의 쐐기돌 8개"},
+                "gate2": {"gold": 12500, "extra": 4150, "items": "업화의 쐐기돌 12개, 운명의 돌 5개"}
+              }
+            },
+            "normal": {
+              "min_level": 1660,
+              "gates": 2,
+              "gold_total": 11500,
+              "rewards": {
+                "gate1": {"gold": 3500, "extra": 750, "items": "업화의 쐐기돌 4개"},
+                "gate2": {"gold": 8000, "extra": 1780, "items": "업화의 쐐기돌 6개, 운명의 돌 4개"}
+              }
+            },
+            "solo": {
+              "min_level": 1660,
+              "gates": 2,
+              "gold_total": 5750,
+              "rewards": {
+                "gate1": {"gold": 1750, "extra": 750, "items": "업화의 쐐기돌 4개"},
+                "gate2": {"gold": 4000, "extra": 1780, "items": "업화의 쐐기돌 6개, 운명의 돌 4개"}
+              }
+            }
+          }
+        },
+        "abrel_shud": {
+          "name": "아브렐 슈드",
+          "name_en": "Abrel Shud",
+          "act": "2막",
+          "difficulties": {
+            "hard": {
+              "min_level": 1690,
+              "gates": 2,
+              "gold_total": 23000,
+              "rewards": {
+                "gate1": {"gold": 7500, "extra": 2400, "items": "카르마의 잔영 8개"},
+                "gate2": {"gold": 15500, "extra": 5100, "items": "카르마의 잔영 12개, 운명의 돌 6개"}
+              }
+            },
+            "normal": {
+              "min_level": 1670,
+              "gates": 2,
+              "gold_total": 16500,
+              "rewards": {
+                "gate1": {"gold": 5500, "extra": 1820, "items": "카르마의 잔영 4개"},
+                "gate2": {"gold": 11000, "extra": 3720, "items": "카르마의 잔영 6개, 운명의 돌 4개"}
+              }
+            },
+            "solo": {
+              "min_level": 1670,
+              "gates": 2,
+              "gold_total": 8250,
+              "rewards": {
+                "gate1": {"gold": 2750, "extra": 1820, "items": "카르마의 잔영 4개"},
+                "gate2": {"gold": 5500, "extra": 3720, "items": "카르마의 잔영 6개, 운명의 돌 4개"}
+              }
+            }
+          }
+        },
+        "mordum": {
+          "name": "모르둠",
+          "name_en": "Mordum",
+          "act": "3막",
+          "difficulties": {
+            "hard": {
+              "min_level": 1700,
+              "gates": 3,
+              "gold_total": 27000,
+              "rewards": {
+                "gate1": {"gold": 5000, "extra": 1650, "items": "우레의 뇌옥 3개"},
+                "gate2": {"gold": 8000, "extra": 2640, "items": "우레의 뇌옥 5개"},
+                "gate3": {"gold": 14000, "extra": 4060, "items": "우레의 뇌옥 10개"}
+              }
+            },
+            "normal": {
+              "min_level": 1680,
+              "gates": 3,
+              "gold_total": 21000,
+              "rewards": {
+                "gate1": {"gold": 4000, "extra": 1300, "items": "낙뢰의 뿔 3개"},
+                "gate2": {"gold": 7000, "extra": 2350, "items": "낙뢰의 뿔 5개"},
+                "gate3": {"gold": 10000, "extra": 3360, "items": "낙뢰의 뿔 10개"}
+              }
+            },
+            "solo": {
+              "min_level": 1680,
+              "gates": 3,
+              "gold_total": 10500,
+              "rewards": {
+                "gate1": {"gold": 2000, "extra": 1300, "items": "낙뢰의 뿔 3개"},
+                "gate2": {"gold": 3500, "extra": 2350, "items": "낙뢰의 뿔 5개"},
+                "gate3": {"gold": 5000, "extra": 3360, "items": "낙뢰의 뿔 10개"}
+              }
+            }
+          }
+        },
+        "armoche": {
+          "name": "아르모체",
+          "name_en": "Armoché",
+          "act": "4막",
+          "difficulties": {
+            "hard": {
+              "min_level": 1720,
+              "gates": 2,
+              "gold_total": 42000,
+              "rewards": {
+                "gate1": {"gold": 15000, "extra": 4800, "items": "코어 (전설~고대) 1개"},
+                "gate2": {"gold": 27000, "extra": 8640, "items": "코어 (전설~고대) 1개"}
+              }
+            },
+            "normal": {
+              "min_level": 1700,
+              "gates": 2,
+              "gold_total": 33000,
+              "rewards": {
+                "gate1": {"gold": 12500, "extra": 4000, "items": "코어 (영웅~고대) 1개"},
+                "gate2": {"gold": 20500, "extra": 6560, "items": "코어 (영웅~고대) 1개"}
+              }
+            }
+          }
+        },
+        "kazeros": {
+          "name": "카제로스",
+          "name_en": "Kazeros",
+          "act": "종막",
+          "difficulties": {
+            "hard": {
+              "min_level": 1730,
+              "gates": 2,
+              "gold_total": 52000,
+              "rewards": {
+                "gate1": {"gold": 17000, "extra": 5440, "items": "코어 (전설~고대) 2개"},
+                "gate2": {"gold": 35000, "extra": 11200, "items": "코어 (전설~고대) 2개"}
+              }
+            },
+            "normal": {
+              "min_level": 1710,
+              "gates": 2,
+              "gold_total": 40000,
+              "rewards": {
+                "gate1": {"gold": 14000, "extra": 4480, "items": "코어 (영웅~고대) 2개"},
+                "gate2": {"gold": 26000, "extra": 8320, "items": "코어 (영웅~고대) 2개"}
+              }
+            }
+          }
+        }
+      }
+    },
+    
+    "epic_raids": {
+      "name": "에픽 레이드",
+      "party_size": 16,
+      "raids": {
+        "behemoth": {
+          "name": "베히모스",
+          "name_en": "Behemoth",
+          "difficulties": {
+            "normal": {
+              "min_level": 1640,
+              "gates": 2,
+              "gold_total": 7200,
+              "rewards": {
+                "gate1": {"gold": 2200, "extra": 720, "items": "베히모스의 비늘 10개, 마력의 샘물 10개"},
+                "gate2": {"gold": 5000, "extra": 1630, "items": "베히모스의 비늘 20개, 마력의 샘물 18개, 운명의 돌 3개"}
+              }
+            }
+          }
+        }
+      }
+    },
+    
+    "shadow_raids": {
+      "name": "그림자 레이드",
+      "party_size": 4,
+      "raids": {
+        "serca": {
+          "name": "세르카",
+          "name_en": "Serca",
+          "difficulties": {
+            "nightmare": {
+              "min_level": 1740,
+              "gates": 2,
+              "gold_total": 54000,
+              "rewards": {
+                "gate1": {"gold": 21000, "extra": 6720, "items": "고통의 가시 10개, 코어 (전설~고대) 3개"},
+                "gate2": {"gold": 33000, "extra": 10560, "items": "고통의 가시 15개, 코어 (전설~고대) 3개"}
+              }
+            },
+            "hard": {
+              "min_level": 1730,
+              "gates": 2,
+              "gold_total": 44000,
+              "rewards": {
+                "gate1": {"gold": 17500, "extra": 5600, "items": "고통의 가시 10개, 코어 (전설~고대) 2개"},
+                "gate2": {"gold": 26500, "extra": 8480, "items": "고통의 가시 15개, 코어 (전설~고대) 2개"}
+              }
+            },
+            "normal": {
+              "min_level": 1710,
+              "gates": 2,
+              "gold_total": 35000,
+              "rewards": {
+                "gate1": {"gold": 14000, "extra": 4480, "items": "코어 (영웅~고대) 2개"},
+                "gate2": {"gold": 21000, "extra": 6720, "items": "코어 (영웅~고대) 2개"}
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  
+  "important_notes": {
+    "gold_limit": "캐릭터당 주 3개 레이드만 골드 획득 가능",
+    "difficulty_limit": "같은 레이드의 노말/하드 중 하나만 골드 획득",
+    "solo_mode": "싱글 모드는 골드 50% 감소 (괄호 안 숫자)",
+    "event_exclusion": "더 퍼스트 난이도는 이벤트성으로 제외 (곧 종료 예정)",
+    "reward_changes": "뉴비 완화로 일부 보상 아이템은 삭제될 수 있음"
+  }
+}

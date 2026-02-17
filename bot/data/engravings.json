@@ -1,0 +1,727 @@
+{
+  "version": "1.0.0",
+  "last_updated": "2025-02-10",
+  "description": "Lost Ark Class Engravings Data for LoIl Discord Bot",
+  
+  "warrior": {
+    "class_name": "전사",
+    "class_name_en": "Warrior",
+    "origin": "슈샤이어",
+    "jobs": {
+      "warlord": {
+        "job_name": "워로드",
+        "job_name_en": "Warlord",
+        "engravings": {
+          "lonely_knight": {
+            "name": "고독한 기사",
+            "name_en": "Lonely Knight",
+            "abbreviation": "고기",
+            "notation": "워로드(고기)",
+            "synergies": {
+              "damage_amplification": "4%",
+              "positional_damage": "5%"
+            }
+          },
+          "combat_readiness": {
+            "name": "전투 태세",
+            "name_en": "Combat Readiness",
+            "abbreviation": "전태",
+            "notation": "워로드(전태)",
+            "synergies": {
+              "damage_amplification": "4%",
+              "positional_damage": "5%",
+              "defense_reduction": "12%"
+            }
+          }
+        }
+      },
+      "berserker": {
+        "job_name": "버서커",
+        "job_name_en": "Berserker",
+        "engravings": {
+          "berserkers_technique": {
+            "name": "광전사의 비기",
+            "name_en": "Berserker's Technique",
+            "synergies": {
+              "damage_amplification": "6%"
+            }
+          },
+          "mayhem": {
+            "name": "광기",
+            "name_en": "Mayhem",
+            "synergies": {
+              "damage_amplification": "6%"
+            }
+          }
+        }
+      },
+      "slayer": {
+        "job_name": "슬레이어",
+        "job_name_en": "Slayer",
+        "engravings": {
+          "punisher": {
+            "name": "처단자",
+            "name_en": "Punisher",
+            "synergies": {
+              "damage_amplification": "6%"
+            }
+          },
+          "predator": {
+            "name": "포식자",
+            "name_en": "Predator",
+            "synergies": {
+              "damage_amplification": "6%"
+            }
+          }
+        }
+      },
+      "destroyer": {
+        "job_name": "디스트로이어",
+        "job_name_en": "Destroyer",
+        "engravings": {
+          "rage_hammer": {
+            "name": "분노의 망치",
+            "name_en": "Rage Hammer",
+            "synergies": {
+              "defense_reduction": "12%"
+            }
+          },
+          "gravity_training": {
+            "name": "중력 수련",
+            "name_en": "Gravity Training",
+            "synergies": {
+              "defense_reduction": "12%"
+            }
+          }
+        }
+      },
+      "holyknight": {
+        "job_name": "홀리나이트",
+        "job_name_en": "Holyknight",
+        "engravings": {
+          "judgment": {
+            "name": "심판자",
+            "name_en": "Judgment",
+            "abbreviation": "심판",
+            "notation": "홀나(딜)",
+            "role": "딜러",
+            "synergies": {
+              "crit_damage": "8%"
+            }
+          },
+          "blessed_aura": {
+            "name": "축복의 오라",
+            "name_en": "Blessed Aura",
+            "abbreviation": "축오",
+            "notation": "홀나(폿)",
+            "role": "서폿",
+            "synergies": {}
+          }
+        }
+      },
+      "valkyrie": {
+        "job_name": "발키리",
+        "job_name_en": "Valkyrie",
+        "engravings": {
+          "light_knight": {
+            "name": "빛의 기사",
+            "name_en": "Light Knight",
+            "abbreviation": "빛기",
+            "notation": "발키리(딜)",
+            "role": "딜러",
+            "synergies": {
+              "crit_damage": "8%"
+            }
+          },
+          "liberator": {
+            "name": "해방자",
+            "name_en": "Liberator",
+            "abbreviation": "해방",
+            "notation": "발키리(폿)",
+            "role": "서폿",
+            "synergies": {}
+          }
+        }
+      }
+    }
+  },
+  
+  "martial_artist": {
+    "class_name": "무도가",
+    "class_name_en": "Martial Artist",
+    "origin": "애니츠",
+    "jobs": {
+      "battlemaster": {
+        "job_name": "배틀마스터",
+        "job_name_en": "Battle Master",
+        "engravings": {
+          "first_intention": {
+            "name": "초심",
+            "name_en": "First Intention",
+            "synergies": {
+              "crit_rate": "10%",
+              "attack_speed": "8%",
+              "movement_speed": "16%"
+            }
+          },
+          "esoteric_skill_enhancement": {
+            "name": "오의 강화",
+            "name_en": "Esoteric Skill Enhancement",
+            "synergies": {
+              "crit_rate": "10%",
+              "attack_speed": "8%",
+              "movement_speed": "16%"
+            }
+          }
+        }
+      },
+      "striker": {
+        "job_name": "스트라이커",
+        "job_name_en": "Striker",
+        "engravings": {
+          "esoteric_flurry": {
+            "name": "오의난무",
+            "name_en": "Esoteric Flurry",
+            "synergies": {
+              "crit_rate": "10%",
+              "attack_speed": "8%"
+            }
+          },
+          "deathblow": {
+            "name": "일격필살",
+            "name_en": "Deathblow",
+            "synergies": {
+              "crit_rate": "10%",
+              "attack_speed": "8%"
+            }
+          }
+        }
+      },
+      "infighter": {
+        "job_name": "인파이터",
+        "job_name_en": "Infighter",
+        "engravings": {
+          "ultimate_skill_taijutsu": {
+            "name": "극의: 체술",
+            "name_en": "Ultimate Skill: Taijutsu",
+            "synergies": {
+              "damage_amplification": "6%"
+            }
+          },
+          "shock_training": {
+            "name": "충격 단련",
+            "name_en": "Shock Training",
+            "synergies": {
+              "damage_amplification": "6%"
+            }
+          }
+        }
+      },
+      "breaker": {
+        "job_name": "브레이커",
+        "job_name_en": "Breaker",
+        "engravings": {
+          "asura": {
+            "name": "권왕파천무",
+            "name_en": "Asura's Path",
+            "synergies": {
+              "damage_amplification": "6%"
+            }
+          },
+          "brawl_king_storm": {
+            "name": "수라의 길",
+            "name_en": "Brawl King Storm",
+            "synergies": {
+              "damage_amplification": "6%"
+            }
+          }
+        }
+      },
+      "lancemaster": {
+        "job_name": "창술사",
+        "job_name_en": "Lance Master",
+        "engravings": {
+          "control": {
+            "name": "절제",
+            "name_en": "Control",
+            "synergies": {
+              "crit_damage": "8%"
+            },
+            "note": "치명타 시에만 적용"
+          },
+          "pinnacle": {
+            "name": "절정",
+            "name_en": "Pinnacle",
+            "synergies": {
+              "crit_damage": "8%"
+            },
+            "note": "치명타 시에만 적용"
+          }
+        }
+      },
+      "soulmaster": {
+        "job_name": "기공사",
+        "job_name_en": "Soul Master",
+        "engravings": {
+          "energy_overflow": {
+            "name": "세맥타통",
+            "name_en": "Energy Overflow",
+            "synergies": {
+              "attack_power": "6%"
+            },
+            "note": "내공 방출 스킬 채용 시"
+          },
+          "robust_spirit": {
+            "name": "역천지체",
+            "name_en": "Robust Spirit",
+            "synergies": {
+              "attack_power": "6%"
+            },
+            "note": "내공 방출 스킬 채용 시"
+          }
+        }
+      }
+    }
+  },
+  
+  "gunner": {
+    "class_name": "헌터",
+    "class_name_en": "Gunner",
+    "origin": "아르데타인",
+    "jobs": {
+      "hawkeye": {
+        "job_name": "호크아이",
+        "job_name_en": "Hawkeye",
+        "engravings": {
+          "death_strike": {
+            "name": "죽음의 습격",
+            "name_en": "Death Strike",
+            "abbreviation": "죽습",
+            "notation": "호크아이(죽습)",
+            "synergies": {
+              "damage_amplification": "6%"
+            }
+          },
+          "loyal_companion": {
+            "name": "두 번째 동료",
+            "name_en": "Loyal Companion",
+            "abbreviation": "두동",
+            "notation": "호크아이(두동)",
+            "synergies": {
+              "damage_amplification": "6%",
+              "movement_speed": "8%"
+            }
+          }
+        }
+      },
+      "devilhunter": {
+        "job_name": "데빌헌터",
+        "job_name_en": "Devil Hunter",
+        "engravings": {
+          "enhanced_weapon": {
+            "name": "전술 탄환",
+            "name_en": "Enhanced Weapon",
+            "synergies": {
+              "crit_rate": "10%"
+            }
+          },
+          "pistoleer": {
+            "name": "핸드거너",
+            "name_en": "Pistoleer",
+            "synergies": {
+              "crit_rate": "10%"
+            }
+          }
+        }
+      },
+      "gunslinger": {
+        "job_name": "건슬링어",
+        "job_name_en": "Gunslinger",
+        "engravings": {
+          "peacemaker": {
+            "name": "피스메이커",
+            "name_en": "Peacemaker",
+            "synergies": {
+              "crit_rate": "10%"
+            }
+          },
+          "time_to_hunt": {
+            "name": "사냥의 시간",
+            "name_en": "Time to Hunt",
+            "synergies": {
+              "crit_rate": "10%"
+            }
+          }
+        }
+      },
+      "blaster": {
+        "job_name": "블래스터",
+        "job_name_en": "Blaster",
+        "engravings": {
+          "barrage_enhancement": {
+            "name": "포격 강화",
+            "name_en": "Barrage Enhancement",
+            "synergies": {
+              "defense_reduction": "12%"
+            }
+          },
+          "firepower_enhancement": {
+            "name": "화력 강화",
+            "name_en": "Firepower Enhancement",
+            "synergies": {
+              "defense_reduction": "12%"
+            }
+          }
+        }
+      },
+      "scouter": {
+        "job_name": "스카우터",
+        "job_name_en": "Scouter",
+        "engravings": {
+          "evolutionary_legacy": {
+            "name": "진화의 유산",
+            "name_en": "Evolutionary Legacy",
+            "synergies": {
+              "attack_power": "6%"
+            }
+          },
+          "arthetinean_skill": {
+            "name": "아르데타인의 기술",
+            "name_en": "Arthetinean Skill",
+            "synergies": {
+              "attack_power": "6%"
+            }
+          }
+        }
+      }
+    }
+  },
+  
+  "mage": {
+    "class_name": "마법사",
+    "class_name_en": "Mage",
+    "origin": "로헨델",
+    "race": "실린",
+    "jobs": {
+      "summoner": {
+        "job_name": "서머너",
+        "job_name_en": "Summoner",
+        "engravings": {
+          "communication_overflow": {
+            "name": "넘치는 교감",
+            "name_en": "Communication Overflow",
+            "synergies": {
+              "defense_reduction": "12%",
+              "mana_recovery": "40%"
+            },
+            "note": "마나회복은 트라이포드 선택 시"
+          },
+          "master_summoner": {
+            "name": "상급 소환사",
+            "name_en": "Master Summoner",
+            "synergies": {
+              "defense_reduction": "12%",
+              "mana_recovery": "40%"
+            },
+            "note": "마나회복은 트라이포드 선택 시"
+          }
+        }
+      },
+      "arcana": {
+        "job_name": "아르카나",
+        "job_name_en": "Arcana",
+        "engravings": {
+          "empress_grace": {
+            "name": "황후의 은총",
+            "name_en": "Empress's Grace",
+            "synergies": {
+              "crit_rate": "10%"
+            }
+          },
+          "order_of_the_emperor": {
+            "name": "황제의 칙령",
+            "name_en": "Order of the Emperor",
+            "synergies": {
+              "crit_rate": "10%"
+            }
+          }
+        }
+      },
+      "sorceress": {
+        "job_name": "소서리스",
+        "job_name_en": "Sorceress",
+        "engravings": {
+          "igniter": {
+            "name": "점화",
+            "name_en": "Igniter",
+            "synergies": {
+              "damage_amplification": "6%"
+            }
+          },
+          "reflux": {
+            "name": "환류",
+            "name_en": "Reflux",
+            "synergies": {
+              "damage_amplification": "6%"
+            }
+          }
+        }
+      },
+      "bard": {
+        "job_name": "바드",
+        "job_name_en": "Bard",
+        "engravings": {
+          "desperate_salvation": {
+            "name": "절실한 구원",
+            "name_en": "Desperate Salvation",
+            "abbreviation": "절구",
+            "notation": "바드(폿)",
+            "role": "서폿",
+            "synergies": {
+              "attack_power": "증가",
+              "damage_amplification": "증가",
+              "attack_speed": "증가",
+              "mana_recovery": "12%"
+            }
+          },
+          "true_courage": {
+            "name": "진실된 용맹",
+            "name_en": "True Courage",
+            "abbreviation": "진용",
+            "notation": "바드(딜)",
+            "role": "딜러",
+            "synergies": {
+              "defense_reduction": "감소",
+              "attack_speed": "증가"
+            }
+          }
+        }
+      }
+    }
+  },
+  
+  "assassin": {
+    "class_name": "암살자",
+    "class_name_en": "Assassin",
+    "origin": "페이튼",
+    "race": "데런",
+    "jobs": {
+      "blade": {
+        "job_name": "블레이드",
+        "job_name_en": "Blade",
+        "engravings": {
+          "surge": {
+            "name": "버스트",
+            "name_en": "Surge",
+            "synergies": {
+              "damage_amplification": "4%",
+              "positional_damage": "5%",
+              "attack_speed": "12.8%",
+              "movement_speed": "12.8%"
+            }
+          },
+          "remaining_energy": {
+            "name": "잔재된 기운",
+            "name_en": "Remaining Energy",
+            "synergies": {
+              "damage_amplification": "4%",
+              "positional_damage": "5%",
+              "attack_speed": "12.8%",
+              "movement_speed": "12.8%"
+            }
+          }
+        }
+      },
+      "souleater": {
+        "job_name": "소울이터",
+        "job_name_en": "Soul Eater",
+        "engravings": {
+          "full_moon_harvester": {
+            "name": "만월의 집행자",
+            "name_en": "Full Moon Harvester",
+            "synergies": {
+              "damage_amplification": "6%"
+            }
+          },
+          "night_s_edge": {
+            "name": "그믐의 경계",
+            "name_en": "Night's Edge",
+            "synergies": {
+              "damage_amplification": "6%"
+            }
+          }
+        }
+      },
+      "demonic": {
+        "job_name": "데모닉",
+        "job_name_en": "Demonic",
+        "engravings": {
+          "demonic_impulse": {
+            "name": "멈출 수 없는 충동",
+            "name_en": "Demonic Impulse",
+            "synergies": {
+              "damage_amplification": "6%"
+            }
+          },
+          "perfect_suppression": {
+            "name": "완벽한 억제",
+            "name_en": "Perfect Suppression",
+            "synergies": {
+              "damage_amplification": "6%"
+            }
+          }
+        }
+      },
+      "reaper": {
+        "job_name": "리퍼",
+        "job_name_en": "Reaper",
+        "engravings": {
+          "lunar_voice": {
+            "name": "달의 소리",
+            "name_en": "Lunar Voice",
+            "synergies": {
+              "defense_reduction": "12%"
+            }
+          },
+          "hunger": {
+            "name": "갈증",
+            "name_en": "Hunger",
+            "synergies": {
+              "defense_reduction": "12%"
+            }
+          }
+        }
+      }
+    }
+  },
+  
+  "specialist": {
+    "class_name": "스페셜리스트",
+    "class_name_en": "Specialist",
+    "origin": "림레이크",
+    "race": "요즈",
+    "jobs": {
+      "aeromancer": {
+        "job_name": "기상술사",
+        "job_name_en": "Aeromancer",
+        "engravings": {
+          "wind_fury": {
+            "name": "질풍노도",
+            "name_en": "Wind Fury",
+            "abbreviation": "질풍",
+            "notation": "기상술사(질풍)",
+            "synergies": {
+              "crit_rate": "10%",
+              "attack_speed": "12%",
+              "movement_speed": "12%"
+            }
+          },
+          "drizzle": {
+            "name": "이슬비",
+            "name_en": "Drizzle",
+            "abbreviation": "이슬",
+            "notation": "기상술사(이슬)",
+            "synergies": {
+              "crit_rate": "10%"
+            },
+            "note": "공격력 감소 10%"
+          }
+        }
+      },
+      "artist": {
+        "job_name": "도화가",
+        "job_name_en": "Artist",
+        "engravings": {
+          "full_bloom": {
+            "name": "만개",
+            "name_en": "Full Bloom",
+            "abbreviation": "만개",
+            "notation": "도화가(폿)",
+            "role": "서폿",
+            "synergies": {
+              "attack_power": "6%"
+            }
+          },
+          "recurrence": {
+            "name": "회귀",
+            "name_en": "Recurrence",
+            "abbreviation": "회귀",
+            "notation": "도화가(딜)",
+            "role": "딜러",
+            "synergies": {
+              "attack_power": "6%"
+            }
+          }
+        }
+      },
+      "summoner_specialist": {
+        "job_name": "환수사",
+        "job_name_en": "Summoner",
+        "engravings": {
+          "full_bloom_beast": {
+            "name": "야성",
+            "name_en": "Full Bloom Beast",
+            "synergies": {
+              "defense_reduction": "12%"
+            }
+          },
+          "spirit_absorption": {
+            "name": "환수 각성",
+            "name_en": "Spirit Absorption",
+            "synergies": {
+              "defense_reduction": "12%"
+            }
+          }
+        }
+      }
+    }
+  },
+  
+  "guardian_knight": {
+    "class_name": "가디언나이트",
+    "class_name_en": "Guardian Knight",
+    "origin": "엠버레스",
+    "jobs": {
+      "guardian_knight": {
+        "job_name": "가디언나이트",
+        "job_name_en": "Guardian Knight",
+        "engravings": {
+          "lone_knight": {
+            "name": "업화의 계승자",
+            "name_en": "Lone Knight",
+            "synergies": {
+              "damage_amplification": "6%"
+            }
+          },
+          "dread_knight": {
+            "name": "드레드 로어",
+            "name_en": "Dread Knight",
+            "synergies": {
+              "damage_amplification": "6%"
+            }
+          }
+        }
+      }
+    }
+  },
+  
+  "notes": {
+    "hybrid_jobs": {
+      "홀리나이트": "축복의 오라(폿) / 심판자(딜)",
+      "발키리": "해방자(폿) / 빛의 기사(딜)",
+      "바드": "절실한 구원(폿) / 진실된 용맹(딜)",
+      "도화가": "만개(폿) / 회귀(딜)"
+    },
+    "engraving_dependent_synergies": {
+      "워로드": "전투 태세 각인 시 방감 추가",
+      "호크아이": "두 번째 동료 각인 시 이속 추가",
+      "기상술사": "질풍노도 각인 시 공속/이속 추가",
+      "바드": "진실된 용맹 각인 시 방감 추가"
+    },
+    "special_conditions": {
+      "창술사": "치명타 시에만 치피증 적용",
+      "서머너": "마나회복은 트라이포드 선택 시만",
+      "기공사": "내공 방출 스킬 채용 시"
+    }
+  }
+}
