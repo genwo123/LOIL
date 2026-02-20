@@ -1,0 +1,51 @@
+{
+  "hybrid_support": {
+    "홀리나이트": {
+      "support_engravings": ["은총의 오라"],
+      "dps_engravings": ["심판자"],
+      "support_aliases": ["홀나(폿)", "홀나", "홀리나이트"],
+      "dps_aliases": ["홀나(딜)", "딜홀나"],
+      "support_synergy": ["공격력 6% 증가", "받는 피해 증가", "이동속도 증가", "마나회복 50%"],
+      "dps_synergy": ["치명타 피해 증가"]
+    },
+    "바드": {
+      "support_engravings": ["두근두근 선율"],
+      "dps_engravings": ["진실된 용맹"],
+      "support_aliases": ["바드(폿)", "바드"],
+      "dps_aliases": ["바드(딜)", "딜바드"],
+      "support_synergy": ["공격력 6% 증가", "받는 피해 증가", "공격속도 증가", "마나회복"],
+      "dps_synergy": ["공격력 증가"]
+    },
+    "발키리": {
+      "support_engravings": ["빛의 수호자"],
+      "dps_engravings": ["빛의 기사"],
+      "support_aliases": ["발키리(폿)"],
+      "dps_aliases": ["발키리(딜)", "딜발", "발키리"],
+      "support_synergy": ["공격력 증가", "받는 피해 증가"],
+      "dps_synergy": ["치명타 피해 증가"],
+      "note": "발키리는 (폿) 명시 시에만 서폿으로 간주"
+    },
+    "도화가": {
+      "support_engravings": ["진채화"],
+      "dps_engravings": ["회귀"],
+      "support_aliases": ["도화가(폿)", "도화가"],
+      "dps_aliases": ["도화가(딜)", "딜도화가"],
+      "support_synergy": ["공격력 6% 증가", "받는 피해 증가", "공격속도 증가"],
+      "dps_synergy": ["공격력 증가"]
+    }
+  },
+  "support_judgment_rules": {
+    "rule_1": "(폿) suffix 포함 → 무조건 서폿",
+    "rule_2": "(서폿) suffix 포함 → 무조건 서폿",
+    "rule_3": "(딜) suffix 포함 → 무조건 딜러",
+    "rule_4": "suffix 없음 + 바드/홀리나이트/도화가 → 기본 서폿",
+    "rule_5": "suffix 없음 + 발키리 → 기본 딜러 (폿 명시해야 서폿)",
+    "rule_6": "기공사는 딜러 (역천/세맥) - 공증 시너지 제공하는 순수 딜러",
+    "rule_7": "그 외 모든 직업 → 딜러"
+  },
+  "notes": {
+    "기공사": "공격력 증가 시너지를 제공하지만 순수 딜러. 서폿 아님.",
+    "발키리": "(폿) 명시 없으면 딜러로 간주",
+    "도화가": "기본 서폿이지만 딜 각인(회귀) 선택 가능"
+  }
+}

@@ -1,0 +1,178 @@
+{
+  "version": "1.0.0",
+  "description": "딜러 직업각인별 사멸/타대 분류 및 특성 베이스",
+  "dps_categories": {
+    "head_smite": "헤드어택 사멸",
+    "back_smite": "백어택 사멸",
+    "pseudo_head": "유사헤드",
+    "pseudo_back": "유사백",
+    "pure_tae": "순수타대",
+    "tae_b": "타대B(광의)"
+  },
+  "jobs": {
+    "워로드": {
+      "engravings": {
+        "고독한 기사": { "abbrev": "고기", "dps_type": "head_smite", "stat_base": "치명" },
+        "전투 태세": { "abbrev": "전태", "dps_type": "pseudo_back", "stat_base": "치명" }
+      }
+    },
+    "디스트로이어": {
+      "engravings": {
+        "분노의 망치": { "abbrev": "분망", "dps_type": "head_smite", "stat_base": "특화" },
+        "중력 수련": { "abbrev": "중수", "dps_type": "head_smite", "stat_base": "특화" }
+      }
+    },
+    "브레이커": {
+      "engravings": {
+        "수라의 길": { "abbrev": "수라", "dps_type": "head_smite", "stat_base": "특화" },
+        "권왕파천무": { "abbrev": "권왕", "dps_type": "pseudo_head", "stat_base": "치명" }
+      }
+    },
+    "가디언나이트": {
+      "engravings": {
+        "드레드 로어": { "abbrev": "드로", "dps_type": "head_smite", "stat_base": "특화" },
+        "업화의 계승자": { "abbrev": "업화", "dps_type": "pure_tae", "stat_base": "특화" }
+      }
+    },
+    "버서커": {
+      "engravings": {
+        "비기": { "abbrev": "비기", "dps_type": "back_smite", "stat_base": "치명" },
+        "광기": { "abbrev": "광기", "dps_type": "pseudo_back", "stat_base": "치명" }
+      }
+    },
+    "슬레이어": {
+      "engravings": {
+        "포식자": { "abbrev": "포식", "dps_type": "back_smite", "stat_base": "치명" },
+        "처단자": { "abbrev": "처단", "dps_type": "back_smite", "stat_base": "치명" }
+      }
+    },
+    "홀리나이트": {
+      "engravings": {
+        "심판자": { "abbrev": "딜홀", "dps_type": "back_smite", "stat_base": "치명" }
+      }
+    },
+    "인파이터": {
+      "engravings": {
+        "극의: 체술": { "abbrev": "체술", "dps_type": "back_smite", "stat_base": "치특" },
+        "충격 단련": { "abbrev": "충단", "dps_type": "back_smite", "stat_base": "특화" }
+      }
+    },
+    "배틀마스터": {
+      "engravings": {
+        "오의 강화": { "abbrev": "오의", "dps_type": "back_smite", "stat_base": "신속" },
+        "초심": { "abbrev": "초심", "dps_type": "pseudo_back", "stat_base": "신속" }
+      }
+    },
+    "스트라이커": {
+      "engravings": {
+        "오의난무": { "abbrev": "오난", "dps_type": "back_smite", "stat_base": "치명" },
+        "일격필살": { "abbrev": "일격", "dps_type": "back_smite", "stat_base": "특화" }
+      }
+    },
+    "데빌헌터": {
+      "engravings": {
+        "전술탄환": { "abbrev": "강무", "dps_type": "back_smite", "stat_base": "치명" },
+        "핸드거너": { "abbrev": "핸건", "dps_type": "pseudo_back", "stat_base": "치명" }
+      }
+    },
+    "데모닉": {
+      "engravings": {
+        "완벽한 억제": { "abbrev": "억제", "dps_type": "back_smite", "stat_base": "특화" },
+        "멈출 수 없는 충동": { "abbrev": "충동", "dps_type": "tae_b", "stat_base": "치명" }
+      }
+    },
+    "블레이드": {
+      "engravings": {
+        "잔재된 기운": { "abbrev": "잔재", "dps_type": "back_smite", "stat_base": "특화" },
+        "버스트": { "abbrev": "버스트", "dps_type": "back_smite", "stat_base": "치명" }
+      }
+    },
+    "리퍼": {
+      "engravings": {
+        "달의 소리": { "abbrev": "달소", "dps_type": "back_smite", "stat_base": "신속" },
+        "그믐의 경계": { "abbrev": "그믐", "dps_type": "tae_b", "stat_base": "특화" }
+      }
+    },
+    "창술사": {
+      "engravings": {
+        "절제": { "abbrev": "절제", "dps_type": "back_smite", "stat_base": "치명" },
+        "절정": { "abbrev": "절정", "dps_type": "back_smite", "stat_base": "치명" }
+      }
+    },
+    "기공사": {
+      "engravings": {
+        "역천지체": { "abbrev": "역천", "dps_type": "pseudo_back", "stat_base": "치특" },
+        "세맥타통": { "abbrev": "세맥", "dps_type": "pseudo_back", "stat_base": "특화" }
+      }
+    },
+    "소울이터": {
+      "engravings": {
+        "만월의 집행자": { "abbrev": "만월", "dps_type": "tae_b", "stat_base": "특화" },
+        "그믐의 경계": { "abbrev": "그믐", "dps_type": "tae_b", "stat_base": "특화" }
+      }
+    },
+    "블래스터": {
+      "engravings": {
+        "포격 강화": { "abbrev": "포강", "dps_type": "pure_tae", "stat_base": "특화" },
+        "화력 강화": { "abbrev": "화강", "dps_type": "pure_tae", "stat_base": "특화" }
+      }
+    },
+    "소서리스": {
+      "engravings": {
+        "점화": { "abbrev": "점화", "dps_type": "pure_tae", "stat_base": "특화" },
+        "환류": { "abbrev": "환류", "dps_type": "pure_tae", "stat_base": "치명" }
+      }
+    },
+    "건슬링어": {
+      "engravings": {
+        "피스메이커": { "abbrev": "피메", "dps_type": "pure_tae", "stat_base": "치명" },
+        "사냥의 시간": { "abbrev": "사시", "dps_type": "pure_tae", "stat_base": "치명" }
+      }
+    },
+    "서머너": {
+      "engravings": {
+        "상급 소환사": { "abbrev": "상소", "dps_type": "pure_tae", "stat_base": "특화" },
+        "넘치는 교감": { "abbrev": "교감", "dps_type": "tae_b", "stat_base": "특화" }
+      }
+    },
+    "기상술사": {
+      "engravings": {
+        "이슬비": { "abbrev": "이슬비", "dps_type": "pure_tae", "stat_base": "치명" },
+        "질풍노도": { "abbrev": "질풍", "dps_type": "tae_b", "stat_base": "신속" }
+      }
+    },
+    "아르카나": {
+      "engravings": {
+        "황제의 칙령": { "abbrev": "황제", "dps_type": "tae_b", "stat_base": "특화" },
+        "황후의 은총": { "abbrev": "황후", "dps_type": "tae_b", "stat_base": "특화" }
+      }
+    },
+    "스카우터": {
+      "engravings": {
+        "진화의 유산": { "abbrev": "유산", "dps_type": "tae_b", "stat_base": "특화" },
+        "아르데타인의 기술": { "abbrev": "기술", "dps_type": "tae_b", "stat_base": "신속" }
+      }
+    },
+    "호크아이": {
+      "engravings": {
+        "두 번째 동료": { "abbrev": "두동", "dps_type": "tae_b", "stat_base": "치명" },
+        "죽음의 습격": { "abbrev": "죽습", "dps_type": "tae_b", "stat_base": "치명" }
+      }
+    },
+    "환수사": {
+      "engravings": {
+        "환수 각성": { "abbrev": "환수각", "dps_type": "tae_b", "stat_base": "특화" }
+      }
+    },
+    "발키리": {
+      "engravings": {
+        "빛의 기사": { "abbrev": "딜발", "dps_type": "tae_b", "stat_base": "치명" }
+      }
+    },
+    "도화가": {
+      "engravings": {
+        "회귀": { "abbrev": "회귀", "dps_type": "tae_b", "stat_base": "특화" }
+      }
+    }
+  }
+}
