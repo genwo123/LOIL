@@ -1,11 +1,10 @@
 """
-로일(LoIl) - 설정 Cog
-/설정 명령어 제거 → Modal + 버튼 UI로 교체
-
-채널: ⚙️ 로일-설정
-- 설정 상태판 고정 메시지
-- 시트 URL / 로아 API 키 / Gemini API 키 Modal 입력
-- 민감한 정보 채팅창 노출 없음
+로일(LoIl) - 설정 Cog v2
+B+C+A 혼합형 패널:
+- 상태 그리드 (C): 현재 연동 상태 카드 4개
+- 스텝 가이드 (B): 순서별 완료/미완료 표시
+- 스타일 선택 버튼 추가
+- /설정확인 제거 (admin_v2에서도 제거됨)
 """
 
 import discord
@@ -14,13 +13,13 @@ from discord import app_commands
 import json
 import os
 from bot.config.settings import BOT_VERSION
+from bot.utils.permissions import require_admin
 
-# ==================== 설정 저장 (JSON 임시 / 나중에 DB 교체) ====================
+# ==================== 설정 저장 ====================
 
 SETTINGS_FILE = "bot/data/guild_settings.json"
 
 def load_settings() -> dict:
-    """길드 설정 불러오기"""
     if not os.path.exists(SETTINGS_FILE):
         return {}
     try:
@@ -30,18 +29,14 @@ def load_settings() -> dict:
         return {}
 
 def save_settings(data: dict):
-    """길드 설정 저장"""
     os.makedirs(os.path.dirname(SETTINGS_FILE), exist_ok=True)
     with open(SETTINGS_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
 
 def get_guild_setting(guild_id: int) -> dict:
-    """특정 길드 설정 가져오기"""
-    settings = load_settings()
-    return settings.get(str(guild_id), {})
+    return load_settings().get(str(guild_id), {})
 
-def update_guild_setting(guild_id: int, key: str, value: str):
-    """특정 길드 설정 업데이트"""
+def update_guild_setting(guild_id: int, key: str, value):
     settings = load_settings()
     guild_key = str(guild_id)
     if guild_key not in settings:
@@ -52,9 +47,7 @@ def update_guild_setting(guild_id: int, key: str, value: str):
 
 # ==================== Modal 정의 ====================
 
-class SheetUrlModal(discord.ui.Modal, title="📊 구글 시트 연동"):
-    """시트 URL 입력 Modal"""
-
+class SheetUrlModal(discord.ui.Modal, title="📋 구글 시트 연동"):
     url = discord.ui.TextInput(
         label="구글 스프레드시트 URL",
         placeholder="https://docs.google.com/spreadsheets/d/...",
@@ -66,8 +59,6 @@ class SheetUrlModal(discord.ui.Modal, title="📊 구글 시트 연동"):
 
     async def on_submit(self, interaction: discord.Interaction):
         url_value = self.url.value.strip()
-
-        # URL 유효성 검사
         if "docs.google.com/spreadsheets" not in url_value:
             await interaction.response.send_message(
                 "❌ 올바른 구글 시트 URL이 아닙니다!\n"
@@ -75,166 +66,249 @@ class SheetUrlModal(discord.ui.Modal, title="📊 구글 시트 연동"):
                 ephemeral=True
             )
             return
-
-        # 저장
         update_guild_setting(interaction.guild_id, "sheet_url", url_value)
-
         await interaction.response.send_message(
-            "✅ 구글 시트 URL이 저장되었습니다!\n"
-            "설정 상태판이 자동으로 업데이트됩니다.",
-            ephemeral=True
+            "✅ 구글 시트 URL이 저장되었습니다!", ephemeral=True
         )
-
-        # 설정 패널 갱신
         setup_cog = interaction.client.cogs.get("SetupCog")
         if setup_cog:
             await setup_cog.refresh_setup_panel(interaction.guild)
 
 
-class LoaApiKeyModal(discord.ui.Modal, title="🔑 로아 API 키 등록"):
-    """로아 API 키 입력 Modal"""
-
-    key1 = discord.ui.TextInput(
-        label="API 키 1 (필수)",
-        placeholder="eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9...",
-        style=discord.TextStyle.short,
-        required=True,
-        max_length=500
-    )
-    key2 = discord.ui.TextInput(
-        label="API 키 2 (선택)",
-        placeholder="두 번째 API 키 (없으면 비워두세요)",
-        style=discord.TextStyle.short,
-        required=False,
-        max_length=500
-    )
-    key3 = discord.ui.TextInput(
-        label="API 키 3 (선택)",
-        placeholder="세 번째 API 키 (없으면 비워두세요)",
-        style=discord.TextStyle.short,
-        required=False,
-        max_length=500
+class LoaApiKeyModal(discord.ui.Modal, title="🗝 로아 API 키 등록"):
+    keys = discord.ui.TextInput(
+        label="API 키 (최대 3개, 쉼표로 구분)",
+        placeholder="key1,key2,key3",
+        style=discord.TextStyle.paragraph,
+        min_length=10,
+        max_length=500,
+        required=True
     )
 
     async def on_submit(self, interaction: discord.Interaction):
-        keys = []
-        for k in [self.key1.value, self.key2.value, self.key3.value]:
-            k = k.strip()
-            if k:
-                keys.append(k)
-
-        if not keys:
+        raw      = self.keys.value.strip()
+        key_list = [k.strip() for k in raw.split(",") if k.strip()]
+        if not key_list:
+            await interaction.response.send_message("❌ 유효한 키가 없습니다.", ephemeral=True)
+            return
+        if len(key_list) > 3:
             await interaction.response.send_message(
-                "❌ API 키를 최소 1개 이상 입력해주세요.",
-                ephemeral=True
+                "❌ API 키는 최대 3개까지 등록 가능합니다.", ephemeral=True
             )
             return
-
-        # 저장 (쉼표로 구분)
-        update_guild_setting(interaction.guild_id, "loa_api_keys", ",".join(keys))
-
+        update_guild_setting(interaction.guild_id, "loa_api_keys", ",".join(key_list))
         await interaction.response.send_message(
-            f"✅ 로아 API 키 **{len(keys)}개**가 저장되었습니다!\n"
-            "설정 상태판이 자동으로 업데이트됩니다.",
-            ephemeral=True
+            f"✅ 로아 API 키 {len(key_list)}개가 저장되었습니다!", ephemeral=True
         )
-
-        # 설정 패널 갱신
         setup_cog = interaction.client.cogs.get("SetupCog")
         if setup_cog:
             await setup_cog.refresh_setup_panel(interaction.guild)
 
 
-class GeminiApiKeyModal(discord.ui.Modal, title="✨ Gemini API 키 등록"):
-    """Gemini API 키 입력 Modal"""
-
+class GeminiApiKeyModal(discord.ui.Modal, title="🤖 Gemini API 키 등록"):
     key = discord.ui.TextInput(
         label="Gemini API 키",
-        placeholder="AIzaSy...",
+        placeholder="AIza...",
         style=discord.TextStyle.short,
-        required=True,
-        max_length=200
+        min_length=10,
+        max_length=200,
+        required=True
     )
 
     async def on_submit(self, interaction: discord.Interaction):
         key_value = self.key.value.strip()
-
         if not key_value.startswith("AIza"):
             await interaction.response.send_message(
-                "❌ 올바른 Gemini API 키가 아닌 것 같습니다.\n"
-                "`AIzaSy...` 형태의 키를 입력해주세요.",
+                "❌ 올바른 Gemini API 키가 아닙니다.\n"
+                "Google AI Studio에서 발급한 키를 입력해주세요.",
                 ephemeral=True
             )
             return
-
-        # 저장
         update_guild_setting(interaction.guild_id, "gemini_api_key", key_value)
-
         await interaction.response.send_message(
-            "✅ Gemini API 키가 저장되었습니다!\n"
-            "설정 상태판이 자동으로 업데이트됩니다.",
-            ephemeral=True
+            "✅ Gemini API 키가 저장되었습니다!", ephemeral=True
         )
-
-        # 설정 패널 갱신
         setup_cog = interaction.client.cogs.get("SetupCog")
         if setup_cog:
             await setup_cog.refresh_setup_panel(interaction.guild)
 
 
-# ==================== 설정 패널 버튼 View ====================
+# ==================== 스타일 선택 View ====================
+
+class StyleSelectView(discord.ui.View):
+    """일정 스타일 선택 버튼"""
+
+    def __init__(self):
+        super().__init__(timeout=60)
+
+    @discord.ui.button(label="B — 타임라인 (기본)", style=discord.ButtonStyle.primary, custom_id="style_b")
+    async def style_b(self, interaction: discord.Interaction, button: discord.ui.Button):
+        update_guild_setting(interaction.guild_id, "schedule_style", "B")
+        await interaction.response.send_message(
+            "✅ 일정 스타일이 **B — 타임라인**으로 설정되었습니다!", ephemeral=True
+        )
+        setup_cog = interaction.client.cogs.get("SetupCog")
+        if setup_cog:
+            await setup_cog.refresh_setup_panel(interaction.guild)
+
+    @discord.ui.button(label="D — 다크카드", style=discord.ButtonStyle.secondary, custom_id="style_d")
+    async def style_d(self, interaction: discord.Interaction, button: discord.ui.Button):
+        update_guild_setting(interaction.guild_id, "schedule_style", "D")
+        await interaction.response.send_message(
+            "✅ 일정 스타일이 **D — 다크카드**로 설정되었습니다!", ephemeral=True
+        )
+        setup_cog = interaction.client.cogs.get("SetupCog")
+        if setup_cog:
+            await setup_cog.refresh_setup_panel(interaction.guild)
+
+
+# ==================== 설정 패널 임베드 빌더 ====================
+
+def build_setup_embed(guild_setting: dict) -> discord.Embed:
+    """B+C+A 혼합형 설정 패널 임베드"""
+
+    sheet_url    = guild_setting.get("sheet_url", "")
+    loa_keys_raw = guild_setting.get("loa_api_keys", "")
+    gemini_key   = guild_setting.get("gemini_api_key", "")
+    style        = guild_setting.get("schedule_style", "B")
+
+    loa_keys = [k for k in loa_keys_raw.split(",") if k.strip()] if loa_keys_raw else []
+
+    sheet_ok  = bool(sheet_url)
+    loa_ok    = bool(loa_keys)
+    gemini_ok = bool(gemini_key)
+    all_done  = sheet_ok and loa_ok
+
+    color = 0x57F287 if all_done else 0x9B59B6
+
+    embed = discord.Embed(
+        title="⚙️ 로일 설정 패널",
+        description=(
+            "✅ **모든 설정 완료! 봇이 정상 운영 중입니다.**"
+            if all_done else
+            "아래 순서대로 설정하면 바로 사용할 수 있어요!\n"
+            "*민감한 정보는 팝업창으로 안전하게 입력됩니다.*"
+        ),
+        color=color
+    )
+
+    # ── 상태 그리드 ──
+    embed.add_field(
+        name="📋 구글 시트",
+        value=(f"✅ 연동됨\n[시트 열기]({sheet_url})" if sheet_ok else "❌ 미연동"),
+        inline=True
+    )
+    embed.add_field(
+        name="🗝 로아 API",
+        value=(f"✅ {len(loa_keys)}개 등록" if loa_ok else "❌ 미등록"),
+        inline=True
+    )
+    embed.add_field(
+        name="🤖 Gemini API",
+        value=("✅ 등록됨" if gemini_ok else "⚠️ 기본값 사용"),
+        inline=True
+    )
+    embed.add_field(
+        name="🎨 일정 스타일",
+        value=f"{'B — 타임라인' if style == 'B' else 'D — 다크카드'}",
+        inline=True
+    )
+    embed.add_field(name="\u200b", value="\u200b", inline=True)
+    embed.add_field(name="\u200b", value="\u200b", inline=True)
+
+    # ── 스텝 가이드 ──
+    def step(done: bool, num: str, text: str, sub: str, optional: bool = False) -> str:
+        if done:
+            icon, status = "✅", "완료"
+        elif optional:
+            icon, status = "⚠️", "선택"
+        else:
+            icon, status = "⬜", "미완료"
+        return f"{icon} **{num}. {text}** — {sub} `{status}`"
+
+    guide = "\n".join([
+        step(sheet_ok,  "1", "구글 시트 연동",      "시트 URL 등록"),
+        step(loa_ok,    "2", "로아 API 키 등록",    "최대 3개 풀링"),
+        step(gemini_ok, "3", "Gemini API 키 등록", "없으면 기본 키 사용", optional=True),
+        step(True,      "4", "일정 스타일 선택",    f"현재: {'B — 타임라인' if style == 'B' else 'D — 다크카드'}"),
+    ])
+    embed.add_field(name="🚀 설정 가이드", value=guide, inline=False)
+
+    if not all_done:
+        embed.add_field(
+            name="💡 도움말",
+            value=(
+                "• 로아 API 키 → [개발자 센터](https://developer-lostark.game.onstove.com/)\n"
+                "• Gemini API 키 → [Google AI Studio](https://aistudio.google.com/)\n"
+                "• 구글 시트 → `loli-sheet@loil-487100.iam.gserviceaccount.com` 편집자 공유 필요"
+            ),
+            inline=False
+        )
+
+    embed.set_footer(text=f"로일 v{BOT_VERSION} · 관리자만 설정 변경 가능 · 변경 즉시 반영")
+    return embed
+
+
+# ==================== 설정 패널 View ====================
 
 class SetupPanelView(discord.ui.View):
-    """설정 패널 버튼들"""
+    """설정 패널 버튼 (timeout=None → 영구)"""
 
     def __init__(self):
         super().__init__(timeout=None)
 
-    async def _check_admin(self, interaction: discord.Interaction) -> bool:
-        """관리자 권한 체크"""
-        if not interaction.user.guild_permissions.administrator:
-            await interaction.response.send_message(
-                "❌ 관리자만 설정을 변경할 수 있습니다.",
-                ephemeral=True
-            )
-            return False
-        return True
+    # ── Row 0: 등록 버튼 ──
 
     @discord.ui.button(
-        label="📊 시트 URL 등록",
+        label="📋 시트 URL 등록",
         style=discord.ButtonStyle.primary,
         custom_id="setup_sheet_url",
         row=0
     )
     async def setup_sheet(self, interaction: discord.Interaction, button: discord.ui.Button):
-        if not await self._check_admin(interaction):
-            return
+        if not await require_admin(interaction): return
         await interaction.response.send_modal(SheetUrlModal())
 
     @discord.ui.button(
-        label="🔑 로아 API 키 등록",
+        label="🗝 API 키 등록",
         style=discord.ButtonStyle.primary,
         custom_id="setup_loa_key",
         row=0
     )
     async def setup_loa_key(self, interaction: discord.Interaction, button: discord.ui.Button):
-        if not await self._check_admin(interaction):
-            return
+        if not await require_admin(interaction): return
         await interaction.response.send_modal(LoaApiKeyModal())
 
     @discord.ui.button(
-        label="✨ Gemini 키 등록",
+        label="🤖 Gemini 키 등록",
         style=discord.ButtonStyle.primary,
         custom_id="setup_gemini_key",
         row=0
     )
     async def setup_gemini_key(self, interaction: discord.Interaction, button: discord.ui.Button):
-        if not await self._check_admin(interaction):
-            return
+        if not await require_admin(interaction): return
         await interaction.response.send_modal(GeminiApiKeyModal())
 
+    # ── Row 1: 스타일 + 유틸 버튼 ──
+
     @discord.ui.button(
-        label="🔄 상태 새로고침",
+        label="🎨 일정 스타일 선택",
+        style=discord.ButtonStyle.secondary,
+        custom_id="setup_style",
+        row=1
+    )
+    async def select_style(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if not await require_admin(interaction): return
+        await interaction.response.send_message(
+            "🎨 **일정 스타일을 선택하세요**\n"
+            "• **B — 타임라인**: 시간 흐름 직관적, 보기 편한 레이아웃\n"
+            "• **D — 다크카드**: 고급스러운 느낌, 시간박스가 눈에 잘 띔",
+            view=StyleSelectView(),
+            ephemeral=True
+        )
+
+    @discord.ui.button(
+        label="🔄 새로고침",
         style=discord.ButtonStyle.secondary,
         custom_id="setup_refresh",
         row=1
@@ -243,123 +317,42 @@ class SetupPanelView(discord.ui.View):
         setup_cog = interaction.client.cogs.get("SetupCog")
         if setup_cog:
             await setup_cog.refresh_setup_panel(interaction.guild)
-        await interaction.response.send_message(
-            "🔄 상태판이 업데이트되었습니다!",
-            ephemeral=True
-        )
+        await interaction.response.send_message("🔄 설정 패널이 업데이트되었습니다!", ephemeral=True)
 
     @discord.ui.button(
-        label="🗑️ 설정 초기화",
+        label="🗑 설정 초기화",
         style=discord.ButtonStyle.danger,
         custom_id="setup_reset",
         row=1
     )
     async def reset_settings(self, interaction: discord.Interaction, button: discord.ui.Button):
-        if not await self._check_admin(interaction):
-            return
+        if not await require_admin(interaction): return
         await interaction.response.send_message(
-            "⚠️ 정말로 모든 설정을 초기화하시겠습니까?\n"
-            "확인하려면 아래 버튼을 눌러주세요.",
+            "⚠️ 정말로 모든 설정을 초기화하시겠습니까?",
             view=ConfirmResetView(),
             ephemeral=True
         )
 
 
 class ConfirmResetView(discord.ui.View):
-    """설정 초기화 확인 버튼"""
-
     def __init__(self):
         super().__init__(timeout=30)
 
     @discord.ui.button(label="✅ 초기화 확인", style=discord.ButtonStyle.danger)
     async def confirm(self, interaction: discord.Interaction, button: discord.ui.Button):
-        settings = load_settings()
+        settings  = load_settings()
         guild_key = str(interaction.guild_id)
         if guild_key in settings:
             del settings[guild_key]
             save_settings(settings)
-
         setup_cog = interaction.client.cogs.get("SetupCog")
         if setup_cog:
             await setup_cog.refresh_setup_panel(interaction.guild)
-
-        await interaction.response.send_message(
-            "✅ 설정이 초기화되었습니다.",
-            ephemeral=True
-        )
+        await interaction.response.send_message("✅ 설정이 초기화되었습니다.", ephemeral=True)
 
     @discord.ui.button(label="❌ 취소", style=discord.ButtonStyle.secondary)
     async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.send_message("취소되었습니다.", ephemeral=True)
-
-
-# ==================== 설정 임베드 빌더 ====================
-
-def build_setup_embed(guild_setting: dict) -> discord.Embed:
-    """설정 현황 임베드 생성"""
-
-    sheet_url    = guild_setting.get("sheet_url", "")
-    loa_keys_raw = guild_setting.get("loa_api_keys", "")
-    gemini_key   = guild_setting.get("gemini_api_key", "")
-
-    loa_keys = [k for k in loa_keys_raw.split(",") if k] if loa_keys_raw else []
-
-    # 연동 상태
-    sheet_status  = "🟢 연동됨" if sheet_url else "🔴 미연동"
-    loa_status    = f"🟢 {len(loa_keys)}개 등록" if loa_keys else "🔴 미등록"
-    gemini_status = "🟢 등록됨" if gemini_key else "🔴 미등록"
-
-    # 전체 완료 여부
-    all_done = bool(sheet_url and loa_keys and gemini_key)
-    color = 0x57F287 if all_done else 0x5865F2
-
-    embed = discord.Embed(
-        title="⚙️ 로일 설정 센터",
-        description=(
-            "✅ **설정 완료! 봇이 정상 운영 중입니다.**" if all_done
-            else "아래 버튼을 눌러 각 항목을 설정해주세요.\n*민감한 정보는 팝업창으로 안전하게 입력됩니다.*"
-        ),
-        color=color
-    )
-
-    # 시트 URL (일부만 표시)
-    if sheet_url:
-        short_url = sheet_url[:60] + "..." if len(sheet_url) > 60 else sheet_url
-        embed.add_field(
-            name="📊 구글 시트",
-            value=f"{sheet_status}\n[시트 바로가기]({sheet_url})",
-            inline=True
-        )
-    else:
-        embed.add_field(name="📊 구글 시트", value=sheet_status, inline=True)
-
-    # 로아 API 키
-    embed.add_field(name="🔑 로아 API 키", value=loa_status, inline=True)
-
-    # Gemini 키
-    embed.add_field(name="✨ Gemini API", value=gemini_status, inline=True)
-
-    # 체크리스트
-    checklist = (
-        f"{'✅' if sheet_url  else '⬜'} 구글 시트 연동\n"
-        f"{'✅' if loa_keys   else '⬜'} 로아 API 키 등록\n"
-        f"{'✅' if gemini_key else '⬜'} Gemini API 키 등록"
-    )
-    embed.add_field(name="📋 설정 체크리스트", value=checklist, inline=False)
-
-    if not all_done:
-        embed.add_field(
-            name="💡 도움말",
-            value=(
-                "• 로아 API 키는 [개발자 센터](https://developer-lostark.game.onstove.com/)에서 발급\n"
-                "• Gemini API 키는 [Google AI Studio](https://aistudio.google.com/)에서 발급\n"
-                "• 구글 시트는 `loli-sheet@loil-487100.iam.gserviceaccount.com` 에 편집자 공유 필요"
-            ),
-            inline=False
-        )
-
-    embed.set_footer(text=f"로일(LoIl) v{BOT_VERSION} · 설정은 서버별로 독립 저장됩니다")
-    return embed
 
 
 # ==================== SetupCog ====================
@@ -368,33 +361,25 @@ class SetupCog(commands.Cog, name="SetupCog"):
 
     def __init__(self, bot):
         self.bot = bot
-        # 설정 패널 메시지 ID 저장 {guild_id: message_id}
         self.panel_messages: dict[int, int] = {}
-        # 버튼 View 영구 등록
         bot.add_view(SetupPanelView())
 
-    # ── 설정 패널 전송 ──
-
     async def send_setup_panel(self, channel: discord.TextChannel):
-        """설정 채널에 상태판 전송 (최초 1회)"""
         guild_setting = get_guild_setting(channel.guild.id)
         embed = build_setup_embed(guild_setting)
         view  = SetupPanelView()
         msg   = await channel.send(embed=embed, view=view)
-
-        # 메시지 고정
         try:
             await msg.pin()
         except Exception:
             pass
-
         self.panel_messages[channel.guild.id] = msg.id
 
-    # ── 설정 패널 갱신 ──
-
     async def refresh_setup_panel(self, guild: discord.Guild):
-        """설정 변경 시 상태판 메시지 Edit으로 갱신"""
-        setup_channel = discord.utils.get(guild.text_channels, name="로일-설정")
+        setup_channel = discord.utils.get(guild.text_channels, name="⚙️│봇설정")
+        if not setup_channel:
+            # 채널명 변경 전 폴백
+            setup_channel = discord.utils.get(guild.text_channels, name="로일-설정")
         if not setup_channel:
             return
 
@@ -402,7 +387,6 @@ class SetupCog(commands.Cog, name="SetupCog"):
         embed = build_setup_embed(guild_setting)
         view  = SetupPanelView()
 
-        # 저장된 메시지 ID로 Edit
         msg_id = self.panel_messages.get(guild.id)
         if msg_id:
             try:
@@ -412,7 +396,6 @@ class SetupCog(commands.Cog, name="SetupCog"):
             except Exception:
                 pass
 
-        # 저장된 메시지가 없으면 고정 메시지에서 찾기
         try:
             pins = await setup_channel.pins()
             for pin in pins:
@@ -423,40 +406,22 @@ class SetupCog(commands.Cog, name="SetupCog"):
         except Exception:
             pass
 
-        # 아예 없으면 새로 전송
         await self.send_setup_panel(setup_channel)
 
-    # ── /설정패널 명령어 (수동으로 패널 다시 올리기) ──
-
-    @app_commands.command(name="설정패널", description="설정 상태판을 다시 표시합니다 (관리자 전용)")
-    @app_commands.checks.has_permissions(administrator=True)
-    async def show_setup_panel(self, interaction: discord.Interaction):
-        setup_channel = discord.utils.get(
-            interaction.guild.text_channels, name="로일-설정"
-        )
-        if not setup_channel:
-            await interaction.response.send_message(
-                "❌ 로일-설정 채널이 없습니다. 봇을 다시 초대하거나 채널을 수동으로 만들어주세요.",
-                ephemeral=True
-            )
+    @app_commands.command(name="설정패널", description="설정 패널을 다시 표시합니다 (관리자)")
+    async def setup_panel(self, interaction: discord.Interaction):
+        if not await require_admin(interaction): return
+        setup_ch = discord.utils.get(interaction.guild.text_channels, name="⚙️│봇설정")
+        if not setup_ch:
+            setup_ch = discord.utils.get(interaction.guild.text_channels, name="로일-설정")
+        if not setup_ch:
+            await interaction.response.send_message("❌ 설정 채널이 없습니다.", ephemeral=True)
             return
-
-        await self.send_setup_panel(setup_channel)
+        await self.send_setup_panel(setup_ch)
         await interaction.response.send_message(
-            f"✅ {setup_channel.mention} 채널에 설정 패널을 표시했습니다!",
-            ephemeral=True
+            f"✅ {setup_ch.mention} 에 설정 패널을 표시했습니다!", ephemeral=True
         )
 
-    @show_setup_panel.error
-    async def setup_panel_error(self, interaction: discord.Interaction, error):
-        if isinstance(error, app_commands.MissingPermissions):
-            await interaction.response.send_message(
-                "❌ 관리자만 사용할 수 있습니다.",
-                ephemeral=True
-            )
-
-
-# ==================== Cog 등록 ====================
 
 async def setup(bot):
     await bot.add_cog(SetupCog(bot))

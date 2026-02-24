@@ -1,16 +1,17 @@
 {
-  "version": "1.0.0",
-  "last_updated": "2025-02-10",
-  "description": "Lost Ark Jobs Data for LoIl Discord Bot",
-  
+  "version": "1.1.0",
+  "last_updated": "2026-02-20",
+  "description": "로스트아크 직업 데이터 - 클래스/출신지/성별/역할/하이브리드 구분",
+
   "classes": {
+
     "warrior": {
       "name": "전사",
       "origin": "슈샤이어",
       "jobs": {
-        "berserker": {
-          "name": "버서커",
-          "name_en": "Berserker",
+        "warlord": {
+          "name": "워로드",
+          "name_en": "Warlord",
           "gender": "male",
           "role": "딜러",
           "abbreviations": []
@@ -20,21 +21,21 @@
           "name_en": "Destroyer",
           "gender": "male",
           "role": "딜러",
-          "abbreviations": []
+          "abbreviations": ["디트"]
         },
-        "warlord": {
-          "name": "워로드",
-          "name_en": "Warlord",
+        "berserker": {
+          "name": "버서커",
+          "name_en": "Berserker",
           "gender": "male",
           "role": "딜러",
-          "abbreviations": []
+          "abbreviations": ["버커"]
         },
         "holyknight": {
           "name": "홀리나이트",
-          "name_en": "Holyknight",
+          "name_en": "Holy Knight",
           "gender": "male",
           "role": "하이브리드",
-          "abbreviations": [],
+          "abbreviations": ["홀나"],
           "variants": {
             "support": "홀나(폿)",
             "dps": "홀나(딜)"
@@ -45,14 +46,14 @@
           "name_en": "Slayer",
           "gender": "female",
           "role": "딜러",
-          "abbreviations": []
+          "abbreviations": ["슬레"]
         },
         "valkyrie": {
           "name": "발키리",
           "name_en": "Valkyrie",
           "gender": "female",
           "role": "하이브리드",
-          "abbreviations": [],
+          "abbreviations": ["발키"],
           "variants": {
             "support": "발키리(폿)",
             "dps": "발키리(딜)"
@@ -60,116 +61,73 @@
         }
       }
     },
-    
+
     "martial_artist": {
       "name": "무도가",
       "origin": "애니츠",
       "jobs": {
-        "battlemaster": {
-          "name": "배틀마스터",
-          "name_en": "Battle Master",
-          "gender": "female",
-          "role": "딜러",
-          "abbreviations": []
-        },
-        "infighter": {
-          "name": "인파이터",
-          "name_en": "Infighter",
-          "gender": "female",
-          "role": "딜러",
-          "abbreviations": []
-        },
-        "soulmaster": {
-          "name": "기공사",
-          "name_en": "Soul Master",
-          "gender": "female",
-          "role": "딜러",
-          "abbreviations": []
-        },
-        "lancemaster": {
-          "name": "창술사",
-          "name_en": "Lance Master",
-          "gender": "female",
-          "role": "딜러",
-          "abbreviations": []
-        },
         "striker": {
           "name": "스트라이커",
           "name_en": "Striker",
           "gender": "male",
           "role": "딜러",
-          "abbreviations": []
+          "abbreviations": ["스트"]
         },
         "breaker": {
           "name": "브레이커",
           "name_en": "Breaker",
           "gender": "male",
           "role": "딜러",
-          "abbreviations": []
-        }
-      }
-    },
-    
-    "gunner": {
-      "name": "헌터",
-      "origin": "아르데타인",
-      "jobs": {
-        "devilhunter": {
-          "name": "데빌헌터",
-          "name_en": "Devil Hunter",
-          "gender": "male",
-          "role": "딜러",
-          "abbreviations": []
+          "abbreviations": ["브레"]
         },
-        "blaster": {
-          "name": "블래스터",
-          "name_en": "Blaster",
-          "gender": "male",
-          "role": "딜러",
-          "abbreviations": []
-        },
-        "hawkeye": {
-          "name": "호크아이",
-          "name_en": "Hawkeye",
-          "gender": "male",
-          "role": "딜러",
-          "abbreviations": []
-        },
-        "scouter": {
-          "name": "스카우터",
-          "name_en": "Scouter",
-          "gender": "male",
-          "role": "딜러",
-          "abbreviations": []
-        },
-        "gunslinger": {
-          "name": "건슬링어",
-          "name_en": "Gunslinger",
+        "battlemaster": {
+          "name": "배틀마스터",
+          "name_en": "Battle Master",
           "gender": "female",
           "role": "딜러",
-          "abbreviations": []
+          "abbreviations": ["배마"]
+        },
+        "infighter": {
+          "name": "인파이터",
+          "name_en": "Infighter",
+          "gender": "female",
+          "role": "딜러",
+          "abbreviations": ["인파"]
+        },
+        "soulmaster": {
+          "name": "기공사",
+          "name_en": "Soul Master",
+          "gender": "female",
+          "role": "딜러",
+          "abbreviations": ["기공"]
+        },
+        "lancemaster": {
+          "name": "창술사",
+          "name_en": "Lance Master",
+          "gender": "female",
+          "role": "딜러",
+          "abbreviations": ["창술"]
         }
       }
     },
-    
+
     "mage": {
       "name": "마법사",
       "origin": "로헨델",
-      "race": "실린",
       "jobs": {
-        "arcana": {
-          "name": "아르카나",
-          "name_en": "Arcana",
-          "gender": "female",
-          "role": "딜러",
-          "abbreviations": []
-        },
         "summoner": {
           "name": "서머너",
           "name_en": "Summoner",
           "gender": "female",
           "role": "딜러",
-          "abbreviations": []
+          "abbreviations": ["서머"]
+        },
+        "arcana": {
+          "name": "아르카나",
+          "name_en": "Arcana",
+          "gender": "female",
+          "role": "딜러",
+          "abbreviations": ["아카", "아르카"]
         },
         "bard": {
           "name": "바드",
@@ -187,58 +145,98 @@
           "name_en": "Sorceress",
           "gender": "female",
           "role": "딜러",
-          "abbreviations": []
+          "abbreviations": ["소서"]
         }
       }
     },
-    
+
+    "gunner": {
+      "name": "헌터",
+      "origin": "아르데타인",
+      "jobs": {
+        "devilhunter": {
+          "name": "데빌헌터",
+          "name_en": "Devil Hunter",
+          "gender": "male",
+          "role": "딜러",
+          "abbreviations": ["데헌", "데빌"]
+        },
+        "blaster": {
+          "name": "블래스터",
+          "name_en": "Blaster",
+          "gender": "male",
+          "role": "딜러",
+          "abbreviations": ["블라"]
+        },
+        "hawkeye": {
+          "name": "호크아이",
+          "name_en": "Hawkeye",
+          "gender": "male",
+          "role": "딜러",
+          "abbreviations": ["호크"]
+        },
+        "scouter": {
+          "name": "스카우터",
+          "name_en": "Scouter",
+          "gender": "male",
+          "role": "딜러",
+          "abbreviations": ["스카"]
+        },
+        "gunslinger": {
+          "name": "건슬링어",
+          "name_en": "Gunslinger",
+          "gender": "female",
+          "role": "딜러",
+          "abbreviations": ["건슬"]
+        }
+      }
+    },
+
     "assassin": {
       "name": "암살자",
       "origin": "페이튼",
-      "race": "데런",
       "jobs": {
         "demonic": {
           "name": "데모닉",
           "name_en": "Demonic",
           "gender": "female",
           "role": "딜러",
-          "abbreviations": []
+          "abbreviations": ["데모"]
         },
         "blade": {
           "name": "블레이드",
           "name_en": "Blade",
           "gender": "female",
           "role": "딜러",
-          "abbreviations": []
+          "abbreviations": ["블레"]
         },
         "reaper": {
           "name": "리퍼",
           "name_en": "Reaper",
           "gender": "female",
           "role": "딜러",
-          "abbreviations": []
+          "abbreviations": ["리퍼"]
         },
         "souleater": {
           "name": "소울이터",
           "name_en": "Soul Eater",
           "gender": "female",
           "role": "딜러",
-          "abbreviations": []
+          "abbreviations": ["소이", "소울"]
         }
       }
     },
-    
+
     "specialist": {
       "name": "스페셜리스트",
       "origin": "림레이크",
-      "race": "요즈",
       "jobs": {
         "artist": {
           "name": "도화가",
           "name_en": "Artist",
           "gender": "female",
           "role": "하이브리드",
-          "abbreviations": [],
+          "abbreviations": ["도화"],
           "variants": {
             "support": "도화가(폿)",
             "dps": "도화가(딜)"
@@ -249,42 +247,39 @@
           "name_en": "Aeromancer",
           "gender": "female",
           "role": "딜러",
-          "abbreviations": []
+          "abbreviations": ["기상"]
         },
         "summoner_specialist": {
           "name": "환수사",
-          "name_en": "Summoner",
+          "name_en": "Wildsoul",
           "gender": "female",
           "role": "딜러",
-          "abbreviations": []
+          "abbreviations": ["환수"]
         }
       }
     },
-    
+
     "guardian_knight": {
       "name": "가디언나이트",
-      "origin": "엠버레스",
+      "origin": "미확인",
+      "note": "향후 계열 직업 추가 예정",
       "jobs": {
         "guardian_knight": {
           "name": "가디언나이트",
           "name_en": "Guardian Knight",
           "gender": "female",
           "role": "딜러",
-          "abbreviations": []
+          "abbreviations": ["가나", "가디"]
         }
       }
     }
+
   },
-  
+
   "role_types": {
-    "support": {
-      "name": "순수 서폿",
-      "description": "서폿만 가능한 직업",
-      "jobs": []
-    },
     "hybrid": {
       "name": "하이브리드 (서폿/딜러)",
-      "description": "서폿과 딜러 중 선택 가능",
+      "description": "각인에 따라 서폿/딜러 구분. 시트에 (폿)/(딜) 표기",
       "jobs": ["홀리나이트", "발키리", "바드", "도화가"],
       "notation": {
         "support": "(폿)",
@@ -293,19 +288,19 @@
     },
     "dps": {
       "name": "딜러",
-      "description": "딜러만 가능한 직업",
+      "description": "딜러 전용 직업",
       "jobs": [
-        "버서커", "디스트로이어", "워로드", "슬레이어",
-        "배틀마스터", "인파이터", "기공사", "창술사", "스트라이커", "브레이커",
+        "워로드", "디스트로이어", "버서커", "슬레이어",
+        "스트라이커", "브레이커", "배틀마스터", "인파이터", "기공사", "창술사",
+        "서머너", "아르카나", "소서리스",
         "데빌헌터", "블래스터", "호크아이", "스카우터", "건슬링어",
-        "아르카나", "서머너", "소서리스",
         "데모닉", "블레이드", "리퍼", "소울이터",
         "기상술사", "환수사",
         "가디언나이트"
       ]
     }
   },
-  
+
   "sheet_notation_rules": {
     "hybrid_support": "직업명(폿)",
     "hybrid_dps": "직업명(딜)",
@@ -326,11 +321,11 @@
       "불참": "미참여"
     }
   },
-  
+
   "notes": {
-    "abbreviations_usage": "abbreviations  별명으로 배열은 사용자가 직접 채워야 합니다. 예: ['워황', '어항', '워붕이', '워붕쿤']",
-    "hybrid_jobs": "하이브리드 직업은 각인에 따라 서폿/딜러로 구분됩니다",
-    "pure_support": "로스트아크에는 순수 서폿 직업이 없습니다. 모든 서폿은 딜러로도 플레이 가능합니다",
-    "soulmaster_note": "-"
+    "hybrid_jobs": "하이브리드 4종 (홀나/발키/바드/도화가) - 각인에 따라 서폿/딜러로 구분",
+    "guardian_knight_origin": "공식 출신지 미확인. 향후 계열 추가 시 업데이트 필요",
+    "new_class_pattern": "신규 직업은 기존 계열에 추가되거나 새 계열로 분리됨 (도화가→스페셜리스트 선례)",
+    "abbreviations_usage": "abbreviations 배열은 resolver.py 별명 매핑에 사용. 길드별 커스텀은 guild_aliases.json에 별도 관리"
   }
 }

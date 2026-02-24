@@ -1,9 +1,6 @@
 """
 로일(LoIl) - 파티 Cog
-버튼 + 드롭다운 중심 UI
-- 파티-편성 채널 고정 메시지
-- 레이드 선택 드롭다운 → AI 추천
-- 확정 / 다시추천 / 삭제 버튼
+이미지 렌더러(image_renderer.py) 적용
 """
 
 import discord
@@ -12,11 +9,15 @@ from discord import app_commands
 import asyncio
 import json
 import os
-from bot.utils.gemini_ai import recommend_party, analyze_synergy
-from bot.utils.sheets import get_all_data, get_weekly_summary, get_members, parse_raids
-from bot.config.settings import GEMINI_API_KEY
+import random
 
-# ==================== 설정 불러오기 ====================
+from bot.utils.gemini_ai import recommend_party
+from bot.utils.synergy_ui import SynergyClassSelectView
+from bot.utils.permissions import require_admin, is_admin
+from bot.utils.sheets import get_all_data, get_members, parse_raids, parse_all_raids, save_party_result
+from bot.utils.image_renderer import render_party_result
+from bot.config.settings import GEMINI_API_KEY, RAIDS_DATA
+from bot.config.channels import CH_PARTY, CH_NOTICE, CH_SCHEDULE, CH_SUGGEST, get_channel
 
 SETTINGS_FILE = "bot/data/guild_settings.json"
 
@@ -29,11 +30,10 @@ def get_guild_setting(guild_id: int) -> dict:
     except Exception:
         return {}
 
-def get_sheet_url(guild_id: int):
-    return get_guild_setting(guild_id).get("sheet_url")
+def get_sheet_url(guild_id: int) -> str:
+    return get_guild_setting(guild_id).get("sheet_url", "")
 
 def get_gemini_key(guild_id: int) -> str:
-    """길드 Gemini 키 → 없으면 .env 폴백"""
     key = get_guild_setting(guild_id).get("gemini_api_key", "")
     return key if key else GEMINI_API_KEY
 
@@ -56,359 +56,482 @@ def is_support(char_name: str) -> bool:
     return base in SUPPORT_JOBS or '폿' in char_name
 
 
-# ==================== 파티-편성 패널 임베드 ====================
+# ==================== 레이드 정렬 ====================
+
+CATEGORY_ORDER = {
+    "shadow_raids":  0,
+    "kazeros_raids": 1,
+    "legion_raids":  2,
+    "abyss_raids":   3,
+    "epic_raids":    4,
+}
+KAZEROS_ORDER    = ['종막', '4막', '3막', '2막', '1막', '서막']
+LEGION_ORDER     = ['카멘', '일리아칸', '아브렐슈드', '쿠크세이튼', '비아키스', '발탄']
+DIFFICULTY_ORDER = {'nightmare':0,'나이트메어':0,'나메':0,'hard':1,'하드':1,'normal':2,'노말':2}
+
+def get_raid_sort_key(raid: dict) -> tuple:
+    cat        = raid.get('category', '')
+    name       = raid.get('name', '')
+    diff       = raid.get('difficulty', '').lower()
+    cat_order  = CATEGORY_ORDER.get(cat, 99)
+    diff_order = DIFFICULTY_ORDER.get(diff, 99)
+    if cat == 'kazeros_raids':
+        raid_order = next((i for i, n in enumerate(KAZEROS_ORDER) if n in name), 99)
+    elif cat == 'legion_raids':
+        raid_order = next((i for i, n in enumerate(LEGION_ORDER) if n in name), 99)
+    else:
+        raid_order = 0
+    return (cat_order, raid_order, diff_order)
+
+def get_sorted_raids(raids: list) -> list:
+    return sorted(raids, key=get_raid_sort_key)
+
+
+# ==================== 파티 편성 로직 ====================
+
+def build_party_groups(members: list, party_size: int = 4) -> list[list]:
+    supports = [m for m in members if m.get('is_support')]
+    dps      = [m for m in members if not m.get('is_support')]
+    parties  = []
+    dps_idx  = 0
+    for supp in supports:
+        party = []
+        while dps_idx < len(dps) and len(party) < party_size - 1:
+            party.append(dps[dps_idx])
+            dps_idx += 1
+        party.append(supp)
+        parties.append(party)
+    remaining = dps[dps_idx:]
+    while remaining:
+        parties.append(remaining[:party_size])
+        remaining = remaining[party_size:]
+    return parties
+
+
+# ==================== 고정 패널 임베드 ====================
 
 def build_party_panel_embed() -> discord.Embed:
     embed = discord.Embed(
-        title="⚔️ 파티 편성 센터",
+        title="🛡 레이드 편성 센터",
         description=(
-            "아래 버튼으로 레이드를 선택하면\n"
-            "**AI가 최적의 파티 구성을 추천**해드립니다!\n\n"
-            "시너지 · 서폿 배치 · 인원 구성을 자동으로 분석합니다."
+            "구글 시트의 이번 주 참가자를 불러와\n"
+            "**AI가 최적의 파티를 자동 구성**합니다.\n\n"
+            "시간 충돌 자동 감지 · 서폿 자동 배치 · 시너지 고려"
         ),
-        color=0x9B59B6
+        color=0x5865F2
     )
     embed.add_field(
-        name="💡 사용 방법",
+        name="편성",
         value=(
-            "1️⃣ **레이드 선택** 버튼 클릭\n"
-            "2️⃣ 원하는 레이드 선택\n"
-            "3️⃣ AI 파티 추천 결과 확인\n"
-            "4️⃣ **확정** 버튼으로 파티 확정"
+            "주간 전체 편성 — 레이드 선택 후 AI가 한번에 편성\n"
+            "개별 레이드 편성 — 레이드 하나만 선택해 편성\n"
+            "시너지 분석 — 직업 목록 입력 → 시너지 분석"
         ),
-        inline=False
+        inline=True
     )
     embed.add_field(
-        name="⚡ 시너지 분석",
-        value="직업 목록 입력 → 시너지 조합 분석",
-        inline=False
+        name="레이드 관리 (관리자)",
+        value=(
+            "레이드 추가 / 수정 / 삭제\n"
+            "클리어 처리 / 예정 토글"
+        ),
+        inline=True
     )
-    embed.set_footer(text="파티 확정 시 스레드 잠금 · 7일 후 자동 삭제")
+    embed.set_footer(text="결과는 이미지로 스레드에 표시됩니다 · 확정 후 시트 자동 저장")
     return embed
 
 
-# ==================== 파티 패널 View ====================
+# ==================== 파티 고정 패널 View ====================
 
 class PartyPanelView(discord.ui.View):
-    """파티-편성 채널 고정 버튼"""
-
     def __init__(self):
         super().__init__(timeout=None)
 
-    @discord.ui.button(
-        label="⚔️ 레이드 선택",
-        style=discord.ButtonStyle.primary,
-        custom_id="party_select_raid",
-        row=0
-    )
-    async def select_raid(self, interaction: discord.Interaction, button: discord.ui.Button):
-        """레이드 목록 드롭다운"""
-        await interaction.response.defer(ephemeral=True)
+    # ── Row 0: 편성 ──
 
+    @discord.ui.button(label="주간 전체 편성", style=discord.ButtonStyle.primary, custom_id="party_weekly", row=0)
+    async def weekly_party(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.defer(ephemeral=True)
         url = get_sheet_url(interaction.guild_id)
         if not url:
-            await interaction.followup.send(
-                "❌ 시트가 연동되지 않았습니다.\n⚙️ **로일-설정** 채널에서 설정해주세요.",
-                ephemeral=True
-            )
+            await interaction.followup.send("❌ 시트가 연동되지 않았습니다.", ephemeral=True)
             return
-
         data  = get_all_data(url)
-        raids = parse_raids(data)
-
+        raids = get_sorted_raids(parse_raids(data))
         if not raids:
-            await interaction.followup.send(
-                "❌ 이번 주 예정된 레이드가 없습니다.", ephemeral=True
-            )
+            await interaction.followup.send("❌ 이번 주 예정된 레이드가 없습니다.", ephemeral=True)
             return
+        view  = RaidChecklistView(raids=raids, guild_id=interaction.guild_id, data=data)
+        embed = discord.Embed(
+            title="주간 전체 편성",
+            description=f"편성할 레이드를 선택하세요 · 총 **{len(raids)}개**",
+            color=0x5865F2
+        )
+        await interaction.followup.send(embed=embed, view=view, ephemeral=True)
 
-        # 드롭다운 옵션 생성 (최대 25개)
-        options = []
-        seen = set()
-        for r in raids[:25]:
-            label = f"{r['day']}요일 {r['time_str']} {r['name']}"
-            if label not in seen:
-                seen.add(label)
-                options.append(
-                    discord.SelectOption(
-                        label=r['name'],
-                        description=f"{r['day']}요일 {r['time_str']} · ~{r['duration']}분",
-                        value=f"{r['col']}|{r['name']}"
-                    )
-                )
+    @discord.ui.button(label="개별 레이드 편성", style=discord.ButtonStyle.secondary, custom_id="party_individual", row=0)
+    async def individual_party(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.defer(ephemeral=True)
+        url = get_sheet_url(interaction.guild_id)
+        if not url:
+            await interaction.followup.send("❌ 시트가 연동되지 않았습니다.", ephemeral=True)
+            return
+        data  = get_all_data(url)
+        raids = get_sorted_raids(parse_raids(data))
+        if not raids:
+            await interaction.followup.send("❌ 이번 주 예정된 레이드가 없습니다.", ephemeral=True)
+            return
+        view  = IndividualRaidSelectView(raids=raids, guild_id=interaction.guild_id, data=data)
+        embed = discord.Embed(title="개별 레이드 편성", description="편성할 레이드를 선택하세요", color=0x5865F2)
+        await interaction.followup.send(embed=embed, view=view, ephemeral=True)
 
-        view = RaidSelectView(options=options, data=data)
-        await interaction.followup.send(
-            "⚔️ 파티 편성할 레이드를 선택해주세요:",
-            view=view,
+    @discord.ui.button(label="시너지 분석", style=discord.ButtonStyle.secondary, custom_id="party_synergy", row=0)
+    async def synergy(self, interaction: discord.Interaction, button: discord.ui.Button):
+        embed = discord.Embed(
+            title="시너지 분석 — 클래스 선택",
+            description="분석할 직업의 클래스를 선택하세요",
+            color=0x9B59B6
+        )
+        await interaction.response.send_message(embed=embed, view=SynergyClassSelectView(), ephemeral=True)
+
+    # ── Row 1: 레이드 관리 (관리자) ──
+
+    @discord.ui.button(label="레이드 추가", style=discord.ButtonStyle.success, custom_id="party_raid_add", row=1)
+    async def raid_add(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if not await require_admin(interaction): return
+        from bot.cogs.raid_manage import AddRaidModal
+        url = get_sheet_url(interaction.guild_id)
+        if not url:
+            await interaction.response.send_message("❌ 시트가 연동되지 않았습니다.", ephemeral=True)
+            return
+        await interaction.response.send_modal(AddRaidModal())
+
+    @discord.ui.button(label="레이드 수정", style=discord.ButtonStyle.secondary, custom_id="party_raid_edit", row=1)
+    async def raid_edit(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if not await require_admin(interaction): return
+        from bot.cogs.raid_manage import RaidActionView
+        url = get_sheet_url(interaction.guild_id)
+        if not url:
+            await interaction.response.send_message("❌ 시트가 연동되지 않았습니다.", ephemeral=True)
+            return
+        data  = get_all_data(url)
+        raids = parse_all_raids(data)
+        if not raids:
+            await interaction.response.send_message("❌ 레이드가 없습니다.", ephemeral=True)
+            return
+        await interaction.response.send_message(
+            "수정할 레이드를 선택하세요:",
+            view=RaidActionView(raids=raids, action="edit", url=url),
             ephemeral=True
         )
 
-    @discord.ui.button(
-        label="⚡ 시너지 분석",
-        style=discord.ButtonStyle.secondary,
-        custom_id="party_synergy",
-        row=0
-    )
-    async def synergy_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.send_modal(SynergyModal())
-
-    @discord.ui.button(
-        label="👥 현재 파티 현황",
-        style=discord.ButtonStyle.secondary,
-        custom_id="party_status",
-        row=1
-    )
-    async def party_status(self, interaction: discord.Interaction, button: discord.ui.Button):
-        """레이드별 현재 참여 인원 현황"""
-        await interaction.response.defer(ephemeral=True)
-
+    @discord.ui.button(label="레이드 삭제", style=discord.ButtonStyle.danger, custom_id="party_raid_delete", row=1)
+    async def raid_delete(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if not await require_admin(interaction): return
+        from bot.cogs.raid_manage import RaidActionView
         url = get_sheet_url(interaction.guild_id)
         if not url:
-            await interaction.followup.send("❌ 시트 연동 필요", ephemeral=True)
+            await interaction.response.send_message("❌ 시트가 연동되지 않았습니다.", ephemeral=True)
             return
-
-        data    = get_all_data(url)
-        summary = get_weekly_summary(data)
-
-        embed = discord.Embed(
-            title="👥 레이드별 참여 현황",
-            color=0x5865F2
+        data  = get_all_data(url)
+        raids = parse_all_raids(data)
+        if not raids:
+            await interaction.response.send_message("❌ 레이드가 없습니다.", ephemeral=True)
+            return
+        await interaction.response.send_message(
+            "삭제할 레이드를 선택하세요:",
+            view=RaidActionView(raids=raids, action="delete", url=url),
+            ephemeral=True
         )
 
-        for raid in summary[:10]:
-            members = raid.get('members', [])
-            sup_cnt = sum(1 for m in members if m['is_support'])
-            dps_cnt = len(members) - sup_cnt
+    # ── Row 2: 네비게이션 ──
 
-            member_names = " · ".join([m['name'] for m in members]) if members else "없음"
-            embed.add_field(
-                name=f"⚔️ {raid['name']} ({raid.get('day','?')}요일 {raid.get('time_str','?')})",
-                value=f"💚 서폿 {sup_cnt}명 · ⚔️ 딜러 {dps_cnt}명\n{member_names}",
-                inline=False
+    @discord.ui.button(label="공지 →", style=discord.ButtonStyle.secondary, custom_id="party_to_notice", row=2)
+    async def to_notice(self, interaction: discord.Interaction, button: discord.ui.Button):
+        ch = get_channel(interaction.guild, CH_NOTICE)
+        await interaction.response.send_message(
+            f"{ch.mention} 으로 이동하세요!" if ch else "채널을 찾을 수 없습니다.", ephemeral=True
+        )
+
+    @discord.ui.button(label="일정 조회 →", style=discord.ButtonStyle.secondary, custom_id="party_to_schedule", row=2)
+    async def to_schedule(self, interaction: discord.Interaction, button: discord.ui.Button):
+        ch = get_channel(interaction.guild, CH_SCHEDULE)
+        await interaction.response.send_message(
+            f"{ch.mention} 으로 이동하세요!" if ch else "채널을 찾을 수 없습니다.", ephemeral=True
+        )
+
+    @discord.ui.button(label="건의함 →", style=discord.ButtonStyle.secondary, custom_id="party_to_suggest", row=2)
+    async def to_suggest(self, interaction: discord.Interaction, button: discord.ui.Button):
+        ch = get_channel(interaction.guild, CH_SUGGEST)
+        await interaction.response.send_message(
+            f"{ch.mention} 으로 이동하세요!" if ch else "채널을 찾을 수 없습니다.", ephemeral=True
+        )
+
+    @discord.ui.button(label="새로고침", style=discord.ButtonStyle.secondary, custom_id="party_refresh", row=2)
+    async def refresh(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.defer(ephemeral=True)
+        party_cog = interaction.client.cogs.get("PartyCog")
+        if party_cog:
+            await party_cog.refresh_party_panel(interaction.guild)
+        await interaction.followup.send("패널이 갱신되었습니다!", ephemeral=True)
+
+
+# ==================== 주간 체크리스트 ====================
+
+class RaidChecklistView(discord.ui.View):
+    def __init__(self, raids: list, guild_id: int, data: list):
+        super().__init__(timeout=180)
+        self.raids    = raids
+        self.guild_id = guild_id
+        self.data     = data
+        self.selected: set[int] = set(range(len(raids)))
+        self._build_select()
+
+    def _build_select(self):
+        for item in self.children.copy():
+            if isinstance(item, discord.ui.Select):
+                self.remove_item(item)
+        options = [
+            discord.SelectOption(
+                label=r.get('name', '')[:100],
+                description=f"{r.get('day','')} {r.get('time_str','')} · {r.get('member_count', 0)}명",
+                value=str(i),
+                default=(i in self.selected)
             )
-
-        await interaction.followup.send(embed=embed, ephemeral=True)
-
-
-# ==================== 레이드 선택 드롭다운 ====================
-
-class RaidSelectView(discord.ui.View):
-    """레이드 선택 드롭다운"""
-
-    def __init__(self, options: list, data: list):
-        super().__init__(timeout=60)
-        self.data = data
-        select = RaidSelect(options=options, data=data)
+            for i, r in enumerate(self.raids)
+        ]
+        select = discord.ui.Select(
+            placeholder="레이드 선택 (여러 개 가능)",
+            options=options[:25],
+            min_values=1,
+            max_values=min(len(options), 25),
+            custom_id="raid_checklist_select",
+            row=0
+        )
+        select.callback = self._on_select
         self.add_item(select)
 
+    async def _on_select(self, interaction: discord.Interaction):
+        select = discord.utils.get(self.children, custom_id="raid_checklist_select")
+        if select:
+            self.selected = {int(v) for v in select.values}
+        await interaction.response.defer()
 
-class RaidSelect(discord.ui.Select):
-    def __init__(self, options: list, data: list):
-        super().__init__(
-            placeholder="레이드를 선택하세요...",
-            min_values=1,
-            max_values=1,
-            options=options
-        )
-        self.data = data
+    @discord.ui.button(label="🤖 AI 편성", style=discord.ButtonStyle.primary, custom_id="weekly_ai_compose", row=1)
+    async def ai_compose(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if not self.selected:
+            await interaction.response.send_message("❌ 레이드를 하나 이상 선택해주세요!", ephemeral=True)
+            return
 
-    async def callback(self, interaction: discord.Interaction):
+        selected_raids = [self.raids[i] for i in sorted(self.selected)]
         await interaction.response.defer(ephemeral=True)
 
-        value      = self.values[0]
-        col_str, raid_name = value.split("|", 1)
-        col        = int(col_str)
-
-        # 해당 레이드 참여자 수집
-        members_data = get_members(self.data)
-        members = []
-        for m in members_data:
-            if m['absent']:
-                continue
-            char = m['characters'].get(col)
-            if char:
-                members.append({
-                    'name':       m['name'],
-                    'character':  char,
-                    'job':        char.split('(')[0].strip(),
-                    'is_support': is_support(char),
-                    'level':      0
-                })
-
-        if not members:
-            await interaction.followup.send(
-                f"❌ **{raid_name}** 에 참여 예정인 길드원이 없습니다.",
-                ephemeral=True
-            )
+        party_ch = get_channel(interaction.guild, CH_PARTY)
+        if not party_ch:
+            await interaction.followup.send("❌ 레이드편성 채널이 없습니다.", ephemeral=True)
             return
 
-        # 파티-편성 채널에 스레드 생성
-        party_channel = discord.utils.get(
-            interaction.guild.text_channels, name="파티-편성"
-        )
-        if not party_channel:
-            await interaction.followup.send("❌ 파티-편성 채널이 없습니다.", ephemeral=True)
-            return
-
-        # 로딩 메시지
-        loading_embed = discord.Embed(
-            title="🤖 AI 파티 편성 중...",
-            description=f"**{raid_name}** 레이드 파티를 분석하고 있습니다!\n잠시만 기다려주세요...",
-            color=0xFEE75C
-        )
-        thread = await party_channel.create_thread(
-            name=f"⚔️ {raid_name} 파티 편성",
+        thread = await party_ch.create_thread(
+            name="📅 주간 파티 편성",
             auto_archive_duration=10080,
             type=discord.ChannelType.public_thread
         )
-        loading_msg = await thread.send(embed=loading_embed)
+        await thread.send("🤖 AI 파티 편성 중... 잠시만 기다려주세요!")
+        await interaction.followup.send(f"✅ {thread.mention} 에서 확인하세요!", ephemeral=True)
 
-        await interaction.followup.send(
-            f"✅ {thread.mention} 에서 확인하세요!",
-            ephemeral=True
-        )
+        all_results = {}
+        members_raw = get_members(self.data)
 
-        # Gemini 키 폴백 적용
-        gemini_key = get_gemini_key(interaction.guild_id)
+        from bot.utils.member_link import get_absences
+        absences = get_absences(self.guild_id)
+        if absences:
+            members_raw = [m for m in members_raw if m.get('name') not in absences]
 
-        # AI 추천
-        try:
-            result = recommend_party(members, raid_name)
-        except Exception as e:
-            result = f"AI 추천 중 오류: {e}"
+        for raid in selected_raids:
+            raid_name = raid.get('name', '')
+            col       = raid.get('col')
+            members   = []
+            for m in members_raw:
+                if m.get('absent'):
+                    continue
+                char_info = m['characters'].get(col)
+                if not char_info:
+                    continue
+                members.append({
+                    'name':       m['name'],
+                    'character':  char_info['raw'],
+                    'is_support': char_info['is_support'],
+                })
+            if not members:
+                continue
+            parties = build_party_groups(members, raid.get('party_size', 4))
+            all_results[raid_name] = {'raid': raid, 'members': members, 'parties': parties}
 
-        # 결과 임베드
-        sup_cnt = sum(1 for m in members if m['is_support'])
-        dps_cnt = len(members) - sup_cnt
-
-        result_embed = discord.Embed(
-            title=f"⚔️ {raid_name} 파티 편성 추천",
-            description=result[:2000] if len(result) > 2000 else result,
-            color=0xFFD700
-        )
-        result_embed.add_field(name="👥 총 인원", value=f"{len(members)}명", inline=True)
-        result_embed.add_field(name="💚 서폿",    value=f"{sup_cnt}명",      inline=True)
-        result_embed.add_field(name="⚔️ 딜러",   value=f"{dps_cnt}명",      inline=True)
-
-        # 참여자 목록
-        member_list = "\n".join([
-            f"{'💚' if m['is_support'] else '⚔️'} **{m['name']}** · {m['character']}"
-            for m in members
-        ])
-        result_embed.add_field(name="📋 참여 인원", value=member_list[:1024], inline=False)
-        result_embed.set_footer(text="✅ 확정 버튼으로 파티를 확정하세요 · 7일 후 자동 삭제")
-
-        confirm_view = PartyConfirmView(thread=thread, raid_name=raid_name)
-        await loading_msg.edit(embed=result_embed, view=confirm_view)
+        for raid_name, result in all_results.items():
+            buf      = render_party_result(raid_name, result['parties'])
+            img_file = discord.File(fp=buf, filename=f"party_{raid_name}.png")
+            confirm_view = PartyConfirmView(
+                thread=thread,
+                raid_name=raid_name,
+                parties=result['parties'],
+                members=result['members'],
+                guild_id=interaction.guild_id,
+            )
+            await thread.send(file=img_file, view=confirm_view)
 
         asyncio.create_task(delete_thread_after(thread, 604800))
 
 
-# ==================== 파티 확정 버튼 ====================
+# ==================== 개별 레이드 선택 ====================
 
-class PartyConfirmView(discord.ui.View):
-    def __init__(self, thread: discord.Thread, raid_name: str):
-        super().__init__(timeout=None)
-        self.thread    = thread
-        self.raid_name = raid_name
+class IndividualRaidSelectView(discord.ui.View):
+    def __init__(self, raids: list, guild_id: int, data: list):
+        super().__init__(timeout=180)
+        self.raids        = raids
+        self.guild_id     = guild_id
+        self.data         = data
+        self.selected_idx = None
 
-    @discord.ui.button(
-        label="✅ 파티 확정",
-        style=discord.ButtonStyle.success,
-        custom_id="party_confirm"
-    )
-    async def confirm(self, interaction: discord.Interaction, button: discord.ui.Button):
-        if not interaction.user.guild_permissions.administrator:
+        options = [
+            discord.SelectOption(
+                label=r.get('name', '')[:100],
+                description=f"{r.get('day','')} {r.get('time_str','')} · {r.get('member_count',0)}명",
+                value=str(i),
+            )
+            for i, r in enumerate(raids)
+        ]
+        select = discord.ui.Select(
+            placeholder="⚔️ 레이드 선택",
+            options=options[:25],
+            min_values=1,
+            max_values=1,
+            custom_id="individual_raid_select",
+            row=0
+        )
+        select.callback = self._on_select
+        self.add_item(select)
+
+    async def _on_select(self, interaction: discord.Interaction):
+        select = discord.utils.get(self.children, custom_id="individual_raid_select")
+        self.selected_idx = int(select.values[0])
+        await interaction.response.defer()
+
+    @discord.ui.button(label="🤖 AI 편성", style=discord.ButtonStyle.primary, custom_id="individual_ai", row=1)
+    async def ai_compose(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if self.selected_idx is None:
+            await interaction.response.send_message("❌ 레이드를 먼저 선택해주세요!", ephemeral=True)
+            return
+        raid       = self.raids[self.selected_idx]
+        raid_name  = raid.get('name', '')
+        col        = raid.get('col')
+
+        members_raw = get_members(self.data)
+
+        from bot.utils.member_link import get_absences
+        absences = get_absences(interaction.guild_id)
+        if absences:
+            members_raw = [m for m in members_raw if m.get('name') not in absences]
+
+        members = []
+        for m in members_raw:
+            if m.get('absent'):
+                continue
+            char_info = m['characters'].get(col)
+            if not char_info:
+                continue
+            members.append({
+                'name':       m['name'],
+                'character':  char_info['raw'],
+                'is_support': char_info['is_support'],
+            })
+
+        if not members:
             await interaction.response.send_message(
-                "❌ 관리자 또는 레이드장만 확정할 수 있습니다.", ephemeral=True
+                f"❌ **{raid_name}** 참가 예정 길드원이 없습니다.", ephemeral=True
             )
             return
 
+        await interaction.response.defer(ephemeral=True)
+
+        parties  = build_party_groups(members, raid.get('party_size', 4))
+        buf      = render_party_result(raid_name, parties)
+        img_file = discord.File(fp=buf, filename=f"party_{raid_name}.png")
+
+        party_ch = get_channel(interaction.guild, CH_PARTY)
+        if not party_ch:
+            await interaction.followup.send("❌ 레이드편성 채널이 없습니다.", ephemeral=True)
+            return
+
+        thread = await party_ch.create_thread(
+            name=f"⚔️ {raid_name} 파티 편성",
+            auto_archive_duration=10080,
+            type=discord.ChannelType.public_thread
+        )
+        confirm_view = PartyConfirmView(
+            thread=thread,
+            raid_name=raid_name,
+            parties=parties,
+            members=members,
+            guild_id=interaction.guild_id,
+        )
+        await thread.send(file=img_file, view=confirm_view)
+        await interaction.followup.send(f"✅ {thread.mention} 에서 확인하세요!", ephemeral=True)
+        asyncio.create_task(delete_thread_after(thread, 604800))
+
+
+# ==================== 파티 확정 View ====================
+
+class PartyConfirmView(discord.ui.View):
+    def __init__(self, thread, raid_name, parties, members, guild_id):
+        super().__init__(timeout=None)
+        self.thread    = thread
+        self.raid_name = raid_name
+        self.parties   = parties
+        self.members   = members
+        self.guild_id  = guild_id
+
+    @discord.ui.button(label="✅ 확정 + 시트 저장", style=discord.ButtonStyle.success, custom_id="party_confirm")
+    async def confirm(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if not await require_admin(interaction): return
+        await interaction.response.defer()
+        url = get_sheet_url(self.guild_id)
+        if url:
+            try:
+                save_party_result(url, self.raid_name, self.parties)
+            except Exception as e:
+                await interaction.followup.send(f"⚠️ 시트 저장 오류: {e}", ephemeral=True)
         for item in self.children:
             item.disabled = True
         await interaction.message.edit(view=self)
-
-        await interaction.response.send_message(
-            f"✅ **{interaction.user.display_name}** 님이 **{self.raid_name}** 파티를 확정했습니다!\n"
-            "🔒 스레드가 잠깁니다."
+        await interaction.followup.send(
+            f"✅ **{interaction.user.display_name}** 님이 **{self.raid_name}** 파티를 확정했습니다!\n🔒 스레드가 잠깁니다."
         )
         try:
             await self.thread.edit(locked=True, archived=False)
         except Exception:
             pass
 
-    @discord.ui.button(
-        label="🔄 다시 추천",
-        style=discord.ButtonStyle.primary,
-        custom_id="party_retry"
-    )
+    @discord.ui.button(label="🔄 재편성", style=discord.ButtonStyle.primary, custom_id="party_retry")
     async def retry(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.send_message(
-            "🔄 파티-편성 채널의 **레이드 선택** 버튼을 다시 눌러주세요!",
-            ephemeral=True
-        )
+        dps          = [m for m in self.members if not m.get('is_support')]
+        supps        = [m for m in self.members if m.get('is_support')]
+        random.shuffle(dps)
+        party_size   = max(len(self.parties[0]), 4) if self.parties else 4
+        self.parties = build_party_groups(dps + supps, party_size)
+        buf          = render_party_result(self.raid_name, self.parties)
+        img_file     = discord.File(fp=buf, filename=f"party_{self.raid_name}.png")
+        await interaction.response.defer()
+        await interaction.message.delete()
+        await interaction.channel.send(file=img_file, view=self)
 
-    @discord.ui.button(
-        label="🗑️ 삭제",
-        style=discord.ButtonStyle.danger,
-        custom_id="party_delete"
-    )
+    @discord.ui.button(label="🗑 삭제", style=discord.ButtonStyle.danger, custom_id="party_delete")
     async def delete(self, interaction: discord.Interaction, button: discord.ui.Button):
-        if not interaction.user.guild_permissions.administrator:
-            await interaction.response.send_message("❌ 관리자만 삭제 가능합니다.", ephemeral=True)
-            return
-        await interaction.response.send_message("🗑️ 스레드를 삭제합니다...")
+        if not await require_admin(interaction): return
+        await interaction.response.send_message("🗑 삭제합니다...")
         try:
             await self.thread.delete()
         except Exception:
             pass
-
-
-# ==================== 시너지 Modal ====================
-
-class SynergyModal(discord.ui.Modal, title="⚡ 시너지 분석"):
-    jobs = discord.ui.TextInput(
-        label="직업 목록 (쉼표로 구분)",
-        placeholder="예: 홀리나이트, 소서리스, 리퍼, 블레이드",
-        style=discord.TextStyle.short,
-        required=True,
-        max_length=200
-    )
-
-    async def on_submit(self, interaction: discord.Interaction):
-        await interaction.response.defer(thinking=True)
-
-        job_list = [j.strip() for j in self.jobs.value.split(',') if j.strip()]
-
-        if len(job_list) < 2:
-            await interaction.followup.send(
-                "❌ 직업을 2개 이상 입력해주세요!", ephemeral=True
-            )
-            return
-        if len(job_list) > 8:
-            await interaction.followup.send(
-                "❌ 최대 8개까지 입력 가능합니다!", ephemeral=True
-            )
-            return
-
-        try:
-            result = analyze_synergy(job_list)
-        except Exception as e:
-            result = f"분석 중 오류: {e}"
-
-        embed = discord.Embed(
-            title="⚡ 시너지 분석 결과",
-            description=result[:2000] if len(result) > 2000 else result,
-            color=0x9B59B6
-        )
-        embed.add_field(
-            name="분석 직업",
-            value=" · ".join(job_list),
-            inline=False
-        )
-        embed.set_footer(text="AI 분석 결과입니다")
-        await interaction.followup.send(embed=embed)
 
 
 # ==================== PartyCog ====================
@@ -420,7 +543,6 @@ class PartyCog(commands.Cog, name="PartyCog"):
         self.panel_messages: dict[int, int] = {}
 
     async def send_party_panel(self, channel: discord.TextChannel):
-        """파티-편성 채널에 패널 전송"""
         embed = build_party_panel_embed()
         view  = PartyPanelView()
         msg   = await channel.send(embed=embed, view=view)
@@ -430,104 +552,50 @@ class PartyCog(commands.Cog, name="PartyCog"):
             pass
         self.panel_messages[channel.guild.id] = msg.id
 
-    # ── /파티패널 (수동 패널 올리기) ──
+    async def refresh_party_panel(self, guild: discord.Guild):
+        party_ch = get_channel(guild, CH_PARTY)
+        if not party_ch:
+            return
+        embed  = build_party_panel_embed()
+        view   = PartyPanelView()
+        msg_id = self.panel_messages.get(guild.id)
+        if msg_id:
+            try:
+                msg = await party_ch.fetch_message(msg_id)
+                await msg.edit(embed=embed, view=view)
+                return
+            except Exception:
+                pass
+        try:
+            pins = await party_ch.pins()
+            for pin in pins:
+                if pin.author == guild.me:
+                    await pin.edit(embed=embed, view=view)
+                    self.panel_messages[guild.id] = pin.id
+                    return
+        except Exception:
+            pass
+        await self.send_party_panel(party_ch)
 
     @app_commands.command(name="파티패널", description="파티 편성 패널을 표시합니다 (관리자)")
-    @app_commands.checks.has_permissions(administrator=True)
-    async def party_panel(self, interaction: discord.Interaction):
-        party_channel = discord.utils.get(
-            interaction.guild.text_channels, name="파티-편성"
-        )
-        if not party_channel:
-            await interaction.response.send_message(
-                "❌ 파티-편성 채널이 없습니다.", ephemeral=True
-            )
+    async def party_panel_cmd(self, interaction: discord.Interaction):
+        if not await require_admin(interaction): return
+        party_ch = get_channel(interaction.guild, CH_PARTY)
+        if not party_ch:
+            await interaction.response.send_message("❌ 레이드편성 채널이 없습니다.", ephemeral=True)
             return
-
-        await self.send_party_panel(party_channel)
-        await interaction.response.send_message(
-            f"✅ {party_channel.mention} 에 파티 편성 패널을 표시했습니다!",
-            ephemeral=True
-        )
-
-    @party_panel.error
-    async def party_panel_error(self, interaction, error):
-        if isinstance(error, app_commands.MissingPermissions):
-            await interaction.response.send_message("❌ 관리자만 사용 가능합니다.", ephemeral=True)
-
-    # ── /파티추천 (기존 명령어 유지) ──
-
-    @app_commands.command(name="파티추천", description="AI 파티 편성 추천")
-    @app_commands.describe(레이드="레이드 이름 (예: 에기르 하드)")
-    async def party_recommend(self, interaction: discord.Interaction, 레이드: str):
-        await interaction.response.defer(thinking=True, ephemeral=True)
-
-        url = get_sheet_url(interaction.guild_id)
-        if not url:
-            await interaction.followup.send(
-                "❌ 시트가 연동되지 않았습니다.\n⚙️ **로일-설정** 채널에서 설정해주세요.",
-                ephemeral=True
-            )
-            return
-
-        data         = get_all_data(url)
-        members_data = get_members(data)
-        members = []
-        for m in members_data:
-            if m['absent'] or not m['characters']:
-                continue
-            first_char = next(iter(m['characters'].values()))
-            members.append({
-                'name':       m['name'],
-                'character':  first_char,
-                'job':        first_char.split('(')[0].strip(),
-                'is_support': is_support(first_char),
-                'level':      0
-            })
-
-        if not members:
-            await interaction.followup.send("❌ 참여 가능한 길드원이 없습니다.", ephemeral=True)
-            return
-
-        try:
-            result = recommend_party(members, 레이드)
-        except Exception as e:
-            result = f"오류: {e}"
-
-        embed = discord.Embed(
-            title=f"⚔️ {레이드} 파티 편성 추천",
-            description=result[:2000],
-            color=0xFFD700
-        )
-        await interaction.followup.send(embed=embed, ephemeral=True)
-
-    # ── /시너지 (기존 명령어 유지) ──
+        await self.send_party_panel(party_ch)
+        await interaction.response.send_message(f"✅ {party_ch.mention} 에 패널을 표시했습니다!", ephemeral=True)
 
     @app_commands.command(name="시너지", description="파티 시너지를 분석합니다")
-    @app_commands.describe(직업들="직업 목록 (쉼표로 구분)")
-    async def synergy_check(self, interaction: discord.Interaction, 직업들: str):
-        await interaction.response.defer(thinking=True)
-
-        jobs = [j.strip() for j in 직업들.split(',') if j.strip()]
-        if not 2 <= len(jobs) <= 8:
-            await interaction.followup.send("❌ 2~8개 직업을 입력해주세요!", ephemeral=True)
-            return
-
-        try:
-            result = analyze_synergy(jobs)
-        except Exception as e:
-            result = f"오류: {e}"
-
+    async def synergy_check(self, interaction: discord.Interaction):
         embed = discord.Embed(
-            title="⚡ 시너지 분석 결과",
-            description=result[:2000],
+            title="⚡ 시너지 분석 — 클래스 선택",
+            description="분석할 직업의 클래스를 선택하세요",
             color=0x9B59B6
         )
-        embed.add_field(name="분석 직업", value=" · ".join(jobs), inline=False)
-        await interaction.followup.send(embed=embed)
+        await interaction.response.send_message(embed=embed, view=SynergyClassSelectView(), ephemeral=True)
 
-
-# ==================== Cog 등록 ====================
 
 async def setup(bot):
     cog = PartyCog(bot)
