@@ -13,6 +13,7 @@ import json, os
 from datetime import datetime, timezone, timedelta
 
 from bot.utils.permissions import require_admin
+from bot.config.channels import CH_NOTICE, CH_PARTY, get_channel
 
 SUGGEST_FILE = "bot/data/suggestions.json"
 KST = timezone(timedelta(hours=9))
@@ -46,8 +47,6 @@ class GuildSuggestModal(discord.ui.Modal, title="길드 문의"):
     )
 
     async def on_submit(self, interaction: discord.Interaction):
-        from bot.config.channels import CH_SUGGEST, get_channel
-
         embed = discord.Embed(
             title="💌 길드 문의",
             description=self.content.value,
@@ -58,6 +57,7 @@ class GuildSuggestModal(discord.ui.Modal, title="길드 문의"):
         )
 
         # 건의함 채널에 전송
+        from bot.config.channels import CH_SUGGEST
         suggest_ch = get_channel(interaction.guild, CH_SUGGEST)
         if suggest_ch:
             await suggest_ch.send(embed=embed)
@@ -99,6 +99,8 @@ class SuggestPanelView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
 
+    # ── Row 0: 기능 버튼 ──
+
     @discord.ui.button(
         label="길드 문의",
         style=discord.ButtonStyle.primary,
@@ -116,6 +118,34 @@ class SuggestPanelView(discord.ui.View):
     )
     async def dev_suggest(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.send_modal(DevSuggestModal())
+
+    # ── Row 1: 네비게이션 ──
+
+    @discord.ui.button(
+        label="📡 공지",
+        style=discord.ButtonStyle.secondary,
+        custom_id="suggest_nav_notice",
+        row=1
+    )
+    async def nav_notice(self, interaction: discord.Interaction, button: discord.ui.Button):
+        ch = get_channel(interaction.guild, CH_NOTICE)
+        if ch:
+            await interaction.response.send_message(f"📡 {ch.mention}", ephemeral=True)
+        else:
+            await interaction.response.send_message("❌ 공지 채널을 찾을 수 없습니다.", ephemeral=True)
+
+    @discord.ui.button(
+        label="🛡 레이드편성",
+        style=discord.ButtonStyle.secondary,
+        custom_id="suggest_nav_party",
+        row=1
+    )
+    async def nav_party(self, interaction: discord.Interaction, button: discord.ui.Button):
+        ch = get_channel(interaction.guild, CH_PARTY)
+        if ch:
+            await interaction.response.send_message(f"🛡 {ch.mention}", ephemeral=True)
+        else:
+            await interaction.response.send_message("❌ 레이드편성 채널을 찾을 수 없습니다.", ephemeral=True)
 
 
 def build_suggest_panel_embed() -> discord.Embed:
@@ -150,9 +180,7 @@ class SuggestCog(commands.Cog, name="SuggestCog"):
 
     @app_commands.command(name="개발문의조회", description="접수된 개발 문의를 조회합니다 (개발자 전용)")
     async def view_dev_suggestions(self, interaction: discord.Interaction):
-        # 서버 소유자만 가능
         if interaction.user.id != interaction.guild.owner_id:
-            # 또는 특정 개발자 ID 체크
             if not interaction.user.guild_permissions.administrator:
                 await interaction.response.send_message("❌ 권한이 없습니다.", ephemeral=True)
                 return
@@ -164,7 +192,6 @@ class SuggestCog(commands.Cog, name="SuggestCog"):
             await interaction.response.send_message("새 개발 문의가 없습니다!", ephemeral=True)
             return
 
-        # 최대 10개씩 표시
         embed = discord.Embed(
             title=f"개발 문의 ({len(dev)}건 미확인)",
             color=0x9B59B6

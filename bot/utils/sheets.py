@@ -3,6 +3,8 @@
 resolver.py를 통해 별명/서폿 판별 자동화
 """
 
+import json
+import os
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 from typing import Optional
@@ -16,19 +18,58 @@ SCOPE = [
 ]
 CREDS_FILE = str(GOOGLE_CREDENTIALS_PATH)
 
+# ==================== 레이드 데이터 로드 ====================
+
+def _load_raid_data() -> dict:
+    path = os.path.join(os.path.dirname(__file__), '..', 'data', 'raid_data.json')
+    path = os.path.normpath(path)
+    with open(path, encoding='utf-8') as f:
+        return json.load(f)
+
+_RAID_DATA      = _load_raid_data()
+RAID_LEVEL_MAP  = _RAID_DATA['raid_level_map']   # {"세르카": {"하드": [1730, 0], ...}, ...}
+DIFF_KEYWORDS   = _RAID_DATA['diff_keywords']     # ["하드", "노말", ...]
+FOUR_MAN_RAIDS  = _RAID_DATA['four_man_raids']    # ["세르카", "쿠크", "성당"]
+
+
+# ==================== 시트 구조 상수 ====================
+SHEET_RAID    = "주간레이드"
+SHEET_AI_RAID = "AI편성"
+
+# 주간레이드 탭 행 인덱스 (0-based)
+ROW_DAY      = 0   # 1행: 요일
+ROW_HOUR     = 1   # 2행: 시간(시)
+ROW_MIN      = 2   # 3행: 시간(분)
+ROW_SCHED    = 3   # 4행: 예정여부 (체크박스)
+ROW_FIXED    = 4   # 5행: 고정멤버여부
+ROW_CLEARED  = 5   # 6행: 클리어여부
+ROW_NAME     = 6   # 7행: 레이드명
+ROW_DURATION = 7   # 8행: 예상시간
+ROW_MEMBERS  = 8   # 9행~: 길드원
+
+
+def _is_true(val: str) -> bool:
+    """O / TRUE / 1 / Y / V / 참 / 체크 → True로 인식 (대소문자 무관)"""
+    v = str(val).strip().upper()
+    return v in ("TRUE", "O", "1", "Y", "YES", "참", "V", "✓", "CHECK")
+
 
 def _get_client():
     creds = ServiceAccountCredentials.from_json_keyfile_name(CREDS_FILE, SCOPE)
     return gspread.authorize(creds)
 
 
-def get_all_data(url: str) -> Optional[list]:
-    """주간레이드 시트 전체 데이터"""
+def _get_spreadsheet(url: str):
+    return _get_client().open_by_url(url)
+
+
+# ==================== 데이터 읽기 ====================
+
+def get_all_data(url: str, ai: bool = False) -> Optional[list]:
+    """주간레이드(또는 AI편성) 시트 전체 데이터"""
     try:
-        client      = _get_client()
-        spreadsheet = client.open_by_url(url)
-        sheet       = spreadsheet.worksheet("주간레이드")
-        return sheet.get_all_values()
+        name = SHEET_AI_RAID if ai else SHEET_RAID
+        return _get_spreadsheet(url).worksheet(name).get_all_values()
     except Exception as e:
         print(f"[sheets] get_all_data 오류: {e}")
         return None
@@ -37,38 +78,160 @@ def get_all_data(url: str) -> Optional[list]:
 def get_sheet_info(url: str) -> Optional[dict]:
     """시트 기본 정보 (연동 테스트용)"""
     try:
-        client      = _get_client()
-        spreadsheet = client.open_by_url(url)
+        spreadsheet = _get_spreadsheet(url)
         sheet       = spreadsheet.worksheet("주간레이드")
         all_data    = sheet.get_all_values()
         return {
-            'title':       spreadsheet.title,
-            'worksheets':  [ws.title for ws in spreadsheet.worksheets()],
-            'total_rows':  len(all_data),
-            'total_cols':  len(all_data[0]) if all_data else 0
+            'title':      spreadsheet.title,
+            'worksheets': [ws.title for ws in spreadsheet.worksheets()],
+            'total_rows': len(all_data),
+            'total_cols': len(all_data[0]) if all_data else 0
         }
     except Exception as e:
         print(f"[sheets] get_sheet_info 오류: {e}")
         return None
 
 
+# ==================== 개인탭 목록 ====================
+
+def get_personal_sheet_names(url: str) -> list[str]:
+    try:
+        worksheets = _get_spreadsheet(url).worksheets()
+        names = [ws.title for ws in worksheets]
+        if "종합시트" not in names:
+            return []
+        start = names.index("종합시트") + 1
+        return [n for n in names[start:] if n != "데이터베이스"]
+    except Exception as e:
+        print(f"[sheets] get_personal_sheet_names 오류: {e}")
+        return []
+
+
+# ==================== 개인탭 가능시간 파싱 ====================
+
+DAY_COL_MAP = {'수': 3, '목': 4, '금': 5, '토': 6, '일': 7, '월': 8, '화': 9}
+
+def get_personal_availability(url: str, nickname: str) -> dict:
+    try:
+        sheet = _get_spreadsheet(url).worksheet(nickname)
+        data  = sheet.get_all_values()
+    except Exception as e:
+        print(f"[sheets] get_personal_availability 오류({nickname}): {e}")
+        return {}
+
+    availability = {}
+    days      = ['수', '목', '금', '토', '일', '월', '화']
+    last_hour = None  # 병합셀 대응: 이전 행 시간 기억
+
+    for row in data:
+        if len(row) < 5:
+            continue
+        hr_raw = row[0].strip()
+        mn_raw = row[2].strip() if len(row) > 2 else ""
+
+        # 병합셀: A열이 비어있으면 이전 시간(시) 재사용
+        if hr_raw:
+            try:
+                last_hour = int(hr_raw)
+            except Exception:
+                pass
+        if last_hour is None:
+            continue
+
+        hour   = last_hour
+        minute = 30 if ":30" in mn_raw else 0
+
+        for i, day in enumerate(days):
+            col_idx = i + 3
+            if col_idx >= len(row):
+                continue
+            val = row[col_idx].strip()
+            # 빈칸 = 가능, 체크됨(O/TRUE 등) = 불가
+            availability[(day, hour, minute)] = (val == "" or not _is_true(val))
+
+    return availability
+
+
+def get_all_availability(url: str) -> dict[str, dict]:
+    try:
+        spreadsheet = _get_spreadsheet(url)
+        worksheets  = spreadsheet.worksheets()
+        names_all   = [ws.title for ws in worksheets]
+        if "종합시트" not in names_all:
+            return {}
+        start = names_all.index("종합시트") + 1
+        names = [n for n in names_all[start:] if n != "데이터베이스"]
+    except Exception as e:
+        print(f"[sheets] get_all_availability 탭목록 오류: {e}")
+        return {}
+
+    days   = ['수', '목', '금', '토', '일', '월', '화']
+    result = {}
+
+    for name in names:
+        try:
+            sheet = spreadsheet.worksheet(name)
+            data  = sheet.get_all_values()
+        except Exception as e:
+            print(f"[sheets] get_all_availability 오류({name}): {e}")
+            continue
+
+        availability = {}
+        last_hour    = None  # 병합셀 대응: 이전 행 시간 기억
+
+        for row in data:
+            if len(row) < 5:
+                continue
+            hr_raw = row[0].strip()
+            mn_raw = row[2].strip() if len(row) > 2 else ""
+
+            # 병합셀: A열이 비어있으면 이전 시간(시) 재사용
+            if hr_raw:
+                try:
+                    last_hour = int(hr_raw)
+                except Exception:
+                    pass
+            if last_hour is None:
+                continue
+
+            hour   = last_hour
+            minute = 30 if ":30" in mn_raw else 0
+
+            for i, day in enumerate(days):
+                col_idx = i + 3
+                if col_idx >= len(row):
+                    continue
+                val = row[col_idx].strip()
+                availability[(day, hour, minute)] = (val == "" or not _is_true(val))
+
+        result[name] = availability
+
+    return result
+
+
+def get_available_members_for_raid(url: str, day: str, hour: int, minute: int,
+                                    all_availability: dict = None) -> list[str]:
+    if all_availability is None:
+        all_availability = get_all_availability(url)
+    return [nick for nick, avail in all_availability.items()
+            if avail.get((day, hour, minute), True)]
+
+
 # ==================== 레이드 파싱 ====================
 
 def parse_raids(data: list, guild_id: int = 0) -> list[dict]:
-    """
-    레이드 컬럼 파싱 (scheduled=TRUE인 것만)
-    Row 1=요일, 2=시간, 3=분, 4=예정여부, 5=클리어, 6=레이드명, 7=예상시간
-    """
-    if not data or len(data) < 7:
+    """레이드 파싱 - ROW_SCHED가 O/TRUE인 것만"""
+    if not data or len(data) <= ROW_DURATION:
         return []
 
-    row_day      = data[0]
-    row_hour     = data[1]
-    row_min      = data[2]
-    row_sched    = data[3]
-    row_cleared  = data[4]
-    row_name     = data[5]
-    row_duration = data[6]
+    row_day      = data[ROW_DAY]
+    row_hour     = data[ROW_HOUR]
+    row_min      = data[ROW_MIN]
+    row_fixed    = data[ROW_FIXED]
+    row_sched    = data[ROW_SCHED]
+    row_cleared  = data[ROW_CLEARED]
+    row_name     = data[ROW_NAME]
+    row_duration = data[ROW_DURATION]
 
     raids = []
     for col in range(4, len(row_name)):
@@ -76,14 +239,15 @@ def parse_raids(data: list, guild_id: int = 0) -> list[dict]:
         if not name:
             continue
 
-        scheduled = str(row_sched[col]).upper() == "TRUE" if col < len(row_sched) else False
+        scheduled = _is_true(row_sched[col]) if col < len(row_sched) else False
         if not scheduled:
             continue
 
-        day     = row_day[col]     if col < len(row_day)     else "미정"
-        hr_raw  = row_hour[col]    if col < len(row_hour)    else "0"
-        mn_raw  = row_min[col]     if col < len(row_min)     else ":00"
-        cleared = str(row_cleared[col]).upper() == "TRUE" if col < len(row_cleared) else False
+        day     = row_day[col]  if col < len(row_day)  else "미정"
+        hr_raw  = row_hour[col] if col < len(row_hour) else "0"
+        mn_raw  = row_min[col]  if col < len(row_min)  else ":00"
+        fixed   = _is_true(row_fixed[col])   if col < len(row_fixed)   else False
+        cleared = _is_true(row_cleared[col]) if col < len(row_cleared) else False
         dur_raw = row_duration[col] if col < len(row_duration) else "1"
 
         try:
@@ -105,6 +269,7 @@ def parse_raids(data: list, guild_id: int = 0) -> list[dict]:
             'minute':    minute,
             'time_str':  f"{hour}:{minute:02d}",
             'scheduled': scheduled,
+            'fixed':     fixed,
             'cleared':   cleared,
             'duration':  dur_min,
         })
@@ -115,17 +280,18 @@ def parse_raids(data: list, guild_id: int = 0) -> list[dict]:
 
 
 def parse_all_raids(data: list, guild_id: int = 0) -> list[dict]:
-    """전체 레이드 파싱 (미정 포함)"""
-    if not data or len(data) < 7:
+    """전체 레이드 파싱 (미정 포함, scheduled 무관)"""
+    if not data or len(data) <= ROW_DURATION:
         return []
 
-    row_day      = data[0]
-    row_hour     = data[1]
-    row_min      = data[2]
-    row_sched    = data[3]
-    row_cleared  = data[4]
-    row_name     = data[5]
-    row_duration = data[6]
+    row_day      = data[ROW_DAY]
+    row_hour     = data[ROW_HOUR]
+    row_min      = data[ROW_MIN]
+    row_fixed    = data[ROW_FIXED]
+    row_sched    = data[ROW_SCHED]
+    row_cleared  = data[ROW_CLEARED]
+    row_name     = data[ROW_NAME]
+    row_duration = data[ROW_DURATION]
 
     raids = []
     for col in range(4, len(row_name)):
@@ -133,12 +299,13 @@ def parse_all_raids(data: list, guild_id: int = 0) -> list[dict]:
         if not name:
             continue
 
-        day     = row_day[col]     if col < len(row_day)     else "미정"
-        hr_raw  = row_hour[col]    if col < len(row_hour)    else "0"
-        mn_raw  = row_min[col]     if col < len(row_min)     else ":00"
-        scheduled = str(row_sched[col]).upper() == "TRUE" if col < len(row_sched) else False
-        cleared = str(row_cleared[col]).upper() == "TRUE" if col < len(row_cleared) else False
-        dur_raw = row_duration[col] if col < len(row_duration) else "1"
+        day       = row_day[col]  if col < len(row_day)  else "미정"
+        hr_raw    = row_hour[col] if col < len(row_hour) else "0"
+        mn_raw    = row_min[col]  if col < len(row_min)  else ":00"
+        fixed     = _is_true(row_fixed[col])   if col < len(row_fixed)   else False
+        scheduled = _is_true(row_sched[col])   if col < len(row_sched)   else False
+        cleared   = _is_true(row_cleared[col]) if col < len(row_cleared) else False
+        dur_raw   = row_duration[col] if col < len(row_duration) else "1"
 
         try:
             hour = int(hr_raw)
@@ -159,6 +326,7 @@ def parse_all_raids(data: list, guild_id: int = 0) -> list[dict]:
             'minute':    minute,
             'time_str':  f"{hour}:{minute:02d}",
             'scheduled': scheduled,
+            'fixed':     fixed,
             'cleared':   cleared,
             'duration':  dur_min,
         })
@@ -171,26 +339,21 @@ def parse_all_raids(data: list, guild_id: int = 0) -> list[dict]:
 # ==================== 길드원 파싱 ====================
 
 def get_members(data: list, guild_id: int = 0) -> list[dict]:
-    """
-    길드원 파싱 (Row 8~)
-    resolver.normalize_character()로 별명/서폿 자동 처리
-    """
-    if not data or len(data) < 8:
+    if not data or len(data) <= ROW_MEMBERS:
         return []
 
     members = []
-    for row_idx in range(7, len(data)):
+    for row_idx in range(ROW_MEMBERS, len(data)):
         row = data[row_idx]
         if len(row) < 4:
             continue
 
         name   = row[3].strip() if row[3] else ""
-        absent = str(row[2]).upper() == "TRUE"
+        absent = _is_true(row[2])
 
         if not name or name in ["인원수", "특이사항", ""]:
             break
 
-        # Col E~ 캐릭터 파싱 (resolver 통해 정규화)
         characters = {}
         for col in range(4, len(row)):
             raw = row[col].strip() if col < len(row) else ""
@@ -218,7 +381,6 @@ def get_members(data: list, guild_id: int = 0) -> list[dict]:
 
 
 def find_user_row(data: list, nickname: str, guild_id: int = 0) -> Optional[int]:
-    """닉네임으로 행 인덱스 찾기"""
     for m in get_members(data, guild_id):
         if m['name'] == nickname or nickname in m['name']:
             return m['row_idx']
@@ -228,24 +390,15 @@ def find_user_row(data: list, nickname: str, guild_id: int = 0) -> Optional[int]
 # ==================== 개인 일정 ====================
 
 def get_user_schedule(data: list, nickname: str, guild_id: int = 0) -> list[dict]:
-    """
-    특정 길드원의 이번 주 일정
-    (scheduled=TRUE 레이드 기준)
-    """
-    members = get_members(data, guild_id)
-    raids   = parse_raids(data, guild_id)
+    members  = get_members(data, guild_id)
+    raids    = parse_raids(data, guild_id)
+    raid_map = {r['col']: r for r in raids}
 
-    member = None
-    for m in members:
-        if m['name'] == nickname or nickname in m['name']:
-            member = m
-            break
+    member = next((m for m in members if m['name'] == nickname or nickname in m['name']), None)
     if not member:
         return []
 
-    raid_map = {r['col']: r for r in raids}
     schedule = []
-
     for col, char_info in member['characters'].items():
         raid = raid_map.get(col)
         if not raid:
@@ -271,23 +424,15 @@ def get_user_schedule(data: list, nickname: str, guild_id: int = 0) -> list[dict
 
 
 def get_all_user_schedule(data: list, nickname: str, guild_id: int = 0) -> list[dict]:
-    """
-    특정 길드원의 전체 일정 (미정 포함)
-    """
     members   = get_members(data, guild_id)
     all_raids = parse_all_raids(data, guild_id)
+    raid_map  = {r['col']: r for r in all_raids}
 
-    member = None
-    for m in members:
-        if m['name'] == nickname or nickname in m['name']:
-            member = m
-            break
+    member = next((m for m in members if m['name'] == nickname or nickname in m['name']), None)
     if not member:
         return []
 
-    raid_map = {r['col']: r for r in all_raids}
     schedule = []
-
     for col, char_info in member['characters'].items():
         raid = raid_map.get(col)
         if not raid:
@@ -315,44 +460,19 @@ def get_all_user_schedule(data: list, nickname: str, guild_id: int = 0) -> list[
 # ==================== 전체 레이드 요약 ====================
 
 def get_weekly_summary(data: list, guild_id: int = 0) -> list[dict]:
-    """
-    이번 주 전체 레이드 요약 (scheduled=TRUE)
-    레이드별 참여 인원 포함
-    """
-    raids   = parse_raids(data, guild_id)
-    members = get_members(data, guild_id)
+    return _build_summary(parse_raids(data, guild_id), get_members(data, guild_id))
 
-    result = []
-    for raid in raids:
-        col = raid['col']
-        participating = []
-        for m in members:
-            if m['absent']:
-                continue
-            char = m['characters'].get(col)
-            if char:
-                participating.append({
-                    'name':       m['name'],
-                    'character':  char['raw'],
-                    'std_job':    char['std_job'],
-                    'is_support': char['is_support'],
-                    'is_alt':     char['is_alt'],
-                })
 
-        result.append({
-            **raid,
-            'members':      participating,
-            'member_count': len(participating),
-        })
-
-    return result
+def get_remaining_summary(data: list, guild_id: int = 0) -> list[dict]:
+    raids = [r for r in parse_raids(data, guild_id) if not r['cleared']]
+    return _build_summary(raids, get_members(data, guild_id))
 
 
 def get_all_weekly_summary(data: list, guild_id: int = 0) -> list[dict]:
-    """전체 레이드 요약 (미정 포함)"""
-    raids   = parse_all_raids(data, guild_id)
-    members = get_members(data, guild_id)
+    return _build_summary(parse_all_raids(data, guild_id), get_members(data, guild_id))
 
+
+def _build_summary(raids: list, members: list) -> list[dict]:
     result = []
     for raid in raids:
         col = raid['col']
@@ -369,144 +489,132 @@ def get_all_weekly_summary(data: list, guild_id: int = 0) -> list[dict]:
                     'is_support': char['is_support'],
                     'is_alt':     char['is_alt'],
                 })
-
         result.append({
             **raid,
             'members':      participating,
             'member_count': len(participating),
         })
+    return result
 
+
+# ==================== AI 편성 (가능시간 기반) ====================
+
+def get_raid_members_by_availability(url: str, data: list,
+                                      raid: dict, guild_id: int = 0,
+                                      all_availability: dict = None) -> list[dict]:
+    members   = get_members(data, guild_id)
+    all_avail = all_availability if all_availability is not None else get_all_availability(url)
+    day, hour, minute = raid['day'], raid['hour'], raid['minute']
+    col       = raid['col']
+
+    result = []
+    for m in members:
+        if m['absent']:
+            continue
+        char_info = m['characters'].get(col)
+        if not char_info:
+            continue
+        name = m['name']
+        if not raid.get('fixed', False):
+            avail = all_avail.get(name, {})
+            if not avail.get((day, hour, minute), True):
+                continue
+        result.append({
+            'name':       name,
+            'character':  char_info['raw'],
+            'std_job':    char_info['std_job'],
+            'is_support': char_info['is_support'],
+            'is_alt':     char_info['is_alt'],
+        })
     return result
 
 
 # ==================== AI 편성 결과 저장 ====================
 
 def save_party_result(url: str, raid_name: str, parties: list) -> bool:
-    """
-    AI 편성 결과를 구글 시트 'AI편성결과' 탭에 저장
-    탭 없으면 자동 생성
-    저장 형식:
-    [종막(노)1] — 02/20 21:30 편성
-    파티1: 워로드 / 홀나 / 스커 / 디트
-    파티2: 블레이드 / 바드 / 소서
-    """
-    try:
-        client      = _get_client()
-        spreadsheet = client.open_by_url(url)
+    return save_all_party_results(url, [(raid_name, parties)])
 
-        # AI편성결과 탭 찾기 or 자동 생성
+
+def save_all_party_results(url: str, raid_parties: list) -> bool:
+    try:
+        spreadsheet = _get_spreadsheet(url)
         try:
             sheet = spreadsheet.worksheet("AI편성결과")
         except Exception:
-            sheet = spreadsheet.add_worksheet(title="AI편성결과", rows=500, cols=20)
+            sheet = spreadsheet.add_worksheet(title="AI편성결과", rows=1000, cols=20)
 
         all_values = sheet.get_all_values()
         now_str    = datetime.now().strftime("%m/%d %H:%M")
+        raid_names = {name for name, _ in raid_parties}
 
-        # 새 블록 생성
-        block = [[f"[{raid_name}] — {now_str} 편성"]]
-        for i, party in enumerate(parties, 1):
-            members_str = " / ".join([
-                m.get('character', m.get('name', ''))
-                for m in party
-            ])
-            block.append([f"파티{i}: {members_str}"])
-        block.append([""])  # 빈 줄 구분
+        cleaned = []
+        skip = False
+        for row in all_values:
+            val = row[0] if row else ""
+            if val.startswith("["):
+                raid_in_row = val.split("]")[0][1:] if "]" in val else ""
+                skip = raid_in_row in raid_names
+            if not skip:
+                cleaned.append(row)
 
-        # 기존 같은 레이드 블록 위치 찾기
-        target_row = None
-        for i, row in enumerate(all_values):
-            if row and row[0].startswith(f"[{raid_name}]"):
-                target_row = i + 1  # 1-indexed
-                break
+        new_blocks = []
+        for raid_name, parties in raid_parties:
+            new_blocks.append([f"[{raid_name}] — {now_str} 편성"])
+            for i, party in enumerate(parties, 1):
+                members_str = " / ".join(m.get('character', m.get('name', '')) for m in party)
+                new_blocks.append([f"파티{i}: {members_str}"])
+            new_blocks.append([""])
 
-        if target_row:
-            # 기존 블록 끝 찾기
-            end_row = target_row
-            for i in range(target_row, len(all_values)):
-                val = all_values[i][0] if all_values[i] else ""
-                if i > target_row - 1 and val.startswith("["):
-                    break
-                end_row = i + 1
-            sheet.batch_clear([f"A{target_row}:A{end_row}"])
-            sheet.update(f"A{target_row}", block)
-        else:
-            # 맨 아래에 추가
-            next_row = len(all_values) + 2
-            sheet.update(f"A{next_row}", block)
+        final = cleaned + new_blocks
+        sheet.clear()
+        if final:
+            sheet.update("A1", final)
 
-        print(f"[sheets] save_party_result 완료: {raid_name}")
+        print(f"[sheets] save_all_party_results 완료: {len(raid_parties)}개")
         return True
-
     except Exception as e:
-        print(f"[sheets] save_party_result 오류: {e}")
+        print(f"[sheets] save_all_party_results 오류: {e}")
         return False
-    
 
-
-    """
-로일(LoIl) - sheets.py 추가 함수
-기존 sheets.py 맨 아래에 붙여넣기
-
-레이드 쓰기 함수:
-- add_raid()    : 레이드 추가 (새 컬럼)
-- update_raid() : 레이드 수정
-- delete_raid() : 레이드 삭제 (컬럼 클리어)
-- set_scheduled(): scheduled TRUE/FALSE 토글
-"""
 
 # ==================== 레이드 쓰기 ====================
 
-def _get_raid_sheet(url: str):
-    """주간레이드 시트 객체 반환"""
-    client      = _get_client()
-    spreadsheet = client.open_by_url(url)
-    return spreadsheet.worksheet("주간레이드")
+def _get_raid_sheet(url: str, ai: bool = False):
+    name = SHEET_AI_RAID if ai else SHEET_RAID
+    return _get_spreadsheet(url).worksheet(name)
 
 
-def add_raid(url: str, name: str, day: str, hour: int, minute: int, duration_blocks: int = 1) -> bool:
-    """
-    레이드 추가 - 맨 끝 컬럼에 추가
-    duration_blocks: 1=30분, 2=1시간, 3=1시간30분...
-    """
+def add_raid(url: str, name: str, day: str, hour: int, minute: int,
+             duration_blocks: int = 1) -> bool:
     try:
         sheet = _get_raid_sheet(url)
         data  = sheet.get_all_values()
-
-        if not data or len(data) < 7:
-            print("[sheets] add_raid: 시트 데이터 부족")
+        if not data or len(data) <= ROW_NAME:
             return False
 
-        # 마지막 레이드 컬럼 찾기 (Row 6 = 레이드명 행)
-        row_name = data[5]  # 0-indexed
-        last_col = 4  # E열부터 시작
+        row_name = data[ROW_NAME]
+        last_col = 4
         for col in range(4, len(row_name)):
             if row_name[col].strip():
                 last_col = col
-
-        new_col = last_col + 1  # 새 컬럼 위치 (0-indexed)
-        col_letter = _col_to_letter(new_col + 1)  # gspread는 1-indexed
-
-        # 분 표기 (:00 or :30)
+        new_col = last_col + 1
         min_str = ":30" if minute == 30 else ":00"
 
-        # Row 1~7 업데이트
         updates = [
-            (1, day),               # 요일
-            (2, str(hour)),         # 시간
-            (3, min_str),           # 분
-            (4, "TRUE"),            # scheduled
-            (5, "FALSE"),           # cleared
-            (6, name),              # 레이드명
-            (7, str(duration_blocks)),  # 예상시간 (블록수)
+            (ROW_DAY+1,      day),
+            (ROW_HOUR+1,     str(hour)),
+            (ROW_MIN+1,      min_str),
+            (ROW_FIXED+1,    ""),
+            (ROW_SCHED+1,    "O"),
+            (ROW_CLEARED+1,  ""),
+            (ROW_NAME+1,     name),
+            (ROW_DURATION+1, str(duration_blocks)),
         ]
-
         for row_num, value in updates:
             sheet.update_cell(row_num, new_col + 1, value)
 
-        print(f"[sheets] add_raid 완료: {name} ({day} {hour}:{minute:02d})")
+        print(f"[sheets] add_raid 완료: {name}")
         return True
-
     except Exception as e:
         print(f"[sheets] add_raid 오류: {e}")
         return False
@@ -514,71 +622,39 @@ def add_raid(url: str, name: str, day: str, hour: int, minute: int, duration_blo
 
 def update_raid(url: str, col: int, name: str = None, day: str = None,
                 hour: int = None, minute: int = None, duration_blocks: int = None) -> bool:
-    """
-    레이드 수정 - col은 0-indexed
-    None인 항목은 변경하지 않음
-    """
     try:
-        sheet    = _get_raid_sheet(url)
-        sheet_col = col + 1  # gspread 1-indexed
-
-        if day is not None:
-            sheet.update_cell(1, sheet_col, day)
-        if hour is not None:
-            sheet.update_cell(2, sheet_col, str(hour))
-        if minute is not None:
-            min_str = ":30" if minute == 30 else ":00"
-            sheet.update_cell(3, sheet_col, min_str)
-        if name is not None:
-            sheet.update_cell(6, sheet_col, name)
-        if duration_blocks is not None:
-            sheet.update_cell(7, sheet_col, str(duration_blocks))
-
-        print(f"[sheets] update_raid 완료: col={col}")
+        sheet     = _get_raid_sheet(url)
+        sheet_col = col + 1
+        if day is not None:             sheet.update_cell(ROW_DAY+1,      sheet_col, day)
+        if hour is not None:            sheet.update_cell(ROW_HOUR+1,     sheet_col, str(hour))
+        if minute is not None:          sheet.update_cell(ROW_MIN+1,      sheet_col, ":30" if minute==30 else ":00")
+        if name is not None:            sheet.update_cell(ROW_NAME+1,     sheet_col, name)
+        if duration_blocks is not None: sheet.update_cell(ROW_DURATION+1, sheet_col, str(duration_blocks))
         return True
-
     except Exception as e:
         print(f"[sheets] update_raid 오류: {e}")
         return False
 
 
 def delete_raid(url: str, col: int) -> bool:
-    """
-    레이드 삭제 - 해당 컬럼 Row 1~7 클리어 + scheduled=FALSE
-    col은 0-indexed
-    """
     try:
         sheet     = _get_raid_sheet(url)
         data      = sheet.get_all_values()
-        sheet_col = col + 1  # gspread 1-indexed
-
-        # Row 1~7 클리어
-        for row_num in range(1, 8):
+        sheet_col = col + 1
+        for row_num in range(1, ROW_MEMBERS + 1):
             sheet.update_cell(row_num, sheet_col, "")
-
-        # 길드원 행도 해당 컬럼 클리어
-        if len(data) > 7:
-            for row_num in range(8, len(data) + 1):
+        if len(data) > ROW_MEMBERS:
+            for row_num in range(ROW_MEMBERS + 1, len(data) + 1):
                 sheet.update_cell(row_num, sheet_col, "")
-
-        print(f"[sheets] delete_raid 완료: col={col}")
         return True
-
     except Exception as e:
         print(f"[sheets] delete_raid 오류: {e}")
         return False
 
 
 def set_scheduled(url: str, col: int, scheduled: bool) -> bool:
-    """
-    레이드 예정 여부 토글
-    col은 0-indexed
-    """
     try:
-        sheet     = _get_raid_sheet(url)
-        sheet_col = col + 1
-        sheet.update_cell(4, sheet_col, "TRUE" if scheduled else "FALSE")
-        print(f"[sheets] set_scheduled: col={col} → {scheduled}")
+        _get_raid_sheet(url).update_cell(ROW_SCHED+1, col+1, "O" if scheduled else "")
         return True
     except Exception as e:
         print(f"[sheets] set_scheduled 오류: {e}")
@@ -586,25 +662,229 @@ def set_scheduled(url: str, col: int, scheduled: bool) -> bool:
 
 
 def set_cleared(url: str, col: int, cleared: bool) -> bool:
-    """
-    레이드 클리어 여부 업데이트
-    col은 0-indexed
-    """
     try:
-        sheet     = _get_raid_sheet(url)
-        sheet_col = col + 1
-        sheet.update_cell(5, sheet_col, "TRUE" if cleared else "FALSE")
-        print(f"[sheets] set_cleared: col={col} → {cleared}")
+        _get_raid_sheet(url).update_cell(ROW_CLEARED+1, col+1, "O" if cleared else "")
         return True
     except Exception as e:
         print(f"[sheets] set_cleared 오류: {e}")
         return False
 
 
+def set_fixed(url: str, col: int, fixed: bool) -> bool:
+    try:
+        _get_raid_sheet(url).update_cell(ROW_FIXED+1, col+1, "O" if fixed else "")
+        return True
+    except Exception as e:
+        print(f"[sheets] set_fixed 오류: {e}")
+        return False
+
+
 def _col_to_letter(col: int) -> str:
-    """컬럼 번호 → 알파벳 (1=A, 27=AA...)"""
     result = ""
     while col > 0:
         col, remainder = divmod(col - 1, 26)
         result = chr(65 + remainder) + result
     return result
+
+
+# ==================== 레이드 우선순위 ====================
+
+def _parse_raid_level(raid_name: str) -> tuple:
+    for base, diffs in RAID_LEVEL_MAP.items():
+        if base in raid_name:
+            for diff, val in diffs.items():
+                if diff in raid_name:
+                    return tuple(val)
+            return tuple(min(diffs.values(), key=lambda x: x[0]))
+    return (0, 9)
+
+
+def get_raid_priority_key(raid: dict) -> tuple:
+    level, cat = _parse_raid_level(raid.get('name', ''))
+    return (-level, cat)
+
+
+# ==================== 시간 배정 ====================
+
+def assign_raid_times(url: str, data: list, guild_id: int = 0) -> list[dict]:
+    from collections import Counter
+
+    all_raids = parse_all_raids(data, guild_id)
+    members   = get_members(data, guild_id)
+    all_avail = get_all_availability(url)
+
+    fixed_raids  = sorted([r for r in all_raids if r.get('fixed')],     key=get_raid_priority_key)
+    normal_raids = sorted([r for r in all_raids if not r.get('fixed')], key=get_raid_priority_key)
+    sorted_raids = fixed_raids + normal_raids
+
+    assigned_times: dict[str, list] = {}
+    DAY_ORDER = {'수':0,'목':1,'금':2,'토':3,'일':4,'월':5,'화':6}
+
+    def _best_slot(raid_members):
+        member_avail = {}
+        for m in raid_members:
+            name    = m['name']
+            avail   = all_avail.get(name, {})
+            blocked = {(d, h, mi) for d, h, mi, _ in assigned_times.get(name, [])}
+            possible = {slot for slot, ok in avail.items() if ok and slot not in blocked}
+            member_avail[name] = possible
+
+        slot_count: Counter = Counter()
+        for possible in member_avail.values():
+            for slot in possible:
+                slot_count[slot] += 1
+
+        if not slot_count:
+            return None, member_avail
+
+        max_count  = max(slot_count.values())
+        candidates = [s for s, c in slot_count.items() if c == max_count]
+        candidates.sort(key=lambda s: (DAY_ORDER.get(s[0], 7), s[1], s[2]))
+        return candidates[0], member_avail
+
+    def _make_parties(sups, dps, size=4):
+        if size == 4:
+            return [dps + sups] if (dps or sups) else []
+        else:
+            if sups:
+                p1_sup  = sups[:1]
+                p2_sup  = sups[1:2]
+                extra   = sups[2:]
+                all_dps = dps + extra
+            else:
+                p1_sup  = []
+                p2_sup  = []
+                all_dps = dps
+            half = len(all_dps) // 2
+            p1 = all_dps[:half + len(all_dps) % 2] + p1_sup
+            p2 = all_dps[half + len(all_dps) % 2:] + p2_sup
+            return [p for p in [p1, p2] if p]
+
+    results = []
+
+    for raid in sorted_raids:
+        col       = raid['col']
+        raid_name = raid['name']
+
+        raid_members = []
+        for m in members:
+            if m.get('absent'):
+                continue
+            char_info = m['characters'].get(col)
+            if not char_info:
+                continue
+            raid_members.append({
+                'name':       m['name'],
+                'character':  char_info['raw'],
+                'std_job':    char_info['std_job'],
+                'is_support': char_info['is_support'],
+                'is_alt':     char_info['is_alt'],
+            })
+
+        # raid_data.json 기준으로 4인 판별
+        raid_size = 4 if any(k in raid_name for k in FOUR_MAN_RAIDS) else 8
+
+        if len(raid_members) == 0:
+            continue
+
+        if len(raid_members) == 1:
+            results.append({
+                'raid':            raid,
+                'assigned_day':    '미정',
+                'assigned_hour':   0,
+                'assigned_minute': 0,
+                'time_str':        '미정',
+                'members':         raid_members,
+                'parties':         [],
+                'conflicts':       [],
+            })
+            continue
+
+        best_slot, member_avail = _best_slot(raid_members)
+
+        if best_slot:
+            bday, bhour, bminute = best_slot
+            btime_str = f"{bhour}:{bminute:02d}"
+            final_members = [
+                m for m in raid_members
+                if best_slot in member_avail.get(m['name'], set())
+            ]
+            conflicts = []
+            for m in final_members:
+                name = m['name']
+                for d, h, mi, other_raid in assigned_times.get(name, []):
+                    if (d, h, mi) == best_slot:
+                        conflicts.append({'name': name, 'other_raid': other_raid})
+            for m in final_members:
+                assigned_times.setdefault(m['name'], []).append(
+                    (bday, bhour, bminute, raid_name)
+                )
+        else:
+            bday, bhour, bminute, btime_str = '미정', 0, 0, '미정'
+            final_members = raid_members
+            conflicts     = []
+
+        supports = [m for m in final_members if m.get('is_support')]
+        dps_list = [m for m in final_members if not m.get('is_support')]
+        sup_needed = 1 if raid_size == 4 else 2
+        max_dps    = (raid_size - sup_needed) * max(len(supports), 1)
+        parties    = _make_parties(supports, dps_list[:max_dps], raid_size)
+
+        results.append({
+            'raid':            raid,
+            'assigned_day':    bday,
+            'assigned_hour':   bhour,
+            'assigned_minute': bminute,
+            'time_str':        btime_str,
+            'members':         final_members,
+            'parties':         parties,
+            'conflicts':       conflicts,
+        })
+
+    return results
+
+
+def save_assigned_times(url: str, assignments: list) -> bool:
+    try:
+        sheet   = _get_raid_sheet(url, ai=True)
+        updates = []
+        for a in assignments:
+            col    = a['raid']['col']
+            day    = a['assigned_day']
+            hour   = a['assigned_hour']
+            minute = a['assigned_minute']
+            if day == '미정':
+                continue
+            col_letter = _col_to_letter(col + 1)
+            print(f"[sheets] 저장: {a['raid'].get('name','?')} col={col} → {col_letter} {day} {hour}:{minute:02d}")
+            updates += [
+                {'range': f"{col_letter}{ROW_DAY+1}",   'values': [[day]]},
+                {'range': f"{col_letter}{ROW_HOUR+1}",  'values': [[str(hour)]]},
+                {'range': f"{col_letter}{ROW_MIN+1}",   'values': [[f":{minute:02d}"]]},
+                {'range': f"{col_letter}{ROW_SCHED+1}", 'values': [["O"]]},
+            ]
+        if updates:
+            sheet.batch_update(updates)
+        print(f"[sheets] save_assigned_times 완료: {len(assignments)}개")
+        return True
+    except Exception as e:
+        print(f"[sheets] save_assigned_times 오류: {e}")
+        return False
+
+
+def copy_ai_to_manual(url: str) -> bool:
+    try:
+        ss     = _get_spreadsheet(url)
+        src    = ss.worksheet(SHEET_AI_RAID)
+        dst    = ss.worksheet(SHEET_RAID)
+        values = src.get_all_values()
+        if not values:
+            print("[sheets] AI편성 탭이 비어있음")
+            return False
+        dst.clear()
+        dst.update(values, value_input_option="USER_ENTERED")
+        print(f"[sheets] AI편성 → 주간레이드 복사 완료 ({len(values)}행)")
+        return True
+    except Exception as e:
+        print(f"[sheets] copy_ai_to_manual 오류: {e}")
+        return False

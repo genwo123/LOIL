@@ -79,7 +79,23 @@ async def setup_guild_channels(guild: discord.Guild):
 
         category = await guild.create_category(CATEGORY_NAME)
 
-        # 봇설정 채널 관리자 전용 권한
+        # 일반 채널: @everyone 읽기 허용, 쓰기는 봇만
+        member_overwrite = {
+            guild.default_role: discord.PermissionOverwrite(
+                view_channel=True,
+                send_messages=False,
+                read_message_history=True,
+                use_application_commands=True,  # 슬래시 커맨드 & 버튼 허용
+            ),
+            guild.me: discord.PermissionOverwrite(
+                view_channel=True,
+                send_messages=True,
+                manage_messages=True,
+                create_public_threads=True,
+            ),
+        }
+
+        # 봇설정 채널: 관리자 전용
         admin_overwrite = {
             guild.default_role: discord.PermissionOverwrite(view_channel=False),
             guild.me: discord.PermissionOverwrite(view_channel=True, send_messages=True),
@@ -91,7 +107,7 @@ async def setup_guild_channels(guild: discord.Guild):
                 )
 
         for ch_info in LOIL_CHANNELS:
-            ow = admin_overwrite if ch_info.get("admin_only") else {}
+            ow = admin_overwrite if ch_info.get("admin_only") else member_overwrite
             await guild.create_text_channel(
                 name=ch_info["name"],
                 category=category,
@@ -102,30 +118,28 @@ async def setup_guild_channels(guild: discord.Guild):
 
         print(f"[{guild.name}] 채널 {len(LOIL_CHANNELS)}개 생성 완료!")
 
-        # 패치노트 채널에 환영 메시지
-        patchnote_ch = get_channel(guild, CH_PATCHNOTE)
-        if patchnote_ch:
+        # 공지 채널에 환영 메시지
+        notice_ch = get_channel(guild, CH_NOTICE)
+        if notice_ch:
             embed = discord.Embed(
-                title=f"로일(LoIl) v{BOT_VERSION} 입장!",
+                title=f"로일(LoIl) v{BOT_VERSION} 입장! 👋",
                 description=(
                     "로스트아크 길드 레이드 자동화 봇입니다!\n\n"
                     "**시작하기**\n"
                     "1. **⚙│봇설정** 채널에서 구글 시트 연동\n"
-                    "2. **🏹│이번주레이드** 채널에서 일정 확인\n"
-                    "3. **🛡│레이드편성** 채널에서 AI 파티 추천\n\n"
+                    "2. **🛡│레이드편성** 채널에서 AI 파티 추천\n"
+                    "3. **📡│공지** 채널에서 일정 요청 시작\n\n"
                     "문의: `/도움말`"
                 ),
                 color=0x5865F2
             )
             embed.set_footer(text=f"로일(LoIl) v{BOT_VERSION}")
-            await patchnote_ch.send(embed=embed)
+            await notice_ch.send(embed=embed)
 
         # 공지 패널
         notice_cog = bot.cogs.get("NoticeCog")
-        if notice_cog:
-            notice_ch = get_channel(guild, CH_NOTICE)
-            if notice_ch:
-                await notice_cog.send_notice_panel(notice_ch)
+        if notice_cog and notice_ch:
+            await notice_cog.send_notice_panel(notice_ch)
 
         # 일정조회 패널
         sv_cog = bot.cogs.get("ScheduleViewCog")
@@ -272,14 +286,14 @@ async def weekly_update_scheduler():
                 ok = await schedule_cog.update_weekly_channel(guild)
                 if ok:
                     success += 1
-                    patchnote_ch = get_channel(guild, CH_PATCHNOTE)
-                    if patchnote_ch:
+                    notice_ch = get_channel(guild, CH_NOTICE)
+                    if notice_ch:
                         embed = discord.Embed(
-                            title="이번 주 레이드 일정 갱신!",
-                            description="🏹│이번주레이드 채널에서 확인하세요!",
+                            title="🔄 이번 주 레이드 일정 갱신!",
+                            description="🗒│일정조회 채널에서 확인하세요!",
                             color=0x57F287
                         )
-                        await patchnote_ch.send(embed=embed)
+                        await notice_ch.send(embed=embed)
             except Exception as e:
                 print(f"  [{guild.name}] 갱신 실패: {e}")
 

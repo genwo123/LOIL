@@ -1,346 +1,620 @@
 """
 로일(LoIl) - 이미지 렌더러
-Pillow로 Discord용 이미지 생성
-- 개인 일정 (스타일 D: 다크카드)
-- 이번주 레이드 (요일 카드형)
-- 파티 편성 결과
+
 """
 
 from PIL import Image, ImageDraw, ImageFont
 from io import BytesIO
+from datetime import datetime, timezone, timedelta
+from collections import defaultdict
+from bot.utils.sheets import FOUR_MAN_RAIDS
+import re
 import os
 
-# ==================== 폰트 경로 ====================
+def _find_font(filename: str) -> str:
+    current = os.path.dirname(os.path.abspath(__file__))
+    for _ in range(6):
+        for sub in ["bot/assets/fonts", "assets/fonts"]:
+            p = os.path.join(current, sub.replace("/", os.sep), filename)
+            if os.path.exists(p):
+                return p
+        current = os.path.dirname(current)
+    return ""
 
-BASE_DIR   = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-FONT_DIR   = os.path.join(BASE_DIR, "bot", "assets", "fonts")
-FONT_REG   = os.path.join(FONT_DIR, "NanumGothic.ttf")
-FONT_BOLD  = os.path.join(FONT_DIR, "NanumGothicBold.ttf")
+FONT_REG  = _find_font("NanumGothic.ttf")
+FONT_BOLD = _find_font("NanumGothicBold.ttf")
 
-def _font(size: int, bold: bool = False) -> ImageFont.FreeTypeFont:
+def _font(size: int, bold: bool = False):
+    path = FONT_BOLD if bold else FONT_REG
     try:
-        path = FONT_BOLD if bold else FONT_REG
-        return ImageFont.truetype(path, size)
+        if path:
+            return ImageFont.truetype(path, size)
     except Exception:
-        return ImageFont.load_default()
-
-
-# ==================== 색상 팔레트 ====================
+        pass
+    return ImageFont.load_default()
 
 C = {
-    "bg":         "#1E1F22",   # 메인 배경
-    "card":       "#2B2D31",   # 카드 배경
-    "card_hover": "#313338",   # 카드 밝은 버전
-    "accent":     "#9B59B6",   # 보라 (로일 테마)
-    "support":    "#57F287",   # 초록 (서폿)
-    "dps":        "#ED4245",   # 빨강 (딜러)
-    "gold":       "#FFD700",   # 골드
+    "bg":         "#1E1F22",
+    "card":       "#2B2D31",
+    "card_dark":  "#232428",
+    "col_header": "#26272B",
+    "accent":     "#9B59B6",
+    "support":    "#57F287",
+    "dps":        "#ED4245",
+    "undecided":  "#6D6F78",
+    "gold":       "#FFD700",
     "text_white": "#FFFFFF",
     "text_gray":  "#B5BAC1",
     "text_muted": "#6D6F78",
     "divider":    "#3F4147",
     "time_bg":    "#383A40",
+    "dur_bg":     "#2E3035",
+    "overlap_bg": "#2e2038",   # 중복 블록 배경
+    "overlap_bar": "#7c5cbf",  # 중복 블록 사이드바
 }
 
-def _hex(color: str) -> tuple:
-    """#RRGGBB → (R, G, B)"""
-    c = color.lstrip("#")
-    return tuple(int(c[i:i+2], 16) for i in (0, 2, 4))
+DAY_ORDER_LOA = {'수':0,'목':1,'금':2,'토':3,'일':4,'월':5,'화':6,'미정':7}
+ALL_DAYS = ['수','목','금','토','일','월','화','미정']
+
+def _hex(c):
+    c = c.lstrip("#")
+    return tuple(int(c[i:i+2],16) for i in (0,2,4))
+
+def _tw(draw, text, font):
+    return int(draw.textlength(text, font=font))
+
+def _rect(draw, xy, r, fill):
+    draw.rounded_rectangle(list(xy), radius=r, fill=fill)
+
+def _pill(draw, x, y, text, bg, fg, font, px=10, py=4):
+    tw = _tw(draw, text, font)
+    w  = tw + px*2
+    h  = font.size + py*2
+    _rect(draw, (x, y, x+w, y+h), r=h//2, fill=bg)
+    draw.text((x+px, y+py), text, font=font, fill=fg)
+    return w
+
+def _dur_label(dur):
+    if dur >= 60:
+        h, m = dur//60, dur%60
+        return f"{h}시간" if m==0 else f"{h}시간 {m}분"
+    return f"{dur}분"
+
+def _week_title(guild_name: str) -> str:
+    KST = timezone(timedelta(hours=9))
+    now = datetime.now(KST)
+    days_back = (now.weekday() - 2) % 7
+    if now.weekday() == 2 and now.hour < 9:
+        days_back = 7
+    ref = now - timedelta(days=days_back)
+    month = ref.month
+    first_day = ref.replace(day=1)
+    first_wed_offset = (2 - first_day.weekday()) % 7
+    first_wed = first_day + timedelta(days=first_wed_offset)
+    week_num = (ref - first_wed).days // 7 + 1
+    prefix = f"{guild_name} " if guild_name else ""
+    return f"{prefix}{month}월 {week_num}주차 일정"
+
+def _split_parties(members: list) -> list[list]:
+    if len(members) <= 4:
+        ordered = sorted(members, key=lambda m: (1 if m.get('is_support') else 0, m.get('name','')))
+        return [ordered]
+    supports = [m for m in members if m.get('is_support')]
+    dps_list = [m for m in members if not m.get('is_support')]
+    p1_sup = supports[:1]
+    p2_sup = supports[1:2]
+    remaining_sup = supports[2:]
+    all_dps = dps_list + remaining_sup
+    half = len(all_dps) // 2
+    p1_dps = all_dps[:half + len(all_dps) % 2]
+    p2_dps = all_dps[half + len(all_dps) % 2:]
+    p1 = p1_dps + p1_sup
+    p2 = p2_dps + p2_sup
+    return [p1, p2] if p2 else [p1]
 
 
-# ==================== 공통 유틸 ====================
-
-def _text_w(draw: ImageDraw.Draw, text: str, font: ImageFont.FreeTypeFont) -> int:
-    return draw.textlength(text, font=font)
-
-def _rounded_rect(draw: ImageDraw.Draw, xy: tuple, radius: int, fill: str):
-    """둥근 모서리 사각형"""
-    x1, y1, x2, y2 = xy
-    draw.rounded_rectangle([x1, y1, x2, y2], radius=radius, fill=fill)
-
-def _pill(draw: ImageDraw.Draw, x: int, y: int, text: str,
-          bg: str, fg: str, font: ImageFont.FreeTypeFont, pad_x: int = 12, pad_y: int = 4):
-    """알약형 태그"""
-    w = int(_text_w(draw, text, font))
-    _rounded_rect(draw, (x, y, x + w + pad_x * 2, y + font.size + pad_y * 2), radius=20, fill=bg)
-    draw.text((x + pad_x, y + pad_y), text, font=font, fill=fg)
-    return w + pad_x * 2  # 너비 반환
+def _get_base_name(name: str) -> str:
+    """세르카(나)1 → 세르카, 종막(하)2 → 종막"""
+    m = re.match(r'^([^(]+)', name)
+    return m.group(1).strip() if m else name
 
 
-# ==================== 개인 일정 이미지 (스타일 D 다크카드) ====================
-
-def render_my_schedule(nickname: str, schedule: list) -> BytesIO:
+def _make_overlap_label(names: list) -> str:
+    """중복 레이드 목록 → 타임라인 표시 텍스트
+    예) ["세르카(나)1","세르카(나)2"] → "세르카  2팀"
+        ["세르카(나)1","종막(하)1"]   → "세르카 / 종막"
     """
-    개인 일정 → 다크카드 스타일 이미지
-    schedule: get_user_schedule() 반환값
-    """
-    W = 640
-    PAD = 24
-    CARD_H = 88       # 레이드 카드 높이
-    CARD_GAP = 8      # 카드 간격
-    DAY_H = 40        # 요일 헤더 높이
-    HEADER_H = 90     # 상단 헤더
+    bases = []
+    seen  = set()
+    for n in names:
+        b = _get_base_name(n)
+        if b not in seen:
+            seen.add(b)
+            bases.append(b)
 
-    # 요일 그룹화
-    DAY_ORDER = {'월':0,'화':1,'수':2,'목':3,'금':4,'토':5,'일':6,'미정':7}
+    if len(bases) == 1:
+        return f"{bases[0]}  {len(names)}팀"
+    else:
+        return " / ".join(bases)
+
+
+# ══════════════════════════════════════════════
+#  개인 일정 이미지
+# ══════════════════════════════════════════════
+
+def render_my_schedule(nickname: str, schedule: list, guild_name: str = "로일길드") -> BytesIO:
+    W=680; PAD=24; CARD_H=84; CARD_GAP=8; DAY_H=40; HEADER_H=100
+    TIME_BX_W=76; PILL_JOB="#7c5cbf"
+
     day_groups: dict[str, list] = {}
     for s in schedule:
-        day = s.get('day', '미정')
-        day_groups.setdefault(day, []).append(s)
-    day_groups = dict(sorted(day_groups.items(), key=lambda x: DAY_ORDER.get(x[0], 7)))
+        day_groups.setdefault(s.get('day','미정'), []).append(s)
+    day_groups = dict(sorted(day_groups.items(), key=lambda x: DAY_ORDER_LOA.get(x[0],7)))
 
-    # 높이 계산
-    total_raids = sum(len(v) for v in day_groups.values())
-    H = (HEADER_H + PAD
-         + len(day_groups) * (DAY_H + CARD_GAP)
-         + total_raids * (CARD_H + CARD_GAP)
-         + PAD * 2)
+    total   = sum(len(v) for v in day_groups.values())
+    sup_cnt = sum(1 for s in schedule if s.get('is_support'))
+    dps_cnt = total - sup_cnt
+
+    H = HEADER_H + PAD + len(day_groups)*(DAY_H+CARD_GAP) + total*(CARD_H+CARD_GAP) + PAD*2
 
     img  = Image.new("RGBA", (W, H), _hex(C["bg"]))
     draw = ImageDraw.Draw(img)
 
-    # ── 폰트 ──
-    f_name   = _font(26, bold=True)
-    f_sub    = _font(14)
+    f_title  = _font(13)
+    f_name   = _font(28, bold=True)
+    f_legend = _font(13, bold=True)
     f_day    = _font(15, bold=True)
-    f_time   = _font(22, bold=True)
-    f_raid   = _font(17, bold=True)
-    f_char   = _font(14)
-    f_tag    = _font(12, bold=True)
+    f_time   = _font(18, bold=True)
+    f_raid   = _font(16, bold=True)
+    f_job    = _font(13, bold=True)
+    f_dur    = _font(12)
+    f_tag    = _font(11)
+    f_wm     = _font(11)
 
-    # ── 상단 헤더 ──
-    # 보라 악센트 바
-    draw.rectangle([0, 0, 6, HEADER_H], fill=_hex(C["accent"]))
-
-    draw.text((PAD, 18), nickname, font=f_name, fill=_hex(C["text_white"]))
-    draw.text((PAD, 52), f"이번 주 레이드  {total_raids}개", font=f_sub, fill=_hex(C["text_gray"]))
-
-    # 서폿/딜러 카운트
-    sup = sum(1 for s in schedule if s.get('is_support'))
-    dps = total_raids - sup
-    x_stat = W - PAD
-    sup_txt = f"💚 서폿 {sup}"
-    dps_txt = f"⚔️ 딜러 {dps}"
-    draw.text((x_stat - int(_text_w(draw, sup_txt, f_sub)), 20), sup_txt, font=f_sub, fill=_hex(C["support"]))
-    draw.text((x_stat - int(_text_w(draw, dps_txt, f_sub)), 42), dps_txt, font=f_sub, fill=_hex(C["dps"]))
-
-    # 구분선
-    draw.rectangle([PAD, HEADER_H - 2, W - PAD, HEADER_H], fill=_hex(C["divider"]))
-
-    # ── 요일 그룹 ──
-    y = HEADER_H + PAD
-
-    for day, raids in day_groups.items():
-        # 요일 헤더
-        draw.text((PAD, y + 10), f"📅  {day}요일", font=f_day, fill=_hex(C["text_gray"]))
-        y += DAY_H + CARD_GAP
-
-        for s in sorted(raids, key=lambda x: (x.get('hour', 0), x.get('minute', 0))):
-            is_sup    = s.get('is_support', False)
-            role_col  = C["support"] if is_sup else C["dps"]
-            role_txt  = "💚 서폿" if is_sup else "⚔️ 딜러"
-            time_str  = s.get('time_str', '?:??')
-            raid_name = s.get('raid_name', '')
-            char      = s.get('character', '')
-            dur       = s.get('duration', 30)
-            dur_str   = f"~{dur // 60}시간" if dur >= 60 else f"~{dur}분"
-
-            # 카드 배경
-            _rounded_rect(draw, (PAD, y, W - PAD, y + CARD_H), radius=10, fill=C["card"])
-
-            # 왼쪽 역할 컬러 바
-            draw.rounded_rectangle([PAD, y, PAD + 5, y + CARD_H], radius=4, fill=role_col)
-
-            # 시간 박스
-            TIME_W = 72
-            _rounded_rect(draw, (PAD + 16, y + 18, PAD + 16 + TIME_W, y + 50), radius=6, fill=C["time_bg"])
-            tw = int(_text_w(draw, time_str, f_time))
-            draw.text((PAD + 16 + (TIME_W - tw) // 2, y + 20), time_str, font=f_time, fill=_hex(C["text_white"]))
-
-            # 레이드명 + 캐릭터
-            tx = PAD + 16 + TIME_W + 16
-            draw.text((tx, y + 16), raid_name, font=f_raid, fill=_hex(C["text_white"]))
-            draw.text((tx, y + 44), f"{char}  ·  {dur_str}", font=f_char, fill=_hex(C["text_gray"]))
-
-            # 역할 태그 (우측)
-            tag_x = W - PAD - 90
-            _pill(draw, tag_x, y + 28, role_txt, bg=role_col + "44", fg=role_col, font=f_tag)
-
-            y += CARD_H + CARD_GAP
-
-        y += CARD_GAP  # 요일 간 추가 여백
-
-    # 하단 여백 + 워터마크
-    draw.text((PAD, H - 22), "로일(LoIl) · 24시간 후 자동 삭제", font=_font(11), fill=_hex(C["text_muted"]))
-
-    buf = BytesIO()
-    img.convert("RGB").save(buf, format="PNG")
-    buf.seek(0)
-    return buf
-
-
-# ==================== 이번주 레이드 이미지 (요일 카드형) ====================
-
-def render_weekly_raids(summary: list) -> BytesIO:
-    """
-    이번주-레이드 → 요일 카드형 이미지
-    summary: get_weekly_summary() 반환값
-    """
-    W = 680
-    PAD = 24
-    HEADER_H = 70
-    DAY_H = 36
-    ROW_H = 44
-    ROW_GAP = 4
-
-    # 요일 그룹화
-    DAY_ORDER = {'월':0,'화':1,'수':2,'목':3,'금':4,'토':5,'일':6,'미정':7}
-    day_groups: dict[str, list] = {}
-    for r in summary:
-        day = r.get('day', '미정')
-        day_groups.setdefault(day, []).append(r)
-    day_groups = dict(sorted(day_groups.items(), key=lambda x: DAY_ORDER.get(x[0], 7)))
-
-    total = sum(len(v) for v in day_groups.values())
-    H = (HEADER_H + PAD
-         + len(day_groups) * (DAY_H + PAD)
-         + total * (ROW_H + ROW_GAP)
-         + PAD * 2)
-
-    img  = Image.new("RGBA", (W, H), _hex(C["bg"]))
-    draw = ImageDraw.Draw(img)
-
-    f_title = _font(22, bold=True)
-    f_day   = _font(14, bold=True)
-    f_time  = _font(15, bold=True)
-    f_raid  = _font(15)
-    f_meta  = _font(13)
-
-    # 헤더
-    draw.rectangle([0, 0, 6, HEADER_H], fill=_hex(C["accent"]))
-    draw.text((PAD, 16), "📅  이번 주 레이드 일정", font=f_title, fill=_hex(C["text_white"]))
-    draw.text((PAD, 46), f"총 {total}개 레이드", font=f_meta, fill=_hex(C["text_gray"]))
-    draw.rectangle([PAD, HEADER_H - 2, W - PAD, HEADER_H], fill=_hex(C["divider"]))
+    draw.rectangle([0,0,6,HEADER_H], fill=_hex(C["accent"]))
+    draw.text((PAD,12), _week_title(guild_name), font=f_title, fill=_hex(C["text_muted"]))
+    draw.text((PAD,30), nickname, font=f_name, fill=_hex(C["text_white"]))
+    rx = W - PAD
+    draw.text((rx-_tw(draw,f"⚔  딜러  {dps_cnt}",f_legend),14), f"⚔  딜러  {dps_cnt}", font=f_legend, fill=_hex(C["dps"]))
+    draw.text((rx-_tw(draw,f"●  서폿  {sup_cnt}",f_legend),38), f"●  서폿  {sup_cnt}", font=f_legend, fill=_hex(C["support"]))
+    draw.rectangle([PAD,HEADER_H-2,W-PAD,HEADER_H], fill=_hex(C["divider"]))
 
     y = HEADER_H + PAD
-
     for day, raids in day_groups.items():
-        # 요일 헤더
-        draw.text((PAD, y + 8), f"🗓  {day}요일", font=f_day, fill=_hex(C["text_gray"]))
+        is_und  = day == '미정'
+        day_col = C["undecided"] if is_und else C["text_gray"]
+        draw.text((PAD, y+10), "미정 (조율 필요)" if is_und else f"{day}요일", font=f_day, fill=_hex(day_col))
         y += DAY_H
 
-        for r in sorted(raids, key=lambda x: (x.get('hour', 0), x.get('minute', 0))):
-            _rounded_rect(draw, (PAD, y, W - PAD, y + ROW_H), radius=8, fill=C["card"])
+        for s in sorted(raids, key=lambda x:(x.get('hour',0), x.get('minute',0))):
+            is_sup   = s.get('is_support', False)
+            cleared  = s.get('cleared', False)
+            role_col = C["undecided"] if is_und else (C["support"] if is_sup else C["dps"])
+            bar_col  = C["gold"] if cleared else role_col
+            time_str = s.get('time_str','?:??')
+            raid_name= s.get('raid_name','')
+            std_job  = s.get('std_job','')
+            is_alt   = s.get('is_alt', False)
+            dur_lbl  = _dur_label(s.get('duration',30))
 
-            time_str  = r.get('time_str', '?:??')
-            name      = r.get('name', '')
-            count     = r.get('member_count', 0)
-            dur       = r.get('duration', 30)
-            dur_str   = f"~{dur // 60}h" if dur >= 60 else f"~{dur}m"
+            _rect(draw,(PAD,y,W-PAD,y+CARD_H),r=10,fill=C["card"])
+            draw.rounded_rectangle([PAD,y,PAD+5,y+CARD_H],radius=4,fill=bar_col)
 
-            # 시간
-            draw.text((PAD + 14, y + 13), time_str, font=f_time, fill=_hex(C["gold"]))
-            # 레이드명
-            tx = PAD + 85
-            draw.text((tx, y + 13), name, font=f_raid, fill=_hex(C["text_white"]))
-            # 인원 + 시간 (우측)
-            meta = f"{count}명  ·  {dur_str}"
-            mw   = int(_text_w(draw, meta, f_meta))
-            draw.text((W - PAD - mw - 10, y + 14), meta, font=f_meta, fill=_hex(C["text_gray"]))
+            tx = PAD + 14
+            _rect(draw,(tx,y+12,tx+TIME_BX_W,y+50),r=6,fill=C["time_bg"])
+            tw2 = _tw(draw,time_str,f_time)
+            draw.text((tx+(TIME_BX_W-tw2)//2,y+16), time_str, font=f_time, fill=_hex(C["text_white"]))
+            dtw = _tw(draw,dur_lbl,f_dur)
+            draw.text((tx+(TIME_BX_W-dtw)//2,y+56), dur_lbl, font=f_dur, fill=_hex(C["text_muted"]))
 
-            y += ROW_H + ROW_GAP
+            cx = tx + TIME_BX_W + 16
+            draw.text((cx,y+12), raid_name, font=f_raid, fill=_hex(C["text_white"]))
 
-        y += PAD  # 요일 간 간격
+            if is_alt:
+                draw.text((cx,y+48), "부캐", font=f_tag, fill=_hex(C["text_muted"]))
 
-    draw.text((PAD, H - 22), "로일(LoIl) · 매주 수요일 자동 갱신", font=_font(11), fill=_hex(C["text_muted"]))
+            pill_x = W - PAD - 110
+            pill_y = y + 12
+            role_txt = "서폿" if is_sup else "딜러"
+            role_bg  = role_col + "55"
+            _pill(draw, pill_x, pill_y, role_txt, bg=role_bg, fg=role_col, font=f_job, px=16, py=7)
+            if std_job:
+                _pill(draw, pill_x, pill_y+36, std_job, bg=PILL_JOB, fg="#ffffff", font=f_job, px=12, py=7)
+            if cleared:
+                cw = _tw(draw,"✓ 완료",f_dur)
+                draw.text((W-PAD-cw-10,y+54), "✓ 완료", font=f_dur, fill=_hex(C["gold"]))
 
-    buf = BytesIO()
-    img.convert("RGB").save(buf, format="PNG")
-    buf.seek(0)
+            y += CARD_H + CARD_GAP
+        y += CARD_GAP
+
+    draw.text((PAD,H-18),"로일(LoIl) · 24시간 후 자동 삭제",font=f_wm,fill=_hex(C["text_muted"]))
+    buf=BytesIO(); img.convert("RGB").save(buf,format="PNG"); buf.seek(0)
     return buf
 
 
-# ==================== 파티 편성 결과 이미지 ====================
+# ══════════════════════════════════════════════
+#  주간 전체 레이드 이미지
+# ══════════════════════════════════════════════
 
-def render_party_result(raid_name: str, parties: list[list]) -> BytesIO:
-    """
-    파티 편성 결과 → 이미지
-    parties: [[member_dict, ...], ...]
-    """
-    W = 640
-    PAD = 24
-    HEADER_H = 80
-    PARTY_TITLE_H = 36
-    MEMBER_H = 40
-    MEMBER_GAP = 4
-    PARTY_GAP = 16
+def render_weekly_raids(summary: list, guild_name: str = "로일길드") -> BytesIO:
+    COLS=ALL_DAYS; N_COLS=len(COLS); COL_W=210; PAD=20; COL_GAP=8
+    HEADER_H=72; COL_HDR_H=36; RAID_GAP=8
+    PARTY_LBL_H=20; MEMBER_H=26; MEMBER_GAP=3; DUR_ROW_H=30; CARD_VPAD=10
 
-    total_members = sum(len(p) for p in parties)
-    sup_total     = sum(1 for p in parties for m in p if m.get('is_support'))
-    dps_total     = total_members - sup_total
+    def _raid_size(name):
+        return 4 if any(k in name for k in FOUR_MAN_RAIDS) else 8
 
-    H = (HEADER_H + PAD
-         + len(parties) * (PARTY_TITLE_H + PARTY_GAP)
-         + total_members * (MEMBER_H + MEMBER_GAP)
-         + PAD * 2)
+    def card_height(members, raid_name=""):
+        parties  = _split_parties(members)
+        n_parties = len(parties)
+        is_8man   = _raid_size(raid_name) == 8 and n_parties == 2
+        if is_8man:
+            max_p = max(len(p) for p in parties)
+            return 44 + PARTY_LBL_H + max_p*(MEMBER_H+MEMBER_GAP) + DUR_ROW_H + CARD_VPAD*2
+        else:
+            n_lbl = n_parties if n_parties > 1 else 0
+            n_mem = sum(len(p) for p in parties)
+            return 44 + n_lbl*PARTY_LBL_H + n_mem*(MEMBER_H+MEMBER_GAP) + DUR_ROW_H + CARD_VPAD*2
+
+    day_map={d:[] for d in COLS}
+    for r in summary:
+        day=r.get('day','미정')
+        day_map[day if day in day_map else '미정'].append(r)
+
+    max_col_h=max(
+        sum(card_height(r.get('members',[]), r.get('name','')) for r in day_map[d])+RAID_GAP*len(day_map[d]) if day_map[d] else 60
+        for d in COLS
+    )
+
+    W=PAD*2+N_COLS*COL_W+(N_COLS-1)*COL_GAP
+    H=HEADER_H+COL_HDR_H+max_col_h+PAD*2
+
+    img=Image.new("RGBA",(W,H),_hex(C["bg"]))
+    draw=ImageDraw.Draw(img)
+
+    f_title=_font(20,bold=True); f_sub=_font(12); f_col_hdr=_font(14,bold=True)
+    f_time=_font(14,bold=True); f_raid=_font(13,bold=True); f_party=_font(10,bold=True)
+    f_member=_font(12,bold=True); f_dur=_font(13,bold=True); f_wm=_font(10)
+
+    draw.rectangle([0,0,W,HEADER_H],fill=_hex(C["card_dark"]))
+    draw.rectangle([0,0,8,HEADER_H],fill=_hex(C["accent"]))
+    draw.text((PAD+10,16),_week_title(guild_name),font=f_title,fill=_hex(C["text_white"]))
+    total_raids=sum(len(v) for v in day_map.values())
+    draw.text((PAD+10,46),f"총 {total_raids}개 레이드",font=f_sub,fill=_hex(C["text_gray"]))
+
+    rx=W-PAD
+    for txt,col in reversed([("딜러",C["dps"]),("서폿",C["support"]),("미정",C["undecided"])]):
+        tw=_tw(draw,txt,f_sub); rx-=tw+28
+        draw.ellipse([rx,24,rx+10,34],fill=_hex(col))
+        draw.text((rx+14,22),txt,font=f_sub,fill=_hex(col))
+
+    for ci,day in enumerate(COLS):
+        cx=PAD+ci*(COL_W+COL_GAP)
+        is_und=day=='미정'; col=C["undecided"] if is_und else C["accent"]
+        draw.rectangle([cx,HEADER_H,cx+COL_W,HEADER_H+COL_HDR_H],fill=_hex(C["col_header"]))
+        label="미정" if is_und else f"{day}요일"
+        tw=_tw(draw,label,f_col_hdr)
+        draw.text((cx+(COL_W-tw)//2,HEADER_H+10),label,font=f_col_hdr,fill=_hex(col))
+        draw.rectangle([cx,HEADER_H+COL_HDR_H-3,cx+COL_W,HEADER_H+COL_HDR_H],fill=_hex(col))
+
+    for ci,day in enumerate(COLS):
+        cx=PAD+ci*(COL_W+COL_GAP); cy=HEADER_H+COL_HDR_H+PAD//2
+        raids=sorted(day_map[day],key=lambda r:(r.get('hour',0),r.get('minute',0)))
+        is_und_day=day=='미정'
+
+        if not raids:
+            _rect(draw,(cx,cy,cx+COL_W,cy+50),r=8,fill=C["card_dark"])
+            draw.text((cx+10,cy+16),"없음",font=f_sub,fill=_hex(C["text_muted"]))
+            continue
+
+        for r in raids:
+            is_und_raid=is_und_day or r.get('day','')=='미정'
+            name=r.get('name',''); time_str=r.get('time_str','?:??')
+            dur=r.get('duration',30); dur_lbl=_dur_label(dur)
+            cleared=r.get('cleared',False); members=r.get('members',[])
+
+            ch=card_height(members, name)
+            _rect(draw,(cx,cy,cx+COL_W,cy+ch),r=8,fill=C["card_dark"] if is_und_raid else C["card"])
+            bar_col=C["undecided"] if is_und_raid else (C["gold"] if cleared else C["accent"])
+            draw.rectangle([cx,cy,cx+COL_W,cy+3],fill=_hex(bar_col))
+
+            draw.text((cx+8,cy+6),time_str,font=f_time,fill=_hex(C["gold"]))
+            rname_x=cx+8+_tw(draw,time_str,f_time)+8
+            avail_w=COL_W-(rname_x-cx)-6
+            rname=name
+            while rname and _tw(draw,rname+"…",f_raid)>avail_w:
+                rname=rname[:-1]
+            if rname!=name: rname+="…"
+            draw.text((rname_x,cy+7),rname,font=f_raid,fill=_hex(C["text_white"]))
+            draw.rectangle([cx+6,cy+26,cx+COL_W-6,cy+27],fill=_hex(C["divider"]))
+
+            parties=_split_parties(members); my=cy+30
+            is_8man_card = _raid_size(name) == 8 and len(parties) == 2
+            if is_8man_card:
+                half_w = (COL_W - 6) // 2
+                draw.text((cx+8, my), "1파티", font=f_party, fill=_hex(C["text_muted"]))
+                draw.text((cx+8+half_w, my), "2파티", font=f_party, fill=_hex(C["text_muted"]))
+                my += PARTY_LBL_H
+                max_len = max(len(parties[0]), len(parties[1]))
+                for i in range(max_len):
+                    for pi, party in enumerate(parties):
+                        if i >= len(party):
+                            continue
+                        m = party[i]
+                        ox = cx + pi * half_w
+                        is_sup = m.get('is_support', False)
+                        role_col = C["undecided"] if is_und_raid else (C["support"] if is_sup else C["dps"])
+                        mname = m.get('name', '')
+                        draw.ellipse([ox+8, my+7, ox+17, my+16], fill=_hex(role_col))
+                        draw.text((ox+21, my+4), mname, font=f_member, fill=_hex(C["text_white"]))
+                    my += MEMBER_H + MEMBER_GAP
+            else:
+                for pi,party in enumerate(parties,1):
+                    if len(parties)>1:
+                        draw.text((cx+8,my),f"{pi}파티",font=f_party,fill=_hex(C["text_muted"]))
+                        my+=PARTY_LBL_H
+                    for m in party:
+                        is_sup=m.get('is_support',False)
+                        role_col=C["undecided"] if is_und_raid else (C["support"] if is_sup else C["dps"])
+                        mname=m.get('name','')
+                        draw.ellipse([cx+8,my+7,cx+17,my+16],fill=_hex(role_col))
+                        draw.text((cx+21,my+4),mname,font=f_member,fill=_hex(C["text_white"]))
+                        my+=MEMBER_H+MEMBER_GAP
+
+            dur_y=cy+ch-DUR_ROW_H
+            draw.rectangle([cx,dur_y,cx+COL_W,dur_y+1],fill=_hex(C["divider"]))
+            draw.text((cx+8,dur_y+8),dur_lbl,font=f_dur,fill=_hex(C["text_gray"]))
+            if cleared:
+                sw=_tw(draw,"✓ 완료",f_dur)
+                draw.text((cx+COL_W-sw-8,dur_y+8),"✓ 완료",font=f_dur,fill=_hex(C["gold"]))
+
+            cy+=ch+RAID_GAP
+
+    draw.text((PAD,H-16),"로일(LoIl) · 매주 수요일 자동 갱신",font=f_wm,fill=_hex(C["text_muted"]))
+    buf=BytesIO(); img.convert("RGB").save(buf,format="PNG"); buf.seek(0)
+    return buf
+
+
+# ══════════════════════════════════════════════
+#  주간 타임라인 이미지 (시간축 고정)
+# ══════════════════════════════════════════════
+
+def render_weekly_timeline(summary: list, guild_name: str = "로일길드") -> BytesIO:
+    """레이드명만 표시하는 타임라인형 주간 일정표"""
+    DAYS     = ['수', '목', '금', '토', '일', '월', '화']
+    BASE_H   = 12
+    MAX_H    = 25
+    SLOT_H   = 28
+    BLOCK_H  = SLOT_H - 2
+    TIME_W   = 48
+    COL_W    = 110
+    COL_GAP  = 4
+    PAD      = 16
+    HEADER_H = 64
+    HDR_H    = 30
+    UND_W    = 120
+    SEC_GAP  = 20
+
+    n_slots = (MAX_H - BASE_H) * 2
+    body_h  = n_slots * SLOT_H
+    main_w  = TIME_W + len(DAYS)*(COL_W+COL_GAP) - COL_GAP
+
+    W = PAD*2 + main_w + SEC_GAP + UND_W
+    H = HEADER_H + HDR_H + body_h + PAD*2
 
     img  = Image.new("RGBA", (W, H), _hex(C["bg"]))
     draw = ImageDraw.Draw(img)
 
-    f_title  = _font(22, bold=True)
-    f_sub    = _font(13)
-    f_party  = _font(15, bold=True)
-    f_num    = _font(18, bold=True)
-    f_name   = _font(15, bold=True)
-    f_char   = _font(13)
-    f_tag    = _font(11, bold=True)
+    f_title   = _font(17, bold=True)
+    f_sub     = _font(11)
+    f_hdr     = _font(12, bold=True)
+    f_time    = _font(10)
+    f_raid    = _font(11, bold=True)
+    f_overlap = _font(10, bold=True)   # 중복 블록용 작은 폰트
+    f_wm      = _font(9)
 
     # 헤더
-    draw.rectangle([0, 0, 6, HEADER_H], fill=_hex(C["accent"]))
-    draw.text((PAD, 14), f"⚔️  {raid_name}", font=f_title, fill=_hex(C["text_white"]))
-    draw.text((PAD, 48), f"총 {total_members}명  ·  💚 서폿 {sup_total}명  ·  ⚔️ 딜러 {dps_total}명", font=f_sub, fill=_hex(C["text_gray"]))
-    draw.rectangle([PAD, HEADER_H - 2, W - PAD, HEADER_H], fill=_hex(C["divider"]))
+    draw.rectangle([0,0,W,HEADER_H], fill=_hex(C["card_dark"]))
+    draw.rectangle([0,0,6,HEADER_H], fill=_hex(C["accent"]))
+    draw.text((PAD+10,14), _week_title(guild_name), font=f_title, fill=_hex(C["text_white"]))
+    total = sum(1 for r in summary if r.get('day','미정') != '미정')
+    draw.text((PAD+10,42), f"총 {total}개 레이드", font=f_sub, fill=_hex(C["text_gray"]))
 
-    y = HEADER_H + PAD
+    body_y = HEADER_H + HDR_H
 
-    for pi, party in enumerate(parties, 1):
-        # 파티 타이틀
-        _rounded_rect(draw, (PAD, y, PAD + 120, y + 28), radius=6, fill=C["accent"])
-        draw.text((PAD + 12, y + 6), f"PARTY  {pi}", font=f_party, fill=_hex(C["text_white"]))
-        y += PARTY_TITLE_H
+    # 요일 헤더
+    for ci, day in enumerate(DAYS):
+        cx = PAD + TIME_W + ci*(COL_W+COL_GAP)
+        draw.rectangle([cx,HEADER_H,cx+COL_W,HEADER_H+HDR_H], fill=_hex(C["col_header"]))
+        tw = _tw(draw, f"{day}요일", f_hdr)
+        draw.text((cx+(COL_W-tw)//2, HEADER_H+8), f"{day}요일", font=f_hdr, fill=_hex(C["accent"]))
+        draw.rectangle([cx,HEADER_H+HDR_H-2,cx+COL_W,HEADER_H+HDR_H], fill=_hex(C["accent"]))
 
-        for mi, m in enumerate(party, 1):
-            is_sup   = m.get('is_support', False)
-            role_col = C["support"] if is_sup else C["dps"]
-            role_txt = "서폿" if is_sup else "딜러"
-            name     = m.get('name', '')
-            char     = m.get('character', '')
+    # 시간 격자
+    for s in range(n_slots+1):
+        h = BASE_H + s//2; m = (s%2)*30
+        y = body_y + s*SLOT_H
+        if y > H - PAD: break
+        if m == 0:
+            t  = f"{h:02d}:00"
+            tw = _tw(draw, t, f_time)
+            draw.text((PAD+TIME_W-tw-4, y-7), t, font=f_time, fill=_hex(C["text_muted"]))
+            draw.line([(PAD+TIME_W,y),(PAD+TIME_W+main_w-TIME_W,y)], fill=_hex("#2d2d40"), width=1)
+        else:
+            draw.line([(PAD+TIME_W,y),(PAD+TIME_W+main_w-TIME_W,y)], fill=_hex("#1e1e2e"), width=1)
 
-            # 멤버 카드
-            _rounded_rect(draw, (PAD, y, W - PAD, y + MEMBER_H), radius=8, fill=C["card"])
+    # ── 레이드 블록 그리기 ──
+    # 요일별로 (시간, 분) 기준으로 레이드 그룹화 → 중복 감지
+    day_raids = {d: [] for d in DAYS}
+    for r in summary:
+        d = r.get('day', '미정')
+        if d in day_raids:
+            day_raids[d].append(r)
 
-            # 역할 컬러 바
-            draw.rounded_rectangle([PAD, y, PAD + 4, y + MEMBER_H], radius=3, fill=role_col)
+    for ci, day in enumerate(DAYS):
+        cx = PAD + TIME_W + ci*(COL_W+COL_GAP)
 
-            # 슬롯 번호
-            draw.text((PAD + 14, y + 12), str(mi), font=f_num, fill=_hex(C["text_muted"]))
+        # 같은 시간대끼리 그룹화
+        slot_map: dict[tuple, list] = defaultdict(list)
+        for r in day_raids[day]:
+            slot = (r.get('hour', 0), r.get('minute', 0))
+            slot_map[slot].append(r)
 
-            # 이름 + 캐릭터
-            draw.text((PAD + 42, y + 8), name, font=f_name, fill=_hex(C["text_white"]))
-            draw.text((PAD + 42, y + 26), char, font=f_char, fill=_hex(C["text_gray"]))
+        for (h, m), raids_at_slot in slot_map.items():
+            ry = body_y + int(((h - BASE_H)*60 + m) / 30 * SLOT_H)
 
-            # 역할 태그 (우측)
-            tag_w = int(_text_w(draw, role_txt, f_tag)) + 20
-            tag_x = W - PAD - tag_w - 8
-            _rounded_rect(draw, (tag_x, y + 10, tag_x + tag_w, y + 30), radius=10, fill=role_col)
-            draw.text((tag_x + 10, y + 12), role_txt, font=f_tag, fill="#FFFFFF")
+            if len(raids_at_slot) == 1:
+                # ── 단일 레이드: 기존 방식 그대로 ──
+                r   = raids_at_slot[0]
+                clr = r.get('cleared', False)
+                bar = C["gold"] if clr else C["accent"]
+                bg  = "#1a1c2e" if clr else "#23253a"
 
-            y += MEMBER_H + MEMBER_GAP
+                draw.rectangle([cx+2, ry+1, cx+COL_W-2, ry+BLOCK_H], fill=_hex(bg))
+                draw.rectangle([cx+2, ry+1, cx+5,        ry+BLOCK_H], fill=_hex(bar))
 
-        y += PARTY_GAP
+                name  = r.get('name', '')
+                avail = COL_W - 12
+                while name and _tw(draw, name+"…", f_raid) > avail:
+                    name = name[:-1]
+                if name != r.get('name', ''): name += "…"
+                draw.text((cx+8, ry+7), name, font=f_raid, fill=_hex(C["text_white"]))
+                if clr:
+                    sw = _tw(draw, "✓", f_raid)
+                    draw.text((cx+COL_W-sw-5, ry+7), "✓", font=f_raid, fill=_hex(C["gold"]))
 
-    draw.text((PAD, H - 22), "로일(LoIl) · 확정 후 시트 자동 저장", font=_font(11), fill=_hex(C["text_muted"]))
+            else:
+                # ── 중복 레이드: 요약 블록 ──
+                names_list = [r.get('name', '') for r in raids_at_slot]
+                label      = _make_overlap_label(names_list)
 
+                # 배경 + 사이드바 (보라색 계열로 구분)
+                draw.rectangle([cx+2, ry+1, cx+COL_W-2, ry+BLOCK_H], fill=_hex(C["overlap_bg"]))
+                draw.rectangle([cx+2, ry+1, cx+5,        ry+BLOCK_H], fill=_hex(C["overlap_bar"]))
+
+                # 레이블 텍스트 (공간에 맞게 줄임)
+                avail = COL_W - 12
+                while label and _tw(draw, label+"…", f_overlap) > avail:
+                    label = label[:-1]
+                if label != _make_overlap_label(names_list): label += "…"
+                draw.text((cx+8, ry+6), label, font=f_overlap, fill=_hex(C["text_white"]))
+
+    # 미정 섹션
+    ux = PAD + main_w + SEC_GAP
+    draw.rectangle([ux,HEADER_H,ux+UND_W,HEADER_H+HDR_H], fill=_hex(C["col_header"]))
+    draw.text((ux+8,HEADER_H+8), "미정", font=f_hdr, fill=_hex(C["undecided"]))
+    draw.rectangle([ux,HEADER_H+HDR_H-2,ux+UND_W,HEADER_H+HDR_H], fill=_hex(C["undecided"]))
+
+    uy = HEADER_H + HDR_H + 8
+    for r in [r for r in summary if r.get('day','미정') == '미정']:
+        draw.rectangle([ux+2,uy,ux+UND_W-2,uy+BLOCK_H], fill=_hex(C["card_dark"]))
+        draw.rectangle([ux+2,uy,ux+5,       uy+BLOCK_H], fill=_hex(C["undecided"]))
+        name = r.get('name','')
+        while name and _tw(draw,name+"…",f_raid) > UND_W-14:
+            name = name[:-1]
+        if name != r.get('name',''): name += "…"
+        draw.text((ux+8,uy+7), name, font=f_raid, fill=_hex(C["text_white"]))
+        uy += BLOCK_H + 4
+
+    draw.text((PAD,H-13),"로일(LoIl) · 매주 수요일 자동 갱신",font=f_wm,fill=_hex(C["text_muted"]))
+    buf=BytesIO(); img.convert("RGB").save(buf,format="PNG"); buf.seek(0)
+    return buf
+
+
+# ══════════════════════════════════════════════
+#  파티 편성 결과 이미지 (시간 포함)
+# ══════════════════════════════════════════════
+
+def render_party_result(raid_name: str, parties: list,
+                         time_str: str = "", day: str = "") -> BytesIO:
+    if not parties:
+        parties = [[]]
+
+    PAD=24; HEADER_H=96; PTH=36; MH=40; MG=4; PG=16
+    fp=_font(15,bold=True); fn=_font(18,bold=True)
+    fm=_font(15,bold=True); fc=_font(13)
+    ftg=_font(11,bold=True); ft=_font(22,bold=True)
+    fs=_font(13); ft2=_font(16,bold=True); fwm=_font(11)
+
+    two_col = len(parties) == 2
+
+    if two_col:
+        W = 760
+        col_w = (W - PAD*3) // 2
+        max_members = max(len(p) for p in parties)
+        body_h = PTH + max_members*(MH+MG) + PG
+        H = HEADER_H + PAD + body_h + PAD*2
+    else:
+        W = 640
+        col_w = W - PAD*2
+        total_m = sum(len(p) for p in parties)
+        H = HEADER_H + PAD + len(parties)*(PTH+PG) + total_m*(MH+MG) + PAD*2
+
+    total = sum(len(p) for p in parties)
+    sup   = sum(1 for p in parties for m in p if m.get('is_support'))
+
+    img  = Image.new("RGBA", (W, H), _hex(C["bg"]))
+    draw = ImageDraw.Draw(img)
+
+    draw.rectangle([0,0,6,HEADER_H], fill=_hex(C["accent"]))
+    draw.text((PAD,14), raid_name, font=ft, fill=_hex(C["text_white"]))
+    draw.text((PAD,48), f"총 {total}명  ·  서폿 {sup}명  ·  딜러 {total-sup}명", font=fs, fill=_hex(C["text_gray"]))
+
+    if time_str or day:
+        time_label = f"{day}요일  {time_str}" if day else time_str
+        TIME_BOX_W = _tw(draw, time_label, ft2) + 24
+        tx = W - PAD - TIME_BOX_W
+        _rect(draw, (tx, 14, tx+TIME_BOX_W, 46), r=8, fill=C["time_bg"])
+        draw.text((tx+12, 19), time_label, font=ft2, fill=_hex(C["gold"]))
+
+    draw.rectangle([PAD, HEADER_H-2, W-PAD, HEADER_H], fill=_hex(C["divider"]))
+
+    y0 = HEADER_H + PAD
+
+    if two_col:
+        for pi, party in enumerate(parties):
+            cx = PAD + pi * (col_w + PAD)
+            y  = y0
+            _rect(draw, (cx, y, cx+120, y+28), r=6, fill=C["accent"])
+            draw.text((cx+12, y+6), f"PARTY  {pi+1}", font=fp, fill=_hex(C["text_white"]))
+            y += PTH
+            for mi, m in enumerate(party, 1):
+                is_sup = m.get('is_support', False)
+                rc = C["support"] if is_sup else C["dps"]
+                _rect(draw, (cx, y, cx+col_w, y+MH), r=8, fill=C["card"])
+                draw.rounded_rectangle([cx, y, cx+4, y+MH], radius=3, fill=rc)
+                draw.text((cx+14, y+12), str(mi), font=fn, fill=_hex(C["text_muted"]))
+                draw.text((cx+42, y+8),  m.get('name',''), font=fm, fill=_hex(C["text_white"]))
+                draw.text((cx+42, y+26), m.get('character',''), font=fc, fill=_hex(C["text_gray"]))
+                rt = "서폿" if is_sup else "딜러"
+                rw = _tw(draw, rt, ftg) + 16
+                rx2 = cx + col_w - rw - 4
+                _rect(draw, (rx2, y+10, rx2+rw, y+30), r=10, fill=rc)
+                draw.text((rx2+8, y+12), rt, font=ftg, fill=_hex(C["text_white"]))
+                y += MH + MG
+    else:
+        y = y0
+        for pi, party in enumerate(parties, 1):
+            _rect(draw, (PAD, y, PAD+120, y+28), r=6, fill=C["accent"])
+            draw.text((PAD+12, y+6), f"PARTY  {pi}", font=fp, fill=_hex(C["text_white"]))
+            y += PTH
+            for mi, m in enumerate(party, 1):
+                is_sup = m.get('is_support', False)
+                rc = C["support"] if is_sup else C["dps"]
+                _rect(draw, (PAD, y, W-PAD, y+MH), r=8, fill=C["card"])
+                draw.rounded_rectangle([PAD, y, PAD+4, y+MH], radius=3, fill=rc)
+                draw.text((PAD+14, y+12), str(mi), font=fn, fill=_hex(C["text_muted"]))
+                draw.text((PAD+42, y+8),  m.get('name',''), font=fm, fill=_hex(C["text_white"]))
+                draw.text((PAD+42, y+26), m.get('character',''), font=fc, fill=_hex(C["text_gray"]))
+                rt = "서폿" if is_sup else "딜러"
+                rw = _tw(draw, rt, ftg) + 20
+                rx2 = W - PAD - rw - 8
+                _rect(draw, (rx2, y+10, rx2+rw, y+30), r=10, fill=rc)
+                draw.text((rx2+10, y+12), rt, font=ftg, fill=_hex(C["text_white"]))
+                y += MH + MG
+            y += PG
+
+    draw.text((PAD, H-22), "로일(LoIl) · 확정 후 시트 자동 저장", font=fwm, fill=_hex(C["text_muted"]))
     buf = BytesIO()
     img.convert("RGB").save(buf, format="PNG")
     buf.seek(0)

@@ -1,11 +1,11 @@
 {
   "1473254272433913961": {
-    "sheet_url": "https://docs.google.com/spreadsheets/d/1GIHnWAE8gJggDeFVCGSFJgVml7DEAItmoe0TIBfLxS4/edit?",
-    "loa_api_keys": "eyJ0eXAiOiJKV1Qi",
+    "sheet_url": "https://docs.google.com/spreadsheets/d/1kZdspDtH3ro1pwAkVhf01csbRA8qoBXzkc-qvdfZ2iU/edit?gid=1866427759#gid=1866427759",
     "gemini_api_key": "AIzaSyA2GVn5z_lezneOM3nDWVcCFL8j5CJ6H48",
-    "schedule_style": "B",
+    "loa_api_keys": "eyJ0eXAiOiJKV1Qi",
     "members": {
       "388698879270584321": "거니"
-    }
+    },
+    "schedule_style": "B"
   }
 }
