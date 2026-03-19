@@ -3,11 +3,14 @@
 🛡│레이드편성 채널 관리자 전용 기능
 
 기능:
-- 레이드 추가 (Modal)
-- 레이드 수정 (Select → Modal)
-- 레이드 삭제 (Select → 확인)
+- 일정 추가 (Modal) — 이번 주 시트에 레이드 일정 추가
+- 일정 수정 (Select → Modal)
+- 일정 삭제 (Select → 확인)
 - 클리어 처리 (Select)
+- 예정/미예정 토글
 - 시트 → 봇 새로고침
+
+※ 레이드 카탈로그 관리(활성/슬롯/소요시간)는 ⚔️│레이드설정 채널에서
 """
 
 import discord
@@ -37,25 +40,20 @@ def get_sheet_url(guild_id: int) -> str:
 
 DAYS = ['수', '목', '금', '토', '일', '월', '화']
 
-DAY_OPTIONS = [
-    discord.SelectOption(label=f"{d}요일", value=d)
-    for d in DAYS
-]
-
 DURATION_OPTIONS = [
-    discord.SelectOption(label="30분",    value="1"),
-    discord.SelectOption(label="1시간",   value="2"),
-    discord.SelectOption(label="1시간30분", value="3"),
-    discord.SelectOption(label="2시간",   value="4"),
+    discord.SelectOption(label="30분",      value="1"),
+    discord.SelectOption(label="1시간",     value="2"),
+    discord.SelectOption(label="1시간 30분", value="3"),
+    discord.SelectOption(label="2시간",     value="4"),
 ]
 
 
-# ==================== 레이드 추가 Modal ====================
+# ==================== 일정 추가 Modal ====================
 
-class AddRaidModal(discord.ui.Modal, title="레이드 추가"):
+class AddRaidModal(discord.ui.Modal, title="일정 추가"):
     raid_name = discord.ui.TextInput(
         label="레이드 이름",
-        placeholder="예: 종막(노)1, 세르카(하)2",
+        placeholder="예: 종막(노)1, 세르카(나메)2",
         max_length=30,
         required=True
     )
@@ -85,7 +83,6 @@ class AddRaidModal(discord.ui.Modal, title="레이드 추가"):
             await interaction.response.send_message("❌ 시트가 연동되지 않았습니다.", ephemeral=True)
             return
 
-        # 입력값 파싱
         day_val = self.day.value.strip()
         if day_val not in DAYS:
             await interaction.response.send_message(
@@ -119,23 +116,21 @@ class AddRaidModal(discord.ui.Modal, title="레이드 추가"):
         )
 
         if ok:
-            # 이번주레이드 채널 갱신
             schedule_cog = interaction.client.cogs.get("ScheduleCog")
             if schedule_cog:
                 await schedule_cog.update_weekly_channel(interaction.guild)
-
             await interaction.followup.send(
-                f"✅ **{self.raid_name.value.strip()}** 레이드가 추가되었습니다!\n"
+                f"✅ **{self.raid_name.value.strip()}** 일정이 추가되었습니다!\n"
                 f"{day_val}요일 {time_str}",
                 ephemeral=True
             )
         else:
-            await interaction.followup.send("❌ 레이드 추가에 실패했습니다.", ephemeral=True)
+            await interaction.followup.send("❌ 일정 추가에 실패했습니다.", ephemeral=True)
 
 
-# ==================== 레이드 수정 Modal ====================
+# ==================== 일정 수정 Modal ====================
 
-class EditRaidModal(discord.ui.Modal, title="레이드 수정"):
+class EditRaidModal(discord.ui.Modal, title="일정 수정"):
 
     def __init__(self, raid: dict, url: str):
         super().__init__()
@@ -208,13 +203,13 @@ class EditRaidModal(discord.ui.Modal, title="레이드 수정"):
             if schedule_cog:
                 await schedule_cog.update_weekly_channel(interaction.guild)
             await interaction.followup.send(
-                f"✅ **{self.raid_name.value.strip()}** 레이드가 수정되었습니다!", ephemeral=True
+                f"✅ **{self.raid_name.value.strip()}** 일정이 수정되었습니다!", ephemeral=True
             )
         else:
             await interaction.followup.send("❌ 수정에 실패했습니다.", ephemeral=True)
 
 
-# ==================== 레이드 선택 드롭다운 ====================
+# ==================== 일정 선택 드롭다운 ====================
 
 class RaidSelectForAction(discord.ui.Select):
     def __init__(self, raids: list, action: str, url: str):
@@ -230,7 +225,7 @@ class RaidSelectForAction(discord.ui.Select):
             )
             for i, r in enumerate(raids[:25])
         ]
-        super().__init__(placeholder="레이드를 선택하세요", options=options)
+        super().__init__(placeholder="일정을 선택하세요", options=options)
 
     async def callback(self, interaction: discord.Interaction):
         idx  = int(self.values[0])
@@ -242,7 +237,7 @@ class RaidSelectForAction(discord.ui.Select):
         elif self.action == "delete":
             view = ConfirmDeleteView(raid=raid, url=self.url)
             await interaction.response.send_message(
-                f"**{raid['name']}** ({raid['day']}요일 {raid['time_str']}) 을 삭제할까요?",
+                f"**{raid['name']}** ({raid['day']}요일 {raid['time_str']}) 일정을 삭제할까요?",
                 view=view,
                 ephemeral=True
             )
@@ -299,7 +294,7 @@ class ConfirmDeleteView(discord.ui.View):
             if schedule_cog:
                 await schedule_cog.update_weekly_channel(interaction.guild)
             await interaction.followup.send(
-                f"✅ **{self.raid['name']}** 레이드가 삭제되었습니다!", ephemeral=True
+                f"✅ **{self.raid['name']}** 일정이 삭제되었습니다!", ephemeral=True
             )
         else:
             await interaction.followup.send("❌ 삭제에 실패했습니다.", ephemeral=True)
@@ -330,12 +325,12 @@ class RaidManageCog(commands.Cog, name="RaidManageCog"):
         data  = get_all_data(url)
         raids = parse_all_raids(data)
         if not raids:
-            await interaction.response.send_message("❌ 레이드가 없습니다.", ephemeral=True)
+            await interaction.response.send_message("❌ 등록된 일정이 없습니다.", ephemeral=True)
             return None, None
 
         return url, raids
 
-    @app_commands.command(name="레이드추가", description="레이드를 추가합니다 (관리자)")
+    @app_commands.command(name="일정추가", description="이번 주 레이드 일정을 추가합니다 (관리자)")
     async def add_raid_cmd(self, interaction: discord.Interaction):
         if not await require_admin(interaction): return
         url = get_sheet_url(interaction.guild_id)
@@ -344,21 +339,21 @@ class RaidManageCog(commands.Cog, name="RaidManageCog"):
             return
         await interaction.response.send_modal(AddRaidModal())
 
-    @app_commands.command(name="레이드수정", description="레이드를 수정합니다 (관리자)")
+    @app_commands.command(name="일정수정", description="이번 주 레이드 일정을 수정합니다 (관리자)")
     async def edit_raid_cmd(self, interaction: discord.Interaction):
         if not await require_admin(interaction): return
         url, raids = await self._get_raids_or_error(interaction)
         if not raids: return
         view = RaidActionView(raids=raids, action="edit", url=url)
-        await interaction.response.send_message("수정할 레이드를 선택하세요:", view=view, ephemeral=True)
+        await interaction.response.send_message("수정할 일정을 선택하세요:", view=view, ephemeral=True)
 
-    @app_commands.command(name="레이드삭제", description="레이드를 삭제합니다 (관리자)")
+    @app_commands.command(name="일정삭제", description="이번 주 레이드 일정을 삭제합니다 (관리자)")
     async def delete_raid_cmd(self, interaction: discord.Interaction):
         if not await require_admin(interaction): return
         url, raids = await self._get_raids_or_error(interaction)
         if not raids: return
         view = RaidActionView(raids=raids, action="delete", url=url)
-        await interaction.response.send_message("삭제할 레이드를 선택하세요:", view=view, ephemeral=True)
+        await interaction.response.send_message("삭제할 일정을 선택하세요:", view=view, ephemeral=True)
 
     @app_commands.command(name="레이드클리어", description="레이드 클리어 처리합니다 (관리자)")
     async def clear_raid_cmd(self, interaction: discord.Interaction):
@@ -366,7 +361,7 @@ class RaidManageCog(commands.Cog, name="RaidManageCog"):
         url, raids = await self._get_raids_or_error(interaction)
         if not raids: return
         view = RaidActionView(raids=raids, action="clear", url=url)
-        await interaction.response.send_message("클리어할 레이드를 선택하세요:", view=view, ephemeral=True)
+        await interaction.response.send_message("클리어할 일정을 선택하세요:", view=view, ephemeral=True)
 
     @app_commands.command(name="레이드토글", description="레이드 예정/미예정 전환 (관리자)")
     async def toggle_raid_cmd(self, interaction: discord.Interaction):
@@ -374,7 +369,7 @@ class RaidManageCog(commands.Cog, name="RaidManageCog"):
         url, raids = await self._get_raids_or_error(interaction)
         if not raids: return
         view = RaidActionView(raids=raids, action="toggle", url=url)
-        await interaction.response.send_message("전환할 레이드를 선택하세요:", view=view, ephemeral=True)
+        await interaction.response.send_message("전환할 일정을 선택하세요:", view=view, ephemeral=True)
 
     @app_commands.command(name="레이드갱신", description="시트 변경사항을 봇에 반영합니다")
     async def refresh_raid_cmd(self, interaction: discord.Interaction):

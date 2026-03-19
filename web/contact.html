@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="dark">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>문의 — 로일(LoIl)</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+[data-theme="dark"]{--bg:#0d0f14;--bg2:#111318;--border:#1e2330;--border2:#252d40;--text:#e8eaf0;--text2:#8b95b0;--text3:#3a4060;--accent:#4f63d2;--accent-h:#3d50c0;--accent-bg:rgba(79,99,210,.1);--accent-bd:rgba(79,99,210,.22);--card:#161922;--card-bd:#1e2330;--nav-bg:rgba(13,15,20,.9);--shadow:0 4px 32px rgba(0,0,0,.5);--hero-grad:radial-gradient(ellipse at 50% -5%,rgba(79,99,210,.14) 0%,transparent 65%);--toggle-bg:#252d40;--ad-bg:#0d0f14;--ad-bd:#1e2330;--ad-tx:#2a3050;}
+[data-theme="light"]{--bg:#f5f7fd;--bg2:#ffffff;--border:#e2e6f3;--border2:#d0d6f0;--text:#1a1d2e;--text2:#5a6394;--text3:#b0b8d4;--accent:#4f63d2;--accent-h:#3d50c0;--accent-bg:rgba(79,99,210,.07);--accent-bd:rgba(79,99,210,.18);--card:#ffffff;--card-bd:#e2e6f3;--nav-bg:rgba(245,247,253,.92);--shadow:0 4px 24px rgba(79,99,210,.08);--hero-grad:radial-gradient(ellipse at 50% -5%,rgba(79,99,210,.08) 0%,transparent 65%);--toggle-bg:#d0d6f0;--ad-bg:#eef0fa;--ad-bd:#d0d6f0;--ad-tx:#c0c8e0;}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-family:'Noto Sans KR',sans-serif;line-height:1.6;transition:background .3s,color .3s;}a{text-decoration:none;color:inherit;}
+.ad-strip{background:var(--ad-bg);border-bottom:1px solid var(--ad-bd);display:flex;align-items:center;justify-content:center;min-height:64px;padding:10px;}.ad-label{font-size:10px;color:var(--ad-tx);letter-spacing:2px;text-transform:uppercase;padding:12px 40px;border:1px dashed var(--ad-bd);border-radius:4px;}
+nav{position:sticky;top:0;z-index:100;height:62px;background:var(--nav-bg);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 52px;transition:background .3s,border-color .3s;}
+.logo{font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;letter-spacing:4px;color:var(--text);flex-shrink:0;transition:color .3s;}.logo em{color:var(--accent);font-style:normal;}
+.nav-links{display:flex;align-items:center;gap:4px;list-style:none;}.nav-links a{padding:6px 13px;border-radius:6px;font-size:14px;font-weight:500;color:var(--text2);transition:color .2s,background .2s;}.nav-links a:hover{color:var(--text);background:var(--accent-bg);}.nav-links a.active{color:var(--accent);background:var(--accent-bg);}
+.nav-right{display:flex;align-items:center;gap:10px;flex-shrink:0;}.theme-wrap{display:flex;align-items:center;gap:7px;}.theme-lbl{font-size:12px;font-weight:700;color:var(--text3);width:30px;text-align:right;transition:color .3s;user-select:none;}
+.theme-toggle{width:42px;height:24px;border-radius:12px;background:var(--toggle-bg);border:1px solid var(--border2);cursor:pointer;position:relative;flex-shrink:0;transition:background .3s;}.theme-toggle::after{content:'';position:absolute;width:16px;height:16px;border-radius:50%;background:var(--accent);top:3px;left:3px;transition:transform .3s cubic-bezier(.4,0,.2,1);}[data-theme="light"] .theme-toggle::after{transform:translateX(18px);}
+.container{max-width:760px;margin:0 auto;}.section-label{display:inline-block;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--accent);background:var(--accent-bg);border:1px solid var(--accent-bd);padding:4px 12px;border-radius:20px;margin-bottom:14px;}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:13px 28px;border-radius:9px;border:none;cursor:pointer;font-family:'Noto Sans KR',sans-serif;font-size:15px;font-weight:700;transition:all .2s;text-decoration:none;}.btn-primary{background:var(--accent);color:#fff;box-shadow:0 4px 16px rgba(79,99,210,.28);}.btn-primary:hover{background:var(--accent-h);transform:translateY(-2px);box-shadow:0 8px 24px rgba(79,99,210,.4);}
+footer{background:var(--bg2);border-top:1px solid var(--border);padding:32px 52px;display:flex;align-items:center;justify-content:space-between;transition:background .3s,border-color .3s;}.footer-logo{font-family:'Rajdhani',sans-serif;font-size:17px;font-weight:700;letter-spacing:3px;color:var(--text3);}.footer-logo em{color:var(--accent);font-style:normal;}footer p{font-size:12px;color:var(--text3);}
+.contact-hero{padding:110px 24px 80px;background:var(--hero-grad);text-align:center;}
+.contact-hero h1{font-size:42px;font-weight:900;margin-bottom:14px;}
+.contact-hero p{font-size:16px;color:var(--text2);line-height:1.8;max-width:480px;margin:0 auto;}
+.contact-body{padding:72px 24px 100px;}
+.discord-card{background:var(--card);border:1px solid var(--card-bd);border-radius:20px;padding:56px 48px;text-align:center;margin-bottom:32px;transition:border-color .2s,background .3s;}
+.discord-card:hover{border-color:var(--accent-bd);}
+.discord-card h2{font-size:26px;font-weight:900;margin-bottom:14px;}
+.discord-card p{font-size:15px;color:var(--text2);line-height:1.8;max-width:460px;margin:0 auto 36px;}
+.feature-list{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:40px;text-align:left;}
+.feature-item{background:var(--card);border:1px solid var(--card-bd);border-radius:12px;padding:20px;transition:border-color .2s,background .3s;}
+.feature-item:hover{border-color:var(--accent-bd);}
+.feature-item h4{font-size:14px;font-weight:700;margin-bottom:6px;}
+.feature-item p{font-size:12px;color:var(--text2);line-height:1.6;}
+@media(max-width:768px){nav{padding:0 18px;}.nav-links{display:none;}.contact-hero{padding:80px 18px 60px;}.contact-hero h1{font-size:30px;}.contact-body{padding:48px 18px 80px;}.discord-card{padding:36px 24px;}.feature-list{grid-template-columns:1fr;}footer{flex-direction:column;gap:10px;text-align:center;padding:24px 18px;}}
+</style>
+</head>
+<body>
+<div class="ad-strip"><div class="ad-label">ADVERTISEMENT · Google AdSense 728×90</div></div>
+<nav>
+  <a href="index.html" class="logo">LO<em>I</em>L</a>
+  <ul class="nav-links"><li><a href="index.html">홈</a></li><li><a href="guide.html">가이드</a></li><li><a href="contact.html" class="active">문의</a></li></ul>
+  <div class="nav-right"><div class="theme-wrap"><span class="theme-lbl" id="lbl">다크</span><button class="theme-toggle" onclick="toggleTheme()" aria-label="테마 전환"></button></div></div>
+</nav>
+<div class="contact-hero">
+  <div class="container">
+    <div class="section-label">CONTACT</div>
+    <h1>문의 및 커뮤니티</h1>
+    <p>버그 제보, 사용법 질문, 기능 아이디어까지 Discord 서버에서 함께 얘기해요.</p>
+  </div>
+</div>
+<div class="contact-body">
+  <div class="container">
+    <div class="discord-card">
+      <h2>로일 개발 서버</h2>
+      <p>사용 중 막히는 부분이 있거나 이런 기능이 있으면 좋겠다 싶은 게 있다면 언제든 환영합니다.<br>개발 진행 상황도 이곳에서 공유됩니다.</p>
+      <a href="#" class="btn btn-primary" target="_blank">Discord 서버 입장하기</a>
+    </div>
+    <div class="section-label">CHANNELS</div>
+    <h2 style="font-size:22px;font-weight:900;margin-bottom:8px;">서버 채널 안내</h2>
+    <p style="font-size:14px;color:var(--text2);margin-bottom:0;">서버 입장 후 아래 채널들을 활용하세요.</p>
+    <div class="feature-list">
+      <div class="feature-item"><h4>공지</h4><p>업데이트 소식, 점검 안내 등 중요한 공지가 올라옵니다.</p></div>
+      <div class="feature-item"><h4>버그 제보</h4><p>사용 중 오류가 발생하면 이 채널에 남겨주세요.</p></div>
+      <div class="feature-item"><h4>사용법 질문</h4><p>설정이나 기능 사용 중 막히는 부분을 질문하세요.</p></div>
+      <div class="feature-item"><h4>기능 제안</h4><p>있으면 좋겠다 싶은 기능 아이디어를 자유롭게 남겨주세요.</p></div>
+      <div class="feature-item"><h4>개발 로그</h4><p>어떤 기능이 개발 중인지 실시간으로 공유됩니다.</p></div>
+      <div class="feature-item"><h4>자유 채팅</h4><p>로아 얘기도 환영합니다.</p></div>
+    </div>
+  </div>
+</div>
+<footer><div class="footer-logo">LO<em>I</em>L</div><p>© 2026 로일(LoIl) · 로스트아크 길드 레이드 자동화</p></footer>
+<script>
+function toggleTheme(){const h=document.documentElement,l=document.getElementById('lbl');if(h.dataset.theme==='dark'){h.dataset.theme='light';if(l)l.textContent='라이트';localStorage.setItem('loil-theme','light');}else{h.dataset.theme='dark';if(l)l.textContent='다크';localStorage.setItem('loil-theme','dark');}}
+(function(){const s=localStorage.getItem('loil-theme');if(s){document.documentElement.dataset.theme=s;const l=document.getElementById('lbl');if(l)l.textContent=s==='dark'?'다크':'라이트';}})();
+</script>
+</body>
+</html>

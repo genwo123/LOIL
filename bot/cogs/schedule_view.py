@@ -12,6 +12,7 @@ from datetime import datetime, timezone, timedelta
 from bot.utils.sheets import get_all_data, get_user_schedule, get_weekly_summary, copy_ai_to_manual, get_members
 from bot.utils.image_renderer import render_my_schedule, render_weekly_raids, render_weekly_timeline
 from bot.utils.member_link import get_sheet_name
+from bot.utils.permissions import require_admin
 from bot.config.channels import CH_SCHEDULE, CH_NOTICE, CH_PARTY, get_channel
 
 def _get_week_label() -> str:
@@ -132,7 +133,6 @@ class ScheduleViewPanel(discord.ui.View):
         row=2
     )
     async def copy_ai(self, interaction: discord.Interaction, button: discord.ui.Button):
-        from bot.utils.member_link import require_admin
         if not await require_admin(interaction): return
         await interaction.response.defer(ephemeral=True)
         url = get_sheet_url(interaction.guild_id)
@@ -147,6 +147,31 @@ class ScheduleViewPanel(discord.ui.View):
             )
         else:
             await interaction.followup.send("❌ 복사 실패. AI편성 탭이 비어있거나 오류가 발생했습니다.", ephemeral=True)
+
+    @discord.ui.button(
+        label="🧹 채널 청소",
+        style=discord.ButtonStyle.danger,
+        custom_id="sv_purge",
+        row=2
+    )
+    async def purge_channel(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if not await require_admin(interaction): return
+        await interaction.response.defer(ephemeral=True)
+        channel = interaction.channel
+        try:
+            pinned = await channel.pins()
+            pinned_ids = {m.id for m in pinned}
+            deleted = 0
+            async for msg in channel.history(limit=200):
+                if msg.id not in pinned_ids:
+                    try:
+                        await msg.delete()
+                        deleted += 1
+                    except Exception:
+                        pass
+            await interaction.followup.send(f"🧹 **{deleted}개** 메시지를 삭제했습니다.", ephemeral=True)
+        except Exception as e:
+            await interaction.followup.send(f"❌ 청소 실패: {e}", ephemeral=True)
 
 
 # ==================== 길드원 선택 드롭다운 ====================
@@ -290,7 +315,6 @@ async def _delete_thread_after(thread: discord.Thread, seconds: int):
         pass
 
 
-
 # ==================== ScheduleViewCog ====================
 
 class ScheduleViewCog(commands.Cog, name="ScheduleViewCog"):
@@ -307,6 +331,9 @@ class ScheduleViewCog(commands.Cog, name="ScheduleViewCog"):
         await interaction.followup.send("✅ 패널이 생성되었습니다.", ephemeral=True)
 
     async def send_schedule_panel(self, channel: discord.TextChannel):
+        # 봇 메시지만 삭제
+        await channel.purge(limit=100, check=lambda m: m.author == channel.guild.me)
+
         embed = discord.Embed(
             title="🗒 일정 조회",
             description=(

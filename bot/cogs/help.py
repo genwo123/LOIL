@@ -1,10 +1,9 @@
 """
-로일(LoIl) - 도움말 Cog v3
+로일(LoIl) - 도움말 Cog v4
 변경사항:
-- /설정확인 제거 (admin_v2에서 삭제됨)
-- 파티 편성 명령어 구조 반영 (주간/개별/시너지)
-- 스타일 선택 안내 추가
-- /정보 명령어 개선
+- ⚔️│레이드설정 채널 안내 추가
+- 일정 추가/수정/삭제 명령어 반영 (/일정추가, /일정수정, /일정삭제)
+- 시작 가이드 업데이트
 """
 
 import discord
@@ -33,36 +32,62 @@ class HelpCog(commands.Cog, name="HelpCog"):
         embed.add_field(
             name="⚙️ 설정 (관리자 전용)",
             value=(
-                "`/설정패널` — 설정 패널 다시 표시\n"
-                "`/이번주갱신` — 이번주-레이드 채널 수동 갱신\n"
+                "`/설정패널` — 봇설정 패널 다시 표시\n"
+                "`/레이드설정패널` — 레이드설정 패널 다시 표시\n"
                 "`/캐시초기화` — API 캐시 삭제"
             ),
             inline=False
         )
 
-        # ── 일정 ──
+        # ── 레이드 카탈로그 ──
         embed.add_field(
-            name="📅 일정",
+            name="⚔️ 레이드 카탈로그 (관리자 전용)",
             value=(
-                "`/일정` — 이번주-레이드 채널 갱신\n"
-                "**내 일정 보기** — 이번주-레이드 채널 버튼 클릭 → 닉네임 입력 → 스레드 생성\n"
-                "　스레드 안에서 스타일 B(타임라인) ↔ D(다크카드) 전환 가능"
+                "**⚔️│레이드설정 채널 버튼으로 사용:**\n"
+                "　레이드 활성/비활성 · 슬롯 수 설정 · 소요시간 설정\n"
+                "　변경사항은 구글 시트에 즉시 반영됩니다."
+            ),
+            inline=False
+        )
+
+        # ── 일정 관리 ──
+        embed.add_field(
+            name="📅 일정 관리 (관리자 전용)",
+            value=(
+                "**🛡│레이드편성 채널 버튼으로 사용:**\n"
+                "　`일정 추가` — 이번 주 시트에 레이드 일정 추가\n"
+                "　`일정 수정` — 등록된 일정 수정\n"
+                "　`일정 삭제` — 등록된 일정 삭제\n\n"
+                "**슬래시 명령어:**\n"
+                "`/일정추가` · `/일정수정` · `/일정삭제`\n"
+                "`/레이드클리어` · `/레이드토글` · `/레이드갱신`"
+            ),
+            inline=False
+        )
+
+        # ── 일정 조회 ──
+        embed.add_field(
+            name="🗒 일정 조회",
+            value=(
+                "**🗒│일정조회 채널 버튼으로 사용:**\n"
+                "　`내 일정 보기` — 길드원 선택 → 개인 일정 이미지 스레드 생성\n"
+                "　`전체 일정 보기` — 이번 주 전체 레이드 일정 이미지\n"
+                "　스레드는 **24시간 후 자동 삭제**됩니다."
             ),
             inline=False
         )
 
         # ── 파티 편성 ──
         embed.add_field(
-            name="⚔️ 파티 편성",
+            name="🛡 파티 편성",
             value=(
-                "**파티-편성 채널 버튼으로 사용:**\n"
-                "　`📅 주간 전체 편성` — 레이드 체크박스 선택 → AI 자동 편성\n"
-                "　`⚔️ 개별 레이드 편성` — 특정 레이드 하나만 AI 편성\n"
-                "　`⚡ 시너지 분석` — 직업 목록 입력 → 시너지 분석\n"
-                "　`🔄 새로고침` — 패널 갱신\n\n"
+                "**🛡│레이드편성 채널 버튼으로 사용:**\n"
+                "　`주간 전체 편성` — 레이드 선택 → AI 자동 편성\n"
+                "　`개별 레이드 편성` — 특정 레이드 하나만 AI 편성\n"
+                "　`시너지 분석` — 직업 목록 입력 → 시너지 분석\n\n"
                 "**슬래시 명령어:**\n"
-                "`/파티추천 [레이드명]` — AI 파티 편성 추천\n"
-                "`/시너지 [직업1,직업2,...]` — 시너지 분석"
+                "`/시너지` — 시너지 분석\n"
+                "`/파티패널` — 파티 편성 패널 다시 표시 (관리자)"
             ),
             inline=False
         )
@@ -71,8 +96,8 @@ class HelpCog(commands.Cog, name="HelpCog"):
         embed.add_field(
             name="🏷️ 별명",
             value=(
-                "`/별명추가 [대상] [별명]` — 닉네임 / 직업 별명 추가 요청\n"
-                "　관리자 승인 후 적용 · 봇-관리 채널에서 확인"
+                "`/별명추가` — 직업 / 각인 별명 추가 요청\n"
+                "`/별명목록` — 등록된 별명 확인"
             ),
             inline=False
         )
@@ -93,16 +118,15 @@ class HelpCog(commands.Cog, name="HelpCog"):
         embed.add_field(
             name="💡 처음 사용하신다면",
             value=(
-                "1️⃣ **로일-설정** 채널 → 시트 URL 등록\n"
-                "2️⃣ **로일-설정** 채널 → 로아 API 키 등록\n"
-                "3️⃣ (선택) Gemini API 키 등록\n"
-                "4️⃣ `/일정` 으로 이번주-레이드 채널 갱신\n"
-                "5️⃣ **파티-편성** 채널에서 AI 파티 편성 시작! 🎉"
+                "1️⃣ **⚙│봇설정** 채널 → 시트 URL · API 키 등록\n"
+                "2️⃣ **⚔️│레이드설정** 채널 → 운영할 레이드 활성화 · 슬롯 수 설정\n"
+                "3️⃣ **🛡│레이드편성** 채널 → 일정 추가 후 AI 파티 편성\n"
+                "4️⃣ **📡│공지** 채널 → 일정 입력 요청 시작 🎉"
             ),
             inline=False
         )
 
-        embed.set_footer(text=f"로일 v{BOT_VERSION} · 문의는 관리자에게 · 설정은 ⚙️ 로일-설정 채널에서")
+        embed.set_footer(text=f"로일 v{BOT_VERSION} · 문의는 관리자에게 · 설정은 ⚙️ 봇설정 채널에서")
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
     # ==================== /핑 ====================
@@ -144,15 +168,16 @@ class HelpCog(commands.Cog, name="HelpCog"):
             color=0x9B59B6
         )
 
-        embed.add_field(name="🔖 버전",    value=f"v{BOT_VERSION}",        inline=True)
-        embed.add_field(name="📡 응답속도", value=f"{latency}ms",           inline=True)
-        embed.add_field(name="🌐 서버 수",  value=f"{guild_cnt}개",         inline=True)
+        embed.add_field(name="🔖 버전",    value=f"v{BOT_VERSION}",  inline=True)
+        embed.add_field(name="📡 응답속도", value=f"{latency}ms",     inline=True)
+        embed.add_field(name="🌐 서버 수",  value=f"{guild_cnt}개",   inline=True)
 
         embed.add_field(
             name="✨ 주요 기능",
             value=(
                 "• 구글 시트 기반 레이드 일정 관리\n"
                 "• AI(Gemini) 파티 자동 편성\n"
+                "• 레이드 카탈로그 관리 (활성/슬롯/소요시간)\n"
                 "• 시간 충돌 자동 감지 · 서폿 배치 자동화\n"
                 "• 로아 API 키 풀링 (최대 3개)\n"
                 "• 개인 일정 스레드 자동 생성"

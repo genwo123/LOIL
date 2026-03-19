@@ -26,10 +26,33 @@ def _load_raid_data() -> dict:
     with open(path, encoding='utf-8') as f:
         return json.load(f)
 
-_RAID_DATA      = _load_raid_data()
-RAID_LEVEL_MAP  = _RAID_DATA['raid_level_map']   # {"세르카": {"하드": [1730, 0], ...}, ...}
-DIFF_KEYWORDS   = _RAID_DATA['diff_keywords']     # ["하드", "노말", ...]
-FOUR_MAN_RAIDS  = _RAID_DATA['four_man_raids']    # ["세르카", "쿠크", "성당"]
+_RAID_DATA     = _load_raid_data()
+RAID_LEVEL_MAP = _RAID_DATA['raid_level_map']  # {"세르카": {"하드": {"ilvl":1730,"category":4,"size":4,"duration":60}, ...}}
+DIFF_KEYWORDS  = _RAID_DATA['diff_keywords']   # ["하드", "노말", ...]
+CATEGORIES     = _RAID_DATA['categories']      # {"0": "어비스 레이드", ...}
+
+
+def get_raid_size(raid_name: str) -> int:
+    """레이드명으로 인원수 반환 (4/8/16). 기본값 8."""
+    for base, diffs in RAID_LEVEL_MAP.items():
+        if base in raid_name:
+            for diff, info in diffs.items():
+                if diff in raid_name:
+                    return info.get('size', 8)
+            # 난이도 매칭 없으면 첫 번째 난이도 size 반환
+            return next(iter(diffs.values())).get('size', 8)
+    return 8
+
+
+def get_raid_default_duration(raid_name: str) -> int:
+    """레이드명으로 기본 소요시간(분) 반환. 기본값 60."""
+    for base, diffs in RAID_LEVEL_MAP.items():
+        if base in raid_name:
+            for diff, info in diffs.items():
+                if diff in raid_name:
+                    return info.get('duration', 60)
+            return next(iter(diffs.values())).get('duration', 60)
+    return 60
 
 
 # ==================== 시트 구조 상수 ====================
@@ -121,7 +144,7 @@ def get_personal_availability(url: str, nickname: str) -> dict:
 
     availability = {}
     days      = ['수', '목', '금', '토', '일', '월', '화']
-    last_hour = None  # 병합셀 대응: 이전 행 시간 기억
+    last_hour = None
 
     for row in data:
         if len(row) < 5:
@@ -129,7 +152,6 @@ def get_personal_availability(url: str, nickname: str) -> dict:
         hr_raw = row[0].strip()
         mn_raw = row[2].strip() if len(row) > 2 else ""
 
-        # 병합셀: A열이 비어있으면 이전 시간(시) 재사용
         if hr_raw:
             try:
                 last_hour = int(hr_raw)
@@ -146,7 +168,6 @@ def get_personal_availability(url: str, nickname: str) -> dict:
             if col_idx >= len(row):
                 continue
             val = row[col_idx].strip()
-            # 빈칸 = 가능, 체크됨(O/TRUE 등) = 불가
             availability[(day, hour, minute)] = (val == "" or not _is_true(val))
 
     return availability
@@ -177,7 +198,7 @@ def get_all_availability(url: str) -> dict[str, dict]:
             continue
 
         availability = {}
-        last_hour    = None  # 병합셀 대응: 이전 행 시간 기억
+        last_hour    = None
 
         for row in data:
             if len(row) < 5:
@@ -185,7 +206,6 @@ def get_all_availability(url: str) -> dict[str, dict]:
             hr_raw = row[0].strip()
             mn_raw = row[2].strip() if len(row) > 2 else ""
 
-            # 병합셀: A열이 비어있으면 이전 시간(시) 재사용
             if hr_raw:
                 try:
                     last_hour = int(hr_raw)
@@ -248,7 +268,7 @@ def parse_raids(data: list, guild_id: int = 0) -> list[dict]:
         mn_raw  = row_min[col]  if col < len(row_min)  else ":00"
         fixed   = _is_true(row_fixed[col])   if col < len(row_fixed)   else False
         cleared = _is_true(row_cleared[col]) if col < len(row_cleared) else False
-        dur_raw = row_duration[col] if col < len(row_duration) else "1"
+        dur_raw = row_duration[col] if col < len(row_duration) else "2"
 
         try:
             hour = int(hr_raw)
@@ -259,7 +279,7 @@ def parse_raids(data: list, guild_id: int = 0) -> list[dict]:
         try:
             dur_min = int(dur_raw) * 30
         except Exception:
-            dur_min = 30
+            dur_min = 60
 
         raids.append({
             'col':       col,
@@ -272,6 +292,7 @@ def parse_raids(data: list, guild_id: int = 0) -> list[dict]:
             'fixed':     fixed,
             'cleared':   cleared,
             'duration':  dur_min,
+            'size':      get_raid_size(name),
         })
 
     day_order = {'수':0,'목':1,'금':2,'토':3,'일':4,'월':5,'화':6,'미정':7}
@@ -305,7 +326,7 @@ def parse_all_raids(data: list, guild_id: int = 0) -> list[dict]:
         fixed     = _is_true(row_fixed[col])   if col < len(row_fixed)   else False
         scheduled = _is_true(row_sched[col])   if col < len(row_sched)   else False
         cleared   = _is_true(row_cleared[col]) if col < len(row_cleared) else False
-        dur_raw   = row_duration[col] if col < len(row_duration) else "1"
+        dur_raw   = row_duration[col] if col < len(row_duration) else "2"
 
         try:
             hour = int(hr_raw)
@@ -316,7 +337,7 @@ def parse_all_raids(data: list, guild_id: int = 0) -> list[dict]:
         try:
             dur_min = int(dur_raw) * 30
         except Exception:
-            dur_min = 30
+            dur_min = 60
 
         raids.append({
             'col':       col,
@@ -329,6 +350,7 @@ def parse_all_raids(data: list, guild_id: int = 0) -> list[dict]:
             'fixed':     fixed,
             'cleared':   cleared,
             'duration':  dur_min,
+            'size':      get_raid_size(name),
         })
 
     day_order = {'수':0,'목':1,'금':2,'토':3,'일':4,'월':5,'화':6,'미정':7}
@@ -416,6 +438,7 @@ def get_user_schedule(data: list, nickname: str, guild_id: int = 0) -> list[dict
             'duration':   raid['duration'],
             'cleared':    raid['cleared'],
             'scheduled':  raid['scheduled'],
+            'size':       raid['size'],
         })
 
     day_order = {'수':0,'목':1,'금':2,'토':3,'일':4,'월':5,'화':6,'미정':7}
@@ -450,6 +473,7 @@ def get_all_user_schedule(data: list, nickname: str, guild_id: int = 0) -> list[
             'duration':   raid['duration'],
             'cleared':    raid['cleared'],
             'scheduled':  raid['scheduled'],
+            'size':       raid['size'],
         })
 
     day_order = {'수':0,'목':1,'금':2,'토':3,'일':4,'월':5,'화':6,'미정':7}
@@ -585,7 +609,7 @@ def _get_raid_sheet(url: str, ai: bool = False):
 
 
 def add_raid(url: str, name: str, day: str, hour: int, minute: int,
-             duration_blocks: int = 1) -> bool:
+             duration_blocks: int = 2) -> bool:
     try:
         sheet = _get_raid_sheet(url)
         data  = sheet.get_all_values()
@@ -690,12 +714,14 @@ def _col_to_letter(col: int) -> str:
 # ==================== 레이드 우선순위 ====================
 
 def _parse_raid_level(raid_name: str) -> tuple:
+    """레이드명으로 (ilvl, category) 반환"""
     for base, diffs in RAID_LEVEL_MAP.items():
         if base in raid_name:
-            for diff, val in diffs.items():
+            for diff, info in diffs.items():
                 if diff in raid_name:
-                    return tuple(val)
-            return tuple(min(diffs.values(), key=lambda x: x[0]))
+                    return (info['ilvl'], info['category'])
+            first = next(iter(diffs.values()))
+            return (first['ilvl'], first['category'])
     return (0, 9)
 
 
@@ -742,10 +768,13 @@ def assign_raid_times(url: str, data: list, guild_id: int = 0) -> list[dict]:
         candidates.sort(key=lambda s: (DAY_ORDER.get(s[0], 7), s[1], s[2]))
         return candidates[0], member_avail
 
-    def _make_parties(sups, dps, size=4):
+    def _make_parties(sups, dps, size=8):
         if size == 4:
             return [dps + sups] if (dps or sups) else []
-        else:
+        elif size == 16:
+            # 16인: 서폿 없이 단일 파티
+            return [dps + sups] if (dps or sups) else []
+        else:  # 8인
             if sups:
                 p1_sup  = sups[:1]
                 p2_sup  = sups[1:2]
@@ -765,6 +794,7 @@ def assign_raid_times(url: str, data: list, guild_id: int = 0) -> list[dict]:
     for raid in sorted_raids:
         col       = raid['col']
         raid_name = raid['name']
+        raid_size = raid.get('size', get_raid_size(raid_name))  # 파싱된 size 우선
 
         raid_members = []
         for m in members:
@@ -780,9 +810,6 @@ def assign_raid_times(url: str, data: list, guild_id: int = 0) -> list[dict]:
                 'is_support': char_info['is_support'],
                 'is_alt':     char_info['is_alt'],
             })
-
-        # raid_data.json 기준으로 4인 판별
-        raid_size = 4 if any(k in raid_name for k in FOUR_MAN_RAIDS) else 8
 
         if len(raid_members) == 0:
             continue
@@ -826,7 +853,7 @@ def assign_raid_times(url: str, data: list, guild_id: int = 0) -> list[dict]:
 
         supports = [m for m in final_members if m.get('is_support')]
         dps_list = [m for m in final_members if not m.get('is_support')]
-        sup_needed = 1 if raid_size == 4 else 2
+        sup_needed = 1 if raid_size == 4 else (0 if raid_size == 16 else 2)
         max_dps    = (raid_size - sup_needed) * max(len(supports), 1)
         parties    = _make_parties(supports, dps_list[:max_dps], raid_size)
 
@@ -856,7 +883,6 @@ def save_assigned_times(url: str, assignments: list) -> bool:
             if day == '미정':
                 continue
             col_letter = _col_to_letter(col + 1)
-            print(f"[sheets] 저장: {a['raid'].get('name','?')} col={col} → {col_letter} {day} {hour}:{minute:02d}")
             updates += [
                 {'range': f"{col_letter}{ROW_DAY+1}",   'values': [[day]]},
                 {'range': f"{col_letter}{ROW_HOUR+1}",  'values': [[str(hour)]]},

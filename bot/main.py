@@ -25,6 +25,7 @@ from bot.config.channels import (
     CH_SETUP,
     CH_PARTY,
     CH_SUGGEST,
+    CH_RAID_CONFIG,
     get_channel,
 )
 
@@ -49,6 +50,7 @@ COGS = [
     "bot.cogs.notice",
     "bot.cogs.suggest",
     "bot.cogs.raid_manage",
+    "bot.cogs.raid_config",   # 신규 — ⚔️│레이드설정 채널
     "bot.cogs.admin",
     "bot.cogs.help",
     "bot.cogs.alias",
@@ -95,7 +97,7 @@ async def setup_guild_channels(guild: discord.Guild):
             ),
         }
 
-        # 봇설정 채널: 관리자 전용
+        # 봇설정/레이드설정 채널: 관리자 전용
         admin_overwrite = {
             guild.default_role: discord.PermissionOverwrite(view_channel=False),
             guild.me: discord.PermissionOverwrite(view_channel=True, send_messages=True),
@@ -127,8 +129,9 @@ async def setup_guild_channels(guild: discord.Guild):
                     "로스트아크 길드 레이드 자동화 봇입니다!\n\n"
                     "**시작하기**\n"
                     "1. **⚙│봇설정** 채널에서 구글 시트 연동\n"
-                    "2. **🛡│레이드편성** 채널에서 AI 파티 추천\n"
-                    "3. **📡│공지** 채널에서 일정 요청 시작\n\n"
+                    "2. **⚔️│레이드설정** 채널에서 운영할 레이드 활성화\n"
+                    "3. **🛡│레이드편성** 채널에서 AI 파티 추천\n"
+                    "4. **📡│공지** 채널에서 일정 요청 시작\n\n"
                     "문의: `/도움말`"
                 ),
                 color=0x5865F2
@@ -168,6 +171,13 @@ async def setup_guild_channels(guild: discord.Guild):
             setup_ch = get_channel(guild, CH_SETUP)
             if setup_ch:
                 await setup_cog.send_setup_panel(setup_ch)
+
+        # 레이드설정 패널 (신규)
+        raid_config_cog = bot.cogs.get("RaidConfigCog")
+        if raid_config_cog:
+            raid_config_ch = get_channel(guild, CH_RAID_CONFIG)
+            if raid_config_ch:
+                await raid_config_cog.send_raid_config_panel(raid_config_ch)
 
     except Exception as e:
         print(f"[{guild.name}] 채널 생성 실패: {e}")
