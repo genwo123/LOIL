@@ -135,15 +135,15 @@ def resolve_job(job_raw: str, guild_id: int = 0) -> Optional[str]:
 
 # ==================== 서폿 여부 판별 ====================
 
-_SUPPORT_JOBS = {"홀리나이트", "바드", "도화가", "발키리", "기공사"}
-
 def is_support(cell_value: str, guild_id: int = 0) -> bool:
     """
     시트 셀값으로 서폿 여부 판별
     규칙:
       1. (폿) suffix → 서폿
       2. (딜) suffix → 딜러
-      3. suffix 없음 + 하이브리드 직업 → 기본 서폿으로 간주
+      3. suffix 없음 + 하이브리드 직업 → supports.json에 등록된 직업별 기본 역할을 따름
+         (홀리나이트/바드/발키리/도화가 모두 기본 서폿 — dps_aliases에 직업명 자체가
+         등록된 경우에만 예외적으로 기본 딜러로 판정)
       4. 순수 딜러 직업 → 딜러
 
     Args:
@@ -168,11 +168,19 @@ def is_support(cell_value: str, guild_id: int = 0) -> bool:
     # suffix 없음 → 직업명으로 판단
     std_job = resolve_job(parsed["job"], guild_id) or parsed["job"]
 
-    # 하이브리드 직업은 기본 서폿
     supports_data = _load_json(SUPPORTS_FILE)
-    hybrid_jobs   = set(supports_data.get("hybrid_support", {}).keys())
+    hybrid_jobs   = supports_data.get("hybrid_support", {})
+    job_data      = hybrid_jobs.get(std_job)
+    if not job_data:
+        return False
 
-    return std_job in hybrid_jobs
+    # 하이브리드 직업이라도 접미사 없는 기본 표기가 dps_aliases에 등록돼 있으면
+    # 그 직업은 기본 딜러로 간주한다 (예: 발키리는 (폿) 명시 시에만 서폿)
+    dps_aliases = {a.lower() for a in job_data.get("dps_aliases", [])}
+    if std_job.lower() in dps_aliases:
+        return False
+
+    return True
 
 
 # ==================== 전체 셀 정규화 ====================

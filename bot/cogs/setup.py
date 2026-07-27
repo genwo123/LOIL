@@ -13,6 +13,7 @@ from discord import app_commands
 import json
 import os
 from bot.config.settings import BOT_VERSION
+from bot.config.channels import CH_SETUP, get_channel
 from bot.utils.permissions import require_admin
 
 # ==================== 설정 저장 ====================
@@ -376,10 +377,7 @@ class SetupCog(commands.Cog, name="SetupCog"):
         self.panel_messages[channel.guild.id] = msg.id
 
     async def refresh_setup_panel(self, guild: discord.Guild):
-        setup_channel = discord.utils.get(guild.text_channels, name="⚙️│봇설정")
-        if not setup_channel:
-            # 채널명 변경 전 폴백
-            setup_channel = discord.utils.get(guild.text_channels, name="로일-설정")
+        setup_channel = get_channel(guild, CH_SETUP)
         if not setup_channel:
             return
 
@@ -411,9 +409,7 @@ class SetupCog(commands.Cog, name="SetupCog"):
     @app_commands.command(name="설정패널", description="설정 패널을 다시 표시합니다 (관리자)")
     async def setup_panel(self, interaction: discord.Interaction):
         if not await require_admin(interaction): return
-        setup_ch = discord.utils.get(interaction.guild.text_channels, name="⚙️│봇설정")
-        if not setup_ch:
-            setup_ch = discord.utils.get(interaction.guild.text_channels, name="로일-설정")
+        setup_ch = get_channel(interaction.guild, CH_SETUP)
         if not setup_ch:
             await interaction.response.send_message("❌ 설정 채널이 없습니다.", ephemeral=True)
             return

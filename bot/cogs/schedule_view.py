@@ -13,7 +13,7 @@ from bot.utils.sheets import get_all_data, get_user_schedule, get_weekly_summary
 from bot.utils.image_renderer import render_my_schedule, render_weekly_raids, render_weekly_timeline
 from bot.utils.member_link import get_sheet_name
 from bot.utils.permissions import require_admin
-from bot.config.channels import CH_SCHEDULE, CH_NOTICE, CH_PARTY, get_channel
+from bot.config.channels import CH_SCHEDULE, CH_SCHEDULE_THREAD, CH_NOTICE, CH_PARTY, get_channel
 
 def _get_week_label() -> str:
     now = datetime.now(KST)
@@ -42,6 +42,22 @@ def get_guild_name(guild_id: int) -> str:
     return get_guild_setting(guild_id).get("guild_name", "로일길드")
 
 
+# ==================== 일정조회 패널 임베드 ====================
+
+def build_schedule_panel_embed() -> discord.Embed:
+    embed = discord.Embed(
+        title="🗒 일정 조회",
+        description=(
+            "**내 일정 보기** — 길드원 선택 후 개인 레이드 일정 이미지\n"
+            "**전체 일정 보기** — 이번주 전체 레이드 현황 이미지\n\n"
+            "결과는 📋│일정확인 채널 스레드에 표시됩니다.\n"
+            "스레드는 **24시간 후 자동 삭제**됩니다."
+        ),
+        color=0x5865F2
+    )
+    return embed
+
+
 # ==================== 일정조회 패널 View ====================
 
 class ScheduleViewPanel(discord.ui.View):
@@ -62,7 +78,6 @@ class ScheduleViewPanel(discord.ui.View):
             await interaction.followup.send("❌ 시트가 연동되지 않았습니다.", ephemeral=True)
             return
 
-        # 시트에서 길드원 목록 불러오기
         try:
             data    = get_all_data(url, ai=True) or get_all_data(url)
             members = get_members(data)
@@ -74,9 +89,7 @@ class ScheduleViewPanel(discord.ui.View):
             await interaction.followup.send("❌ 길드원 목록을 불러올 수 없습니다.", ephemeral=True)
             return
 
-        # 본인 시트 이름으로 기본값 설정
         my_sheet = get_sheet_name(interaction.guild_id, interaction.user.id)
-
         view = MemberSelectView(
             names=names,
             default_name=my_sheet,
@@ -94,8 +107,10 @@ class ScheduleViewPanel(discord.ui.View):
         row=0
     )
     async def all_schedule(self, interaction: discord.Interaction, button: discord.ui.Button):
-        view = ScheduleSourceSelectView(mode="all", guild=interaction.guild,
-                                        guild_id=interaction.guild_id, user=interaction.user)
+        view = ScheduleSourceSelectView(
+            mode="all", guild=interaction.guild,
+            guild_id=interaction.guild_id, user=interaction.user
+        )
         await interaction.response.send_message(
             "어떤 일정 기준으로 볼까요?", view=view, ephemeral=True
         )
@@ -169,7 +184,16 @@ class ScheduleViewPanel(discord.ui.View):
                         deleted += 1
                     except Exception:
                         pass
-            await interaction.followup.send(f"🧹 **{deleted}개** 메시지를 삭제했습니다.", ephemeral=True)
+
+            # 패널 맨 아래 재전송
+            sv_cog = interaction.client.cogs.get("ScheduleViewCog")
+            if sv_cog:
+                await sv_cog.send_schedule_panel(channel)
+
+            await interaction.followup.send(
+                f"🧹 **{deleted}개** 메시지 삭제 후 패널을 새로 표시했습니다.",
+                ephemeral=True
+            )
         except Exception as e:
             await interaction.followup.send(f"❌ 청소 실패: {e}", ephemeral=True)
 
@@ -179,11 +203,11 @@ class ScheduleViewPanel(discord.ui.View):
 class MemberSelectView(discord.ui.View):
     def __init__(self, names: list, default_name: str, guild, guild_id, user, url):
         super().__init__(timeout=60)
-        self.guild      = guild
-        self.guild_id   = guild_id
-        self.user       = user
-        self.url        = url
-        self.selected   = default_name or (names[0] if names else None)
+        self.guild    = guild
+        self.guild_id = guild_id
+        self.user     = user
+        self.url      = url
+        self.selected = default_name or (names[0] if names else None)
 
         options = [
             discord.SelectOption(
@@ -196,8 +220,7 @@ class MemberSelectView(discord.ui.View):
         select = discord.ui.Select(
             placeholder="길드원 선택",
             options=options,
-            min_values=1,
-            max_values=1,
+            min_values=1, max_values=1,
             custom_id="member_select",
             row=0
         )
@@ -227,9 +250,11 @@ class MemberSelectView(discord.ui.View):
         data       = get_all_data(self.url, ai=ai) or get_all_data(self.url)
         guild_name = get_guild_name(self.guild_id)
         week_label = _get_week_label()
-        schedule_ch = get_channel(self.guild, CH_SCHEDULE)
-        if not schedule_ch:
-            await interaction.followup.send("❌ 일정조회 채널을 찾을 수 없습니다.", ephemeral=True)
+
+        # 스레드는 📋│일정확인 채널에 생성
+        thread_ch = get_channel(self.guild, CH_SCHEDULE_THREAD)
+        if not thread_ch:
+            await interaction.followup.send("❌ 일정확인 채널을 찾을 수 없습니다.", ephemeral=True)
             return
 
         schedule = get_user_schedule(data, self.selected)
@@ -241,7 +266,7 @@ class MemberSelectView(discord.ui.View):
 
         buf     = render_my_schedule(self.selected, schedule, guild_name=guild_name)
         src_tag = "AI편성" if ai else "수동"
-        thread  = await schedule_ch.create_thread(
+        thread  = await thread_ch.create_thread(
             name=f"📅 {week_label} {self.selected} 개인 일정 ({src_tag})",
             auto_archive_duration=1440,
             type=discord.ChannelType.public_thread
@@ -250,7 +275,9 @@ class MemberSelectView(discord.ui.View):
             content=self.user.mention,
             file=discord.File(fp=buf, filename="my_schedule.png")
         )
-        await interaction.followup.send(f"{thread.mention} 에서 확인하세요! (24시간 후 자동 삭제)", ephemeral=True)
+        await interaction.followup.send(
+            f"{thread.mention} 에서 확인하세요! (24시간 후 자동 삭제)", ephemeral=True
+        )
         asyncio.create_task(_delete_thread_after(thread, 86400))
 
 
@@ -277,21 +304,23 @@ class ScheduleSourceSelectView(discord.ui.View):
         await self._send_schedule(interaction, ai=True)
 
     async def _send_schedule(self, interaction, ai: bool):
-        guild_name  = get_guild_name(self.guild_id)
-        week_label  = _get_week_label()
-        schedule_ch = get_channel(self.guild, CH_SCHEDULE)
-        if not schedule_ch:
-            await interaction.followup.send("❌ 일정조회 채널을 찾을 수 없습니다.", ephemeral=True)
+        guild_name = get_guild_name(self.guild_id)
+        week_label = _get_week_label()
+
+        # 스레드는 📋│일정확인 채널에 생성
+        thread_ch = get_channel(self.guild, CH_SCHEDULE_THREAD)
+        if not thread_ch:
+            await interaction.followup.send("❌ 일정확인 채널을 찾을 수 없습니다.", ephemeral=True)
             return
 
-        data = get_all_data(self.url, ai=ai) or get_all_data(self.url)
-
+        data    = get_all_data(self.url, ai=ai) or get_all_data(self.url)
         summary = get_weekly_summary(data)
         if not summary:
             await interaction.followup.send("이번주 예정된 레이드가 없습니다!", ephemeral=True)
             return
+
         src_tag = "AI편성" if ai else "수동"
-        thread  = await schedule_ch.create_thread(
+        thread  = await thread_ch.create_thread(
             name=f"📋 {week_label} 전체 레이드 일정 ({src_tag})",
             auto_archive_duration=1440,
             type=discord.ChannelType.public_thread
@@ -303,7 +332,9 @@ class ScheduleSourceSelectView(discord.ui.View):
             files=[discord.File(fp=buf_card,     filename="weekly_card.png"),
                    discord.File(fp=buf_timeline, filename="weekly_timeline.png")]
         )
-        await interaction.followup.send(f"{thread.mention} 에서 확인하세요! (24시간 후 자동 삭제)", ephemeral=True)
+        await interaction.followup.send(
+            f"{thread.mention} 에서 확인하세요! (24시간 후 자동 삭제)", ephemeral=True
+        )
         asyncio.create_task(_delete_thread_after(thread, 86400))
 
 
@@ -320,36 +351,24 @@ async def _delete_thread_after(thread: discord.Thread, seconds: int):
 class ScheduleViewCog(commands.Cog, name="ScheduleViewCog"):
     def __init__(self, bot):
         self.bot = bot
-        # 봇 실행 시 버튼이 상시 작동하도록 뷰 등록
         self.bot.add_view(ScheduleViewPanel())
 
     @app_commands.command(name="일정패널", description="일정 조회 패널을 생성합니다.")
     async def spawn_panel(self, interaction: discord.Interaction):
-        """이 명령어가 있어야 네비게이션에 뜹니다."""
         await interaction.response.defer(ephemeral=True)
         await self.send_schedule_panel(interaction.channel)
         await interaction.followup.send("✅ 패널이 생성되었습니다.", ephemeral=True)
 
     async def send_schedule_panel(self, channel: discord.TextChannel):
-        # 봇 메시지만 삭제
-        await channel.purge(limit=100, check=lambda m: m.author == channel.guild.me)
-
-        embed = discord.Embed(
-            title="🗒 일정 조회",
-            description=(
-                "**내 일정 보기** — 길드원 선택 후 개인 레이드 일정 이미지\n"
-                "**전체 일정 보기** — 이번주 전체 레이드 현황 이미지\n\n"
-                "스레드는 **24시간 후 자동 삭제**됩니다."
-            ),
-            color=0x5865F2
-        )
-        view = ScheduleViewPanel()
-        msg = await channel.send(embed=embed, view=view)
+        embed = build_schedule_panel_embed()
+        view  = ScheduleViewPanel()
+        msg   = await channel.send(embed=embed, view=view)
         try:
             await msg.pin()
-        except:
+        except Exception:
             pass
         return msg
+
 
 async def setup(bot):
     await bot.add_cog(ScheduleViewCog(bot))

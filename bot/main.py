@@ -22,6 +22,7 @@ from bot.config.channels import (
     CATEGORY_NAME,
     CH_NOTICE,
     CH_SCHEDULE,
+    CH_SCHEDULE_THREAD,
     CH_SETUP,
     CH_PARTY,
     CH_SUGGEST,
@@ -87,7 +88,7 @@ async def setup_guild_channels(guild: discord.Guild):
                 view_channel=True,
                 send_messages=False,
                 read_message_history=True,
-                use_application_commands=True,  # 슬래시 커맨드 & 버튼 허용
+                use_application_commands=True,
             ),
             guild.me: discord.PermissionOverwrite(
                 view_channel=True,
@@ -172,7 +173,7 @@ async def setup_guild_channels(guild: discord.Guild):
             if setup_ch:
                 await setup_cog.send_setup_panel(setup_ch)
 
-        # 레이드설정 패널 (신규)
+        # 레이드설정 패널
         raid_config_cog = bot.cogs.get("RaidConfigCog")
         if raid_config_cog:
             raid_config_ch = get_channel(guild, CH_RAID_CONFIG)
@@ -181,38 +182,6 @@ async def setup_guild_channels(guild: discord.Guild):
 
     except Exception as e:
         print(f"[{guild.name}] 채널 생성 실패: {e}")
-
-
-# ==================== 채널 자동 삭제 ====================
-
-async def cleanup_guild_channels(guild: discord.Guild):
-    """봇 강퇴/탈퇴 시 로일 카테고리 + 채널 + 설정 삭제"""
-
-    print(f"[{guild.name}] 봇 제거 → 채널 정리 시작")
-
-    category = discord.utils.get(guild.categories, name=CATEGORY_NAME)
-    if not category:
-        print(f"[{guild.name}] 로일 카테고리 없음 - 스킵")
-        _cleanup_guild_settings(guild.id)
-        return
-
-    try:
-        deleted = 0
-        for channel in list(category.channels):
-            try:
-                await channel.delete(reason="로일 봇 제거")
-                deleted += 1
-                await asyncio.sleep(0.3)
-            except Exception as e:
-                print(f"  채널 삭제 실패 ({channel.name}): {e}")
-
-        await category.delete(reason="로일 봇 제거")
-        print(f"[{guild.name}] 채널 {deleted}개 + 카테고리 삭제 완료")
-
-    except Exception as e:
-        print(f"[{guild.name}] 채널 정리 실패: {e}")
-
-    _cleanup_guild_settings(guild.id)
 
 
 def _cleanup_guild_settings(guild_id: int):
@@ -269,9 +238,9 @@ async def on_guild_join(guild: discord.Guild):
 
 @bot.event
 async def on_guild_remove(guild: discord.Guild):
-    """봇 강퇴/탈퇴 시 채널 + 설정 자동 삭제"""
+    """봇 강퇴/탈퇴 — 추방 시 채널 접근 불가하므로 설정만 정리"""
     print(f"봇 제거됨: {guild.name}")
-    await cleanup_guild_channels(guild)
+    _cleanup_guild_settings(guild.id)
 
 
 # ==================== 수요일 자동 갱신 ====================

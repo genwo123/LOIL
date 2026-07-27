@@ -1,6 +1,5 @@
 """
 로일(LoIl) - 이미지 렌더러
-
 """
 
 from PIL import Image, ImageDraw, ImageFont
@@ -95,10 +94,25 @@ def _week_title(guild_name: str) -> str:
     prefix = f"{guild_name} " if guild_name else ""
     return f"{prefix}{month}월 {week_num}주차 일정"
 
-def _split_parties(members: list) -> list[list]:
-    if len(members) <= 4:
-        ordered = sorted(members, key=lambda m: (1 if m.get('is_support') else 0, m.get('name','')))
+
+def _split_parties(members: list, party_size: int = None) -> list[list]:
+    """
+    party_size: 레이드 정원 (4/8/16). None이면 인원수로 자동 판단.
+    party_size 이하이면 무조건 1파티 — 4인 레이드 강제 분리 방지.
+    """
+    if not members:
+        return []
+
+    # party_size 미지정이면 멤버 수 기반 추정
+    if party_size is None:
+        party_size = 8 if len(members) > 4 else 4
+
+    # 정원 이하면 1파티
+    if len(members) <= party_size:
+        ordered = sorted(members, key=lambda m: (1 if m.get('is_support') else 0, m.get('name', '')))
         return [ordered]
+
+    # 초과 시 2파티 분리
     supports = [m for m in members if m.get('is_support')]
     dps_list = [m for m in members if not m.get('is_support')]
     p1_sup = supports[:1]
@@ -114,7 +128,6 @@ def _split_parties(members: list) -> list[list]:
 
 
 def _get_base_name(name: str) -> str:
-    """세르카(나)1 → 세르카, 종막(하)2 → 종막"""
     m = re.match(r'^([^(]+)', name)
     return m.group(1).strip() if m else name
 
@@ -127,7 +140,6 @@ def _make_overlap_label(names: list) -> str:
         if b not in seen:
             seen.add(b)
             bases.append(b)
-
     if len(bases) == 1:
         return f"{bases[0]}  {len(names)}팀"
     else:
@@ -238,9 +250,9 @@ def render_weekly_raids(summary: list, guild_name: str = "로일길드") -> Byte
     PARTY_LBL_H=20; MEMBER_H=26; MEMBER_GAP=3; DUR_ROW_H=30; CARD_VPAD=10
 
     def card_height(members, raid_name=""):
-        parties   = _split_parties(members)
+        size    = get_raid_size(raid_name)          # 레이드 정원 (4/8/16)
+        parties = _split_parties(members, party_size=size)  # party_size 전달
         n_parties = len(parties)
-        size      = get_raid_size(raid_name)
         is_8man   = size == 8 and n_parties == 2
         if is_8man:
             max_p = max(len(p) for p in parties)
@@ -307,6 +319,7 @@ def render_weekly_raids(summary: list, guild_name: str = "로일길드") -> Byte
             dur=r.get('duration',30); dur_lbl=_dur_label(dur)
             cleared=r.get('cleared',False); members=r.get('members',[])
 
+            size = get_raid_size(name)
             ch=card_height(members, name)
             _rect(draw,(cx,cy,cx+COL_W,cy+ch),r=8,fill=C["card_dark"] if is_und_raid else C["card"])
             bar_col=C["undecided"] if is_und_raid else (C["gold"] if cleared else C["accent"])
@@ -322,8 +335,9 @@ def render_weekly_raids(summary: list, guild_name: str = "로일길드") -> Byte
             draw.text((rname_x,cy+7),rname,font=f_raid,fill=_hex(C["text_white"]))
             draw.rectangle([cx+6,cy+26,cx+COL_W-6,cy+27],fill=_hex(C["divider"]))
 
-            parties=_split_parties(members); my=cy+30
-            size = get_raid_size(name)
+            # party_size 전달 — 4인 레이드 강제 분리 방지
+            parties=_split_parties(members, party_size=size)
+            my=cy+30
             is_8man_card = size == 8 and len(parties) == 2
             if is_8man_card:
                 half_w = (COL_W - 6) // 2
@@ -375,7 +389,6 @@ def render_weekly_raids(summary: list, guild_name: str = "로일길드") -> Byte
 # ══════════════════════════════════════════════
 
 def render_weekly_timeline(summary: list, guild_name: str = "로일길드") -> BytesIO:
-    """레이드명만 표시하는 타임라인형 주간 일정표"""
     DAYS     = ['수', '목', '금', '토', '일', '월', '화']
     BASE_H   = 12
     MAX_H    = 25
@@ -443,7 +456,6 @@ def render_weekly_timeline(summary: list, guild_name: str = "로일길드") -> B
 
     for ci, day in enumerate(DAYS):
         cx = PAD + TIME_W + ci*(COL_W+COL_GAP)
-
         slot_map: dict[tuple, list] = defaultdict(list)
         for r in day_raids[day]:
             slot = (r.get('hour', 0), r.get('minute', 0))
@@ -451,16 +463,13 @@ def render_weekly_timeline(summary: list, guild_name: str = "로일길드") -> B
 
         for (h, m), raids_at_slot in slot_map.items():
             ry = body_y + int(((h - BASE_H)*60 + m) / 30 * SLOT_H)
-
             if len(raids_at_slot) == 1:
                 r   = raids_at_slot[0]
                 clr = r.get('cleared', False)
                 bar = C["gold"] if clr else C["accent"]
                 bg  = "#1a1c2e" if clr else "#23253a"
-
                 draw.rectangle([cx+2, ry+1, cx+COL_W-2, ry+BLOCK_H], fill=_hex(bg))
                 draw.rectangle([cx+2, ry+1, cx+5,        ry+BLOCK_H], fill=_hex(bar))
-
                 name  = r.get('name', '')
                 avail = COL_W - 12
                 while name and _tw(draw, name+"…", f_raid) > avail:
@@ -470,14 +479,11 @@ def render_weekly_timeline(summary: list, guild_name: str = "로일길드") -> B
                 if clr:
                     sw = _tw(draw, "✓", f_raid)
                     draw.text((cx+COL_W-sw-5, ry+7), "✓", font=f_raid, fill=_hex(C["gold"]))
-
             else:
                 names_list = [r.get('name', '') for r in raids_at_slot]
                 label      = _make_overlap_label(names_list)
-
                 draw.rectangle([cx+2, ry+1, cx+COL_W-2, ry+BLOCK_H], fill=_hex(C["overlap_bg"]))
                 draw.rectangle([cx+2, ry+1, cx+5,        ry+BLOCK_H], fill=_hex(C["overlap_bar"]))
-
                 avail = COL_W - 12
                 while label and _tw(draw, label+"…", f_overlap) > avail:
                     label = label[:-1]

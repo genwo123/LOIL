@@ -67,6 +67,18 @@ async def delete_thread_after(thread: discord.Thread, seconds: int):
         pass
 
 
+# ==================== 시트 데이터 로드 (폴백 포함) ====================
+
+def _get_data(url: str, ai: bool = True) -> list:
+    """AI편성 탭 우선, 없으면 주간레이드 탭으로 폴백"""
+    if ai:
+        data = get_all_data(url, ai=True)
+        if data:
+            return data
+        print("[party] AI편성 탭 없음 → 주간레이드 탭으로 폴백")
+    return get_all_data(url, ai=False) or []
+
+
 # ==================== 파티 편성 로직 ====================
 
 def _split_parties(members: list, party_size: int = 4) -> list[list]:
@@ -190,7 +202,7 @@ class PartyPanelView(discord.ui.View):
         if not url:
             await interaction.followup.send("❌ 시트가 연동되지 않았습니다.", ephemeral=True)
             return
-        data  = get_all_data(url, ai=True)
+        data  = _get_data(url, ai=True)
         raids = get_sorted_raids(parse_raids(data))
         if not raids:
             await interaction.followup.send("❌ 이번 주 예정된 레이드가 없습니다.", ephemeral=True)
@@ -210,7 +222,7 @@ class PartyPanelView(discord.ui.View):
         if not url:
             await interaction.followup.send("❌ 시트가 연동되지 않았습니다.", ephemeral=True)
             return
-        data  = get_all_data(url, ai=True)
+        data  = _get_data(url, ai=True)
         raids = get_sorted_raids(parse_raids(data))
         if not raids:
             await interaction.followup.send("❌ 이번 주 예정된 레이드가 없습니다.", ephemeral=True)
@@ -224,17 +236,24 @@ class PartyPanelView(discord.ui.View):
         embed = discord.Embed(title="시너지 분석 — 클래스 선택", description="분석할 직업의 클래스를 선택하세요", color=0x9B59B6)
         await interaction.response.send_message(embed=embed, view=SynergyClassSelectView(), ephemeral=True)
 
-    # ── Row 1: 일정 관리 (관리자) ──
-
     @discord.ui.button(label="일정 추가", style=discord.ButtonStyle.success, custom_id="party_raid_add", row=1)
     async def raid_add(self, interaction: discord.Interaction, button: discord.ui.Button):
         if not await require_admin(interaction): return
-        from bot.cogs.raid_manage import AddRaidModal
+        from bot.cogs.raid_manage import RaidSelectForAddView
+        from bot.cogs.raid_config import get_active_raids
         url = get_sheet_url(interaction.guild_id)
         if not url:
             await interaction.response.send_message("❌ 시트가 연동되지 않았습니다.", ephemeral=True)
             return
-        await interaction.response.send_modal(AddRaidModal())
+        active_raids = get_active_raids(interaction.guild_id)
+        if not active_raids:
+            await interaction.response.send_message(
+                "❌ 활성화된 레이드가 없습니다.\n⚔️│레이드설정 채널에서 먼저 운영할 레이드를 켜주세요.",
+                ephemeral=True
+            )
+            return
+        view = RaidSelectForAddView(raids=active_raids, url=url, guild=interaction.guild)
+        await interaction.response.send_message("추가할 레이드를 선택하세요:", view=view, ephemeral=True)
 
     @discord.ui.button(label="🧹 채널 청소", style=discord.ButtonStyle.danger, custom_id="party_purge", row=1)
     async def purge_channel(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -242,6 +261,7 @@ class PartyPanelView(discord.ui.View):
         await interaction.response.defer(ephemeral=True)
         channel = interaction.channel
         try:
+            # 핀 제외 메시지 삭제
             pinned = await channel.pins()
             pinned_ids = {m.id for m in pinned}
             deleted = 0
@@ -252,7 +272,16 @@ class PartyPanelView(discord.ui.View):
                         deleted += 1
                     except Exception:
                         pass
-            await interaction.followup.send(f"🧹 **{deleted}개** 메시지를 삭제했습니다.", ephemeral=True)
+
+            # 패널 맨 아래 재전송
+            party_cog = interaction.client.cogs.get("PartyCog")
+            if party_cog:
+                await party_cog.send_party_panel(channel)
+
+            await interaction.followup.send(
+                f"🧹 **{deleted}개** 메시지 삭제 후 패널을 새로 표시했습니다.",
+                ephemeral=True
+            )
         except Exception as e:
             await interaction.followup.send(f"❌ 청소 실패: {e}", ephemeral=True)
 
@@ -264,7 +293,7 @@ class PartyPanelView(discord.ui.View):
         if not url:
             await interaction.response.send_message("❌ 시트가 연동되지 않았습니다.", ephemeral=True)
             return
-        data  = get_all_data(url, ai=True)
+        data  = _get_data(url, ai=True)
         raids = parse_all_raids(data)
         if not raids:
             await interaction.response.send_message("❌ 등록된 일정이 없습니다.", ephemeral=True)
@@ -279,14 +308,12 @@ class PartyPanelView(discord.ui.View):
         if not url:
             await interaction.response.send_message("❌ 시트가 연동되지 않았습니다.", ephemeral=True)
             return
-        data  = get_all_data(url, ai=True)
+        data  = _get_data(url, ai=True)
         raids = parse_all_raids(data)
         if not raids:
             await interaction.response.send_message("❌ 등록된 일정이 없습니다.", ephemeral=True)
             return
         await interaction.response.send_message("삭제할 일정을 선택하세요:", view=RaidActionView(raids=raids, action="delete", url=url), ephemeral=True)
-
-    # ── Row 2: 네비게이션 ──
 
     @discord.ui.button(label="공지 →", style=discord.ButtonStyle.secondary, custom_id="party_to_notice", row=2)
     async def to_notice(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -380,9 +407,8 @@ class RaidChecklistView(discord.ui.View):
         await thread.send("🤖 AI 파티 편성 중... 시간 배정 포함 잠시 기다려주세요!")
         await interaction.followup.send(f"✅ {thread.mention} 에서 확인하세요!", ephemeral=True)
 
-        absences = get_absences(self.guild_id)
-
-        ai_data     = get_all_data(self.url, ai=True)
+        absences    = get_absences(self.guild_id)
+        ai_data     = _get_data(self.url, ai=True)
         assignments = assign_raid_times(self.url, ai_data, interaction.guild_id)
 
         selected_cols = {self.raids[i]['col'] for i in self.selected}
@@ -429,7 +455,7 @@ class RaidChecklistView(discord.ui.View):
                 await thread.send("🎉 모든 편성이 완료됐어요! 주간 일정표를 드릴게요 잠시만요...")
                 from bot.utils.image_renderer import render_weekly_raids, render_weekly_timeline
                 from bot.utils.sheets import parse_raids
-                weekly_data  = get_all_data(self.url, ai=True)
+                weekly_data  = _get_data(self.url, ai=True)
                 weekly_raids = parse_raids(weekly_data)
                 col_to_assign = {a['raid']['col']: a for a in assignments}
                 for r in weekly_raids:
@@ -619,7 +645,12 @@ class PartyGroupConfirmView(discord.ui.View):
     @discord.ui.button(label="✅ 저장하기", style=discord.ButtonStyle.success, custom_id="pgroup_confirm")
     async def confirm(self, interaction: discord.Interaction, button: discord.ui.Button):
         if not await require_admin(interaction): return
-        await interaction.response.defer()
+
+        # 버튼 즉시 비활성화 — 중복 클릭 및 404 타임아웃 방지
+        button.disabled = True
+        button.label    = "저장 중..."
+        await interaction.response.edit_message(view=self)
+
         confirmed_by = interaction.user.display_name
 
         async def _save():
@@ -654,9 +685,6 @@ class PartyGroupConfirmView(discord.ui.View):
                     save_assigned_times(self.url, time_assignments)
                 except Exception as e:
                     print(f"[party] save_assigned_times 오류: {e}")
-
-            if failed:
-                await interaction.followup.send("⚠️ 시트 저장 실패: " + ", ".join(failed), ephemeral=True)
 
             if self.confirmed_counter is not None:
                 self.confirmed_counter[0] += 1
@@ -715,7 +743,7 @@ class PartyGroupConfirmView(discord.ui.View):
         if not await require_admin(interaction): return
         await interaction.response.defer()
         try:
-            data      = get_all_data(self.url, ai=True)
+            data      = _get_data(self.url, ai=True)
             all_avail = get_all_availability(self.url)
             new_assignments = assign_raid_times(self.url, data, self.guild_id)
             target_names = {r['name'] for r in self.group_results}

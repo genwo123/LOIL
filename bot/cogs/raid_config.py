@@ -107,6 +107,31 @@ def get_raids_by_category(cat_id: str) -> list[dict]:
     return raids
 
 
+def get_active_raids(guild_id: int) -> list[dict]:
+    """활성화된 레이드 목록 반환 (레벨 내림차순) — 🛡│레이드편성 /일정추가 드롭다운에서 사용
+    각 항목: {key, raid_name, diff, ilvl, size, duration, slots}
+    duration은 관리자가 ⚔️│레이드설정에서 조정한 값을 우선 사용, 없으면 raid_data.json 기본값."""
+    config = get_raid_config(guild_id)
+    raids = []
+    for raid_name, diffs in RAID_LEVEL_MAP.items():
+        for diff, info in diffs.items():
+            key = _raid_key(raid_name, diff)
+            cfg = config.get(key)
+            if not cfg or not cfg.get("active"):
+                continue
+            raids.append({
+                "key":       key,
+                "raid_name": raid_name,
+                "diff":      diff,
+                "ilvl":      info["ilvl"],
+                "size":      info["size"],
+                "duration":  cfg.get("duration", info["duration"]),
+                "slots":     cfg.get("slots", 1),
+            })
+    raids.sort(key=lambda r: r["ilvl"], reverse=True)
+    return raids
+
+
 # ==================== 메인 View ====================
 
 class RaidConfigView(discord.ui.View):
@@ -348,7 +373,7 @@ class RaidConfigView(discord.ui.View):
         if saved:
             embed = discord.Embed(
                 title="⚔️ 레이드 설정",
-                description="✅ 저장 완료! 시트에 반영되었습니다.",
+                description="✅ 저장 완료! 다음 **/일정추가**부터 이 설정이 반영됩니다.",
                 color=0x57f287,
             )
         else:
@@ -401,7 +426,7 @@ class RaidConfigView(discord.ui.View):
                 inline=False,
             )
 
-        embed.set_footer(text="저장 버튼을 누르면 변경사항이 구글 시트에 반영됩니다")
+        embed.set_footer(text="저장 버튼을 누르면 다음 /일정추가부터 이 설정(활성/슬롯/소요시간)이 반영됩니다")
         return embed
 
 
@@ -447,8 +472,8 @@ class RaidConfigCog(commands.Cog, name="RaidConfigCog"):
             title="⚔️ 레이드 카탈로그 관리",
             description=(
                 "길드가 운영할 레이드와 슬롯 수를 설정합니다.\n"
-                "활성화된 레이드만 **🛡│레이드편성** 일정 추가에 표시됩니다.\n\n"
-                "변경사항은 **구글 시트에 즉시 반영**됩니다."
+                "활성화된 레이드만 **🛡│레이드편성 /일정추가**의 선택 목록에 표시됩니다.\n\n"
+                "슬롯 수만큼 파티를 한 번에 등록할 수 있어요 (예: 3슬롯 → 세르카(나이트메어)1·2·3)."
             ),
             color=0x5865f2,
         )

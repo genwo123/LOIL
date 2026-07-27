@@ -1,11 +1,29 @@
 {
   "1473254272433913961": {
-    "sheet_url": "https://docs.google.com/spreadsheets/d/1kZdspDtH3ro1pwAkVhf01csbRA8qoBXzkc-qvdfZ2iU/edit?gid=1866427759#gid=1866427759",
-    "gemini_api_key": "AIzaSyA2GVn5z_lezneOM3nDWVcCFL8j5CJ6H48",
+    "sheet_url": "https://docs.google.com/spreadsheets/d/1kZdspDtH3ro1pwAkVhf01csbRA8qoBXzkc-qvdfZ2iU/edit?gid=0#gid=0",
     "loa_api_keys": "eyJ0eXAiOiJKV1Qi",
-    "members": {
-      "388698879270584321": "거니"
-    },
-    "schedule_style": "B"
+    "gemini_api_key": "AIzaSyA2GVn5z_lezneOM3nDWVcCFL8j5CJ6H48",
+    "raid_config": {
+      "세르카_나이트메어": {
+        "active": true,
+        "slots": 3,
+        "duration": 60
+      },
+      "세르카_하드": {
+        "active": true,
+        "slots": 3,
+        "duration": 60
+      },
+      "세르카_노말": {
+        "active": true,
+        "slots": 8,
+        "duration": 60
+      },
+      "종막_하드": {
+        "active": true,
+        "slots": 5,
+        "duration": 90
+      }
+    }
   }
 }

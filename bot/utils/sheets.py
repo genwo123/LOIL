@@ -29,18 +29,28 @@ def _load_raid_data() -> dict:
 _RAID_DATA     = _load_raid_data()
 RAID_LEVEL_MAP = _RAID_DATA['raid_level_map']  # {"세르카": {"하드": {"ilvl":1730,"category":4,"size":4,"duration":60}, ...}}
 DIFF_KEYWORDS  = _RAID_DATA['diff_keywords']   # ["하드", "노말", ...]
+DIFF_ALIASES   = _RAID_DATA.get('diff_aliases', {})  # {"나메": "나이트메어", ...} 축약어 → 정식 난이도명
 CATEGORIES     = _RAID_DATA['categories']      # {"0": "어비스 레이드", ...}
+
+
+def _match_difficulty(diffs: dict, raid_name: str) -> dict:
+    """레이드명 문자열에서 난이도를 찾아 해당 정보(dict) 반환.
+    정식 난이도명 매칭을 우선하고, 축약어(나메→나이트메어 등)도 인식한다.
+    매칭 실패 시 첫 번째 난이도로 폴백."""
+    for diff, info in diffs.items():
+        if diff in raid_name:
+            return info
+    for alias, canonical in DIFF_ALIASES.items():
+        if alias in raid_name and canonical in diffs:
+            return diffs[canonical]
+    return next(iter(diffs.values()))
 
 
 def get_raid_size(raid_name: str) -> int:
     """레이드명으로 인원수 반환 (4/8/16). 기본값 8."""
     for base, diffs in RAID_LEVEL_MAP.items():
         if base in raid_name:
-            for diff, info in diffs.items():
-                if diff in raid_name:
-                    return info.get('size', 8)
-            # 난이도 매칭 없으면 첫 번째 난이도 size 반환
-            return next(iter(diffs.values())).get('size', 8)
+            return _match_difficulty(diffs, raid_name).get('size', 8)
     return 8
 
 
@@ -48,10 +58,7 @@ def get_raid_default_duration(raid_name: str) -> int:
     """레이드명으로 기본 소요시간(분) 반환. 기본값 60."""
     for base, diffs in RAID_LEVEL_MAP.items():
         if base in raid_name:
-            for diff, info in diffs.items():
-                if diff in raid_name:
-                    return info.get('duration', 60)
-            return next(iter(diffs.values())).get('duration', 60)
+            return _match_difficulty(diffs, raid_name).get('duration', 60)
     return 60
 
 
@@ -717,11 +724,8 @@ def _parse_raid_level(raid_name: str) -> tuple:
     """레이드명으로 (ilvl, category) 반환"""
     for base, diffs in RAID_LEVEL_MAP.items():
         if base in raid_name:
-            for diff, info in diffs.items():
-                if diff in raid_name:
-                    return (info['ilvl'], info['category'])
-            first = next(iter(diffs.values()))
-            return (first['ilvl'], first['category'])
+            info = _match_difficulty(diffs, raid_name)
+            return (info['ilvl'], info['category'])
     return (0, 9)
 
 
