@@ -1,0 +1,33 @@
+/*
+대시보드(web/templates/*.html) 공용 모바일 보정.
+각 템플릿이 자체 <style>을 갖고 있어서, 폭이 좁은 화면에서 공통으로 깨지는 부분만 여기서 덮어쓴다.
+템플릿 <head> 맨 끝(자체 <style> 뒤)에서 불러와야 우선 적용됨.
+*/
+.theme-toggle,.logout,.home-btn{white-space:nowrap;flex-shrink:0;}
+
+@media (max-width:640px){
+  .top-row{flex-direction:column;align-items:stretch;gap:12px;}
+  .top-row>button,.top-row>a{align-self:flex-start;}
+  .header-actions{flex-wrap:wrap;justify-content:flex-start;gap:8px 12px;}
+  .header-actions>*{white-space:nowrap;flex:0 0 auto;}
+  header h1{overflow-wrap:anywhere;word-break:break-word;}
+  button,.btn-primary,.btn-secondary,.home-btn,select,input[type="submit"]{min-height:40px;}
+
+  body{padding-top:20px;}
+  header p{margin-bottom:10px;}
+  .top-row{margin-bottom:6px;}
+  .home-btn{margin-bottom:12px;padding:8px 14px;}
+
+  /* "길드 홈" 버튼이 있는 페이지: 제목 / [버튼들 + 길드 홈] 두 줄로 압축 */
+  .wrap:has(> .top-row):has(> .home-btn){display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;}
+  .wrap:has(> .top-row):has(> .home-btn) > *{flex:0 0 100%;}
+  .wrap:has(> .top-row):has(> .home-btn) > .top-row{display:contents;}
+  .wrap:has(> .top-row):has(> .home-btn) > .top-row > header{flex:0 0 100%;order:-4;}
+  .wrap:has(> .top-row):has(> .home-btn) > .top-row > .header-actions{flex:0 0 auto;order:-3;}
+  .wrap:has(> .top-row):has(> .home-btn) > .top-row > button,
+  .wrap:has(> .top-row):has(> .home-btn) > .top-row > a{flex:0 0 auto;order:-3;align-self:center;}
+  .wrap:has(> .top-row):has(> .home-btn) > .home-btn{flex:0 0 auto;order:-2;margin:0;}
+
+  /* 제목(header)이 없고 [길드 홈] + [버튼들]만 있는 상단은 한 줄로 */
+  .top-row:not(:has(> header)){flex-direction:row;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 12px;}
+}
