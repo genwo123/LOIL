@@ -36,6 +36,9 @@ class _Tee:
     def isatty(self):
         return self._original.isatty()
 
+    def __getattr__(self, name):
+        return getattr(self._original, name)
+
 
 def setup_logging(process_name: str) -> None:
     LOG_DIR.mkdir(exist_ok=True)
