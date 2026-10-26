@@ -4,6 +4,13 @@ set -euo pipefail
 DOMAIN="${1:?도메인을 인자로 주세요}"
 cat > /etc/caddy/Caddyfile <<CADDY
 ${DOMAIN} {
+    encode gzip zstd
+    header {
+        X-Content-Type-Options nosniff
+        X-Frame-Options SAMEORIGIN
+        Referrer-Policy strict-origin-when-cross-origin
+        -Server
+    }
     reverse_proxy 127.0.0.1:8000
 }
 CADDY

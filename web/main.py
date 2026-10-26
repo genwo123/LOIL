@@ -22,7 +22,7 @@ import json
 from pathlib import Path
 
 from fastapi import FastAPI, Request
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, PlainTextResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.exceptions import HTTPException as StarletteHTTPException
@@ -45,8 +45,13 @@ GUIDE_DIR   = BASE_DIR.parent / "docs"
 
 DAY_ORDER = {'수': 0, '목': 1, '금': 2, '토': 3, '일': 4, '월': 5, '화': 6, '미정': 7}
 
+IS_PUBLIC_HTTPS = WEB_BASE_URL.startswith("https://")
+if IS_PUBLIC_HTTPS and (not SESSION_SECRET_KEY or SESSION_SECRET_KEY == "dev-insecure-session-key"):
+    raise RuntimeError("공개 서버(HTTPS)에서는 bot/.env의 SESSION_SECRET_KEY를 무작위 값으로 설정해야 합니다. "
+                       "기본값이면 누구나 관리자 로그인 쿠키를 위조할 수 있습니다.")
+
 app = FastAPI(title="로일(LoIl) 웹 대시보드")
-app.add_middleware(SessionMiddleware, secret_key=SESSION_SECRET_KEY)
+app.add_middleware(SessionMiddleware, secret_key=SESSION_SECRET_KEY, https_only=IS_PUBLIC_HTTPS)
 app.include_router(admin_router)
 app.include_router(availability_router)
 app.include_router(onboarding_router)
@@ -81,6 +86,41 @@ async def index(request: Request):
 @app.get("/favicon.ico", include_in_schema=False)
 async def favicon():
     return FileResponse(STATIC_DIR / "loil" / "favicon.ico")
+
+
+@app.get("/healthz", include_in_schema=False)
+async def healthz():
+    return JSONResponse({"status": "ok"})
+
+
+@app.get("/ads.txt", include_in_schema=False)
+async def ads_txt():
+    return PlainTextResponse("google.com, pub-4097734794611688, DIRECT, f08c47fec0942fa0\n")
+
+
+@app.get("/robots.txt", include_in_schema=False)
+async def robots_txt():
+    base = WEB_BASE_URL.rstrip("/")
+    lines = [
+        "User-agent: *",
+        "Allow: /",
+        "Disallow: /admin",
+        "Disallow: /login",
+        "Disallow: /callback",
+        "Disallow: /logout",
+        "Disallow: /guild/",
+        f"Sitemap: {base}/sitemap.xml",
+    ]
+    return PlainTextResponse("\n".join(lines) + "\n")
+
+
+@app.get("/sitemap.xml", include_in_schema=False)
+async def sitemap_xml():
+    base = WEB_BASE_URL.rstrip("/")
+    paths = ["/"] + [f"/guide/{p.name}" for p in sorted(GUIDE_DIR.glob("*.html")) if p.name != "index.html"]
+    items = "".join(f"<url><loc>{base}{path}</loc></url>" for path in paths)
+    xml = f'<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">{items}</urlset>'
+    return Response(xml, media_type="application/xml")
 
 
 @app.get("/privacy", include_in_schema=False)
