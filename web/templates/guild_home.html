@@ -1,0 +1,303 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ guild.name }} · 로일(LoIl)</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root, :root[data-theme="dark"] {
+    --bg: #0d0f14;
+    --card: #161922;
+    --accent: #4f63d2;
+    --accent-h: #3d50c0;
+    --text: #e8eaf0;
+    --text-gray: #8b95b0;
+    --divider: #1e2330;
+    --blurple: #4f63d2;
+    --dps: #F04747;
+    --shadow: 0 4px 32px rgba(0,0,0,.5);
+    --accent-bg: rgba(79,99,210,.1);
+  }
+  :root[data-theme="light"] {
+    --bg: #f5f7fd;
+    --card: #ffffff;
+    --accent: #4f63d2;
+    --accent-h: #3d50c0;
+    --text: #1a1d2e;
+    --text-gray: #5a6394;
+    --divider: #e2e6f3;
+    --blurple: #4f63d2;
+    --dps: #F04747;
+    --shadow: 0 4px 24px rgba(79,99,210,.08);
+    --accent-bg: rgba(79,99,210,.07);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Noto Sans KR", "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+    padding: 40px 16px;
+    transition: background .3s, color .3s;
+  }
+  .wrap { max-width: 520px; margin: 0 auto; }
+  @media (min-width: 860px) { .wrap { max-width: 900px; } }
+  .top-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+  header h1 { margin: 0 0 4px; font-size: 22px; }
+  header p { margin: 0 0 28px; color: var(--text-gray); font-size: 13px; }
+  .logout { color: var(--text-gray); font-size: 12px; text-decoration: none; }
+  .dev-banner {
+    background: #ED4245; color: #fff; font-size: 12px; font-weight: bold;
+    text-align: center; padding: 6px; border-radius: 6px; margin-bottom: 16px;
+  }
+  .hero {
+    position: relative; border-radius: 14px; overflow: hidden; margin-bottom: 20px;
+    aspect-ratio: 16/5; background: linear-gradient(135deg, var(--accent), var(--accent-h));
+  }
+  .hero img.hero-img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .hero .watermark {
+    position: absolute; left: 10px; bottom: 10px; width: 32px; height: 32px;
+    border-radius: 8px; object-fit: cover; opacity: 0.92; box-shadow: 0 2px 8px rgba(0,0,0,0.35);
+  }
+  .hero .hero-edit {
+    position: absolute; right: 10px; bottom: 10px; background: rgba(0,0,0,0.5); color: #fff;
+    font-size: 11px; padding: 5px 10px; border-radius: 999px; cursor: pointer; border: none;
+  }
+  .hero-form { display: none; margin-bottom: 16px; }
+  .hero-form.open { display: flex; gap: 8px; align-items: center; }
+  .hero-form input[type="file"] { flex: 1; font-size: 12px; color: var(--text); }
+  .hero-form button { font-family: inherit; font-size: 12px; font-weight: bold; border: none; border-radius: 6px; padding: 7px 12px; cursor: pointer; background: var(--accent); color: #fff; }
+
+  .code-section { background: var(--card); border-radius: 10px; margin-bottom: 16px; overflow: hidden; }
+  .code-toggle {
+    width: 100%; display: flex; justify-content: space-between; align-items: center;
+    font-family: inherit; font-size: 12.5px; font-weight: bold; color: var(--text-gray);
+    background: none; border: none; padding: 12px 16px; cursor: pointer;
+  }
+  .code-toggle .chev { transition: transform 0.15s; color: var(--text-gray); }
+  .code-toggle.open .chev { transform: rotate(90deg); }
+  .code-body { display: none; flex-direction: column; gap: 12px; padding: 2px 16px 16px; }
+  .code-body.open { display: flex; }
+  .code-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .code-label { font-size: 12px; color: var(--text-gray); }
+  .code-label a { color: var(--accent); }
+  .code-value {
+    font-family: inherit; font-size: 22px; font-weight: bold; letter-spacing: 3px;
+    background: var(--bg); border: 1px dashed var(--divider); color: var(--text);
+    border-radius: 8px; padding: 8px 18px; cursor: pointer; transition: border-color 0.15s, color 0.15s;
+  }
+  .code-value:hover { border-color: var(--accent); }
+  .code-value.copied { border-color: var(--blurple); border-style: solid; color: var(--blurple); }
+  .card-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 10px;
+  }
+  .card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--card);
+    border: 1px solid var(--divider);
+    border-radius: 12px;
+    border-left: 4px solid var(--accent);
+    padding: 18px 20px;
+    text-decoration: none;
+    color: var(--text);
+    box-shadow: var(--shadow);
+    transition: border-color .15s, background .15s;
+  }
+  .card:hover { border-color: var(--accent); background: var(--accent-bg); }
+  .card .title { font-size: 15px; font-weight: bold; margin-bottom: 3px; }
+  .card .desc { font-size: 12px; color: var(--text-gray); }
+  .card .arrow { color: var(--text-gray); flex-shrink: 0; margin-left: 12px; }
+  .card.disabled { opacity: 0.45; pointer-events: none; }
+  .card-wide { margin-top: 10px; border-left-color: var(--divider); }
+  .header-actions { display: flex; align-items: center; gap: 12px; }
+  .theme-toggle {
+    background: var(--card); border: 1px solid var(--divider); color: var(--text);
+    font-size: 11px; font-weight: bold; padding: 6px 10px; border-radius: 999px; cursor: pointer;
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    {% if dev_mode %}<div class="dev-banner">⚠ DEV MODE — 로그인 스킵됨 (배포 전 반드시 해제)</div>{% endif %}
+
+    <div class="hero">
+      <img class="hero-img" src="{{ banner_url or '/static/loil/Loil_banner.png' }}" alt="{{ guild.name }}">
+      <img class="watermark" src="/static/loil/Loil_icon.png" alt="LoIl">
+      {% if is_admin %}<button class="hero-edit" onclick="document.getElementById('heroForm').classList.toggle('open')">배너 변경</button>{% endif %}
+    </div>
+    {% if is_admin %}
+    <form id="heroForm" class="hero-form" method="post" action="/admin/{{ guild.id }}/banner" enctype="multipart/form-data">
+      <input type="file" name="file" accept="image/png,image/jpeg,image/webp,image/gif" required>
+      <button type="submit">업로드</button>
+      {% if banner_url %}
+      <button type="button" style="background:var(--divider);" onclick="document.getElementById('rmBannerForm').submit()">제거</button>
+      {% endif %}
+    </form>
+    {% if banner_url %}
+    <form id="rmBannerForm" method="post" action="/admin/{{ guild.id }}/banner/remove" style="display:none;"></form>
+    {% endif %}
+    {% endif %}
+
+    {% if join_code or (is_admin and connect_code) %}
+    <div class="code-section">
+      <button type="button" class="code-toggle" onclick="this.classList.toggle('open'); document.getElementById('codeBody').classList.toggle('open');">
+        <span>{{ '가입/연결 코드 보기' if is_admin else '가입 코드 보기' }}</span>
+        <span class="chev">▶</span>
+      </button>
+      <div class="code-body" id="codeBody">
+        {% if join_code %}
+        <div class="code-row">
+          <div class="code-label">일반 길드원 가입 코드 — <a href="/guild/join">가입 신청 페이지</a>에서 이 코드로 신청 (지인 초대할 때 공유해도 돼요)</div>
+          <button type="button" class="code-value" onclick="loilCopyCode(this, '{{ join_code }}')">{{ join_code }}</button>
+        </div>
+        {% endif %}
+        {% if is_admin and connect_code %}
+        <div class="code-row">
+          <div class="code-label">봇 연결 코드 — 봇 초대 후 ⚙│봇설정의 길드 연결에서 입력</div>
+          <button type="button" class="code-value" onclick="loilCopyCode(this, '{{ connect_code }}')">{{ connect_code }}</button>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="top-row">
+      <header>
+        <h1>{{ guild.name }}</h1>
+        <p>{{ user.username }}님 · {{ '무엇을 하시겠어요?' if is_admin else '조회만 가능합니다 (수정은 관리자만)' }}</p>
+      </header>
+      <div class="header-actions">
+        <button class="theme-toggle" onclick="loilToggleTheme()">🌙/☀️</button>
+        <a class="logout" href="/logout">로그아웃</a>
+      </div>
+    </div>
+
+    <div class="card-list">
+      <a class="card" href="/admin/{{ guild.id }}/schedule">
+        <div>
+          <div class="title">일정 관리</div>
+          <div class="desc">{{ '레이드 등록 · 수정 · 삭제' if is_admin else '등록된 레이드 조회' }}</div>
+        </div>
+        <span class="arrow">→</span>
+      </a>
+
+      <a class="card" href="/admin/{{ guild.id }}/time-policy">
+        <div>
+          <div class="title">요일별 시간 정책</div>
+          <div class="desc">{{ '요일별 허용 시간대 설정' if is_admin else '현재 요일별 허용 시간대 조회' }}</div>
+        </div>
+        <span class="arrow">→</span>
+      </a>
+
+      <a class="card {{ '' if is_admin else 'disabled' }}" href="{{ ('/admin/' ~ guild.id ~ '/compose') if is_admin else '#' }}">
+        <div>
+          <div class="title">AI 자동편성</div>
+          <div class="desc">{{ '가능시간 기준 자동 파티 편성' if is_admin else '관리자 전용 기능입니다' }}</div>
+        </div>
+        <span class="arrow">→</span>
+      </a>
+
+      <a class="card" href="/admin/{{ guild.id }}/synergy">
+        <div>
+          <div class="title">시너지 분석</div>
+          <div class="desc">파티 직업 조합의 보유·누락 시너지 확인</div>
+        </div>
+        <span class="arrow">→</span>
+      </a>
+
+      <a class="card" href="/admin/{{ guild.id }}/members">
+        <div>
+          <div class="title">길드원 명단</div>
+          <div class="desc">{{ '닉네임 등록 현황 · 엑셀 일괄 등록' if is_admin else '닉네임 등록 현황 조회' }}</div>
+        </div>
+        <span class="arrow">→</span>
+      </a>
+
+      <a class="card" href="/admin/{{ guild.id }}/group-availability">
+        <div>
+          <div class="title">길드 전체 가능시간</div>
+          <div class="desc">전원 가능시간을 겹쳐서 보는 히트맵</div>
+        </div>
+        <span class="arrow">→</span>
+      </a>
+
+      <a class="card {{ '' if public_url else 'disabled' }}" href="{{ public_url or '#' }}">
+        <div>
+          <div class="title">공개 일정 보기</div>
+          <div class="desc">
+            {% if public_url %}로그인 없이 이 링크를 아는 누구나 볼 수 있어요 — 디스코드 채널에 올리면 그 채널을 보는 사람 전원이 접근 가능합니다{% else %}아직 편성 결과가 한 번도 저장되지 않았습니다{% endif %}
+          </div>
+        </div>
+        <span class="arrow">→</span>
+      </a>
+
+      <a class="card" href="/admin/{{ guild.id }}/suggestions">
+        <div>
+          <div class="title">길드 건의함</div>
+          <div class="desc">디스코드로 접수된 길드 건의 목록 (긴급/일반)</div>
+        </div>
+        <span class="arrow">→</span>
+      </a>
+
+      <a class="card {{ '' if is_admin else 'disabled' }}" href="{{ ('/admin/' ~ guild.id ~ '/join-requests') if is_admin else '#' }}">
+        <div>
+          <div class="title">가입 신청 관리{% if is_admin and join_request_count %} <span style="color:var(--dps, #ED4245);">({{ join_request_count }})</span>{% endif %}</div>
+          <div class="desc">{{ '가입 코드로 신청한 사람 승인/거절' if is_admin else '관리자 전용 기능입니다' }}</div>
+        </div>
+        <span class="arrow">→</span>
+      </a>
+    </div>
+
+    <a class="card card-wide" href="/">
+      <div>
+        <div class="title">로일 홈</div>
+        <div class="desc">다른 길드에 가입하거나 새 길드 만들기</div>
+      </div>
+      <span class="arrow">→</span>
+    </a>
+  </div>
+  <script>
+    function loilCopyCode(btn, code) {
+      const original = btn.textContent;
+      const onDone = () => {
+        btn.textContent = '복사됨';
+        btn.classList.add('copied');
+        setTimeout(() => { btn.textContent = original; btn.classList.remove('copied'); }, 1200);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(code).then(onDone).catch(() => loilFallbackCopy(code, onDone));
+      } else {
+        loilFallbackCopy(code, onDone);
+      }
+    }
+    function loilFallbackCopy(text, cb) {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); cb(); } catch (e) {}
+      document.body.removeChild(ta);
+    }
+    function loilToggleTheme() {
+      const html = document.documentElement;
+      const cur = html.dataset.theme || 'dark';
+      html.dataset.theme = cur === 'dark' ? 'light' : 'dark';
+      try { localStorage.setItem('loil-theme', html.dataset.theme); } catch (e) {}
+    }
+    (function () {
+      try {
+        const saved = localStorage.getItem('loil-theme');
+        if (saved) document.documentElement.dataset.theme = saved;
+      } catch (e) {}
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>결과 없음</title>
+<style>
+  :root, :root[data-theme="dark"] { --bg: #1E1F22; --text-gray: #B5BAC1; }
+  :root[data-theme="light"] { --bg: #F7F7FB; --text-gray: #77778C; }
+  body {
+    margin: 0;
+    height: 100vh;
+    background: var(--bg);
+    color: var(--text-gray);
+    font-family: "Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 24px;
+  }
+</style>
+<script>
+  (function () {
+    try {
+      const saved = localStorage.getItem('loil-theme');
+      if (saved) document.documentElement.dataset.theme = saved;
+    } catch (e) {}
+  })();
+</script>
+</head>
+<body>
+  <p>링크를 다시 확인해 주세요.</p>
+</body>
+</html>

@@ -3,12 +3,21 @@
 실행: python -m bot.main (프로젝트 루트에서)
 """
 
+import sys
 import discord
 from discord.ext import commands, tasks
 from datetime import datetime, timezone, timedelta
 import asyncio
 import json
 import os
+
+# Windows 콘솔이 cp949(한글 코드페이지)일 때 이모지 print()가 UnicodeEncodeError로 죽는 것 방지.
+if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stderr.reconfigure(encoding="utf-8")
+
+from bot.utils.app_logging import setup_logging
+setup_logging("bot")
 
 from bot.config.settings import (
     DISCORD_BOT_TOKEN,
@@ -29,6 +38,7 @@ from bot.config.channels import (
     CH_RAID_CONFIG,
     get_channel,
 )
+from bot.utils.guild_url import sync_guild_name
 
 # ==================== Intents ====================
 
@@ -55,6 +65,8 @@ COGS = [
     "bot.cogs.admin",
     "bot.cogs.help",
     "bot.cogs.alias",
+    "bot.cogs.links",
+    "bot.cogs.character_info",
 ]
 
 async def load_cogs():
@@ -133,6 +145,8 @@ async def setup_guild_channels(guild: discord.Guild):
                     "2. **⚔️│레이드설정** 채널에서 운영할 레이드 활성화\n"
                     "3. **🛡│레이드편성** 채널에서 AI 파티 추천\n"
                     "4. **📡│공지** 채널에서 일정 요청 시작\n\n"
+                    "로일 웹에서 미리 길드를 만들어두셨다면 "
+                    "**⚙│봇설정** 패널의 **🔗 길드 연결** 버튼으로 그 설정을 이 서버에 그대로 옮겨올 수 있어요.\n\n"
                     "문의: `/도움말`"
                 ),
                 color=0x5865F2
@@ -213,6 +227,9 @@ async def on_ready():
 
     await load_cogs()
 
+    for guild in bot.guilds:
+        sync_guild_name(guild.id, guild.name)
+
     try:
         synced = await bot.tree.sync()
         print(f"✅ 슬래시 명령어 {len(synced)}개 동기화 완료!")
@@ -222,6 +239,10 @@ async def on_ready():
     if not weekly_update_scheduler.is_running():
         weekly_update_scheduler.start()
         print("✅ 수요일 자동 갱신 스케줄러 시작!")
+
+    if not dm_dispatcher.is_running():
+        dm_dispatcher.start()
+        print("✅ 웹→디스코드 DM 큐 처리 시작!")
 
     await bot.change_presence(
         activity=discord.Game(name="로스트아크 길드 관리 | /도움말")
@@ -233,6 +254,7 @@ async def on_ready():
 async def on_guild_join(guild: discord.Guild):
     """봇 서버 입장 시 채널 자동 생성"""
     print(f"✅ 새 서버 입장: {guild.name}")
+    sync_guild_name(guild.id, guild.name)
     await setup_guild_channels(guild)
 
 
@@ -284,9 +306,49 @@ async def before_scheduler():
     await bot.wait_until_ready()
 
 
+# ==================== 웹 → 디스코드 DM 큐 처리 ====================
+
+@tasks.loop(seconds=30)
+async def dm_dispatcher():
+    """web/에서 쌓아둔 알림(가입 승인/거절, 건의 처리완료 등)을 실제로 DM 발송."""
+    from bot.utils.storage import load_settings, save_settings
+
+    settings = load_settings()
+    changed = False
+
+    for gid, gdata in settings.items():
+        if not isinstance(gdata, dict):
+            continue
+        pending = gdata.get("pending_dms")
+        if not pending:
+            continue
+
+        guild = bot.get_guild(int(gid)) if gid.isdigit() else None
+        for item in pending:
+            try:
+                member = None
+                if guild:
+                    member = guild.get_member(int(item["user_id"])) or await guild.fetch_member(int(item["user_id"]))
+                if member:
+                    await member.send(item["message"])
+            except Exception as e:
+                print(f"[dm_dispatcher] 발송 실패 (guild={gid}, user={item.get('user_id')}): {e}")
+
+        gdata["pending_dms"] = []
+        changed = True
+
+    if changed:
+        save_settings(settings)
+
+
+@dm_dispatcher.before_loop
+async def before_dm_dispatcher():
+    await bot.wait_until_ready()
+
+
 # ==================== 실행 ====================
 
 if __name__ == "__main__":
     validate_config()
     print_config()
-    bot.run(DISCORD_BOT_TOKEN)
+    bot.run(DISCORD_BOT_TOKEN, log_handler=None)

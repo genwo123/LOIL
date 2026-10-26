@@ -6,6 +6,7 @@
 - 캐싱 시스템
 """
 
+import json
 import requests
 import time
 from datetime import datetime, timedelta
@@ -16,27 +17,54 @@ from bot.config.settings import LOSTARK_API_KEYS, LOSTARK_API_BASE_URL
 
 class APIKeyManager:
     """API 키 Round-robin 관리"""
-    
+
     def __init__(self):
         self.keys = LOSTARK_API_KEYS
         self.current_index = 0
-    
+
     def get_next_key(self) -> str:
         """다음 API 키 반환 (Round-robin)"""
         if not self.keys:
             raise ValueError("로스트아크 API 키가 설정되지 않았습니다!")
-        
+
         key = self.keys[self.current_index]
         self.current_index = (self.current_index + 1) % len(self.keys)
         return key
-    
+
     def get_total_keys(self) -> int:
         """전체 키 개수"""
         return len(self.keys)
 
 
-# 전역 키 매니저
+# 전역 키 매니저 (길드가 자체 키를 등록하지 않았을 때의 폴백 풀)
 key_manager = APIKeyManager()
+
+_guild_key_cursor: Dict[str, int] = {}
+
+_MIN_KEY_LEN = 100  # 실제 로아 API 키(JWT)는 수백 자 — 이보다 짧으면 잘린/잘못된 값으로 취급
+
+def _resolve_keys(guild_id: int = 0) -> List[str]:
+    """길드가 /설정에서 등록한 로아 API 키 우선, 없거나 명백히 잘린 값이면 .env 전역 키 풀로 폴백."""
+    if guild_id:
+        try:
+            from bot.utils.storage import load_settings
+            raw = load_settings().get(str(guild_id), {}).get("loa_api_keys", "")
+            keys = [k.strip() for k in raw.split(",") if k.strip() and len(k.strip()) >= _MIN_KEY_LEN]
+            if keys:
+                return keys
+        except Exception:
+            pass
+    return LOSTARK_API_KEYS
+
+def _next_key(guild_id: int = 0) -> str:
+    """길드별 키 풀에서 Round-robin으로 다음 키 반환."""
+    keys = _resolve_keys(guild_id)
+    if not keys:
+        raise ValueError("로스트아크 API 키가 설정되지 않았습니다!")
+    pool_id = str(guild_id) if guild_id else "_global"
+    idx = _guild_key_cursor.get(pool_id, 0) % len(keys)
+    _guild_key_cursor[pool_id] = idx + 1
+    return keys[idx]
 
 
 # ==================== 캐싱 시스템 ====================
@@ -74,14 +102,15 @@ cache = SimpleCache(ttl_minutes=5)
 
 # ==================== API 호출 ====================
 
-def _make_request(endpoint: str, use_cache: bool = True) -> Optional[dict]:
+def _make_request(endpoint: str, use_cache: bool = True, guild_id: int = 0) -> Optional[dict]:
     """
     API 요청 (내부 함수)
-    
+
     Args:
         endpoint: API 엔드포인트 (예: /armories/characters/빛쟁인거니/profiles)
         use_cache: 캐시 사용 여부
-    
+        guild_id: 길드가 등록한 로아 API 키를 우선 사용 (없으면 전역 키)
+
     Returns:
         API 응답 데이터 또는 None
     """
@@ -90,11 +119,15 @@ def _make_request(endpoint: str, use_cache: bool = True) -> Optional[dict]:
         cached_data = cache.get(endpoint)
         if cached_data:
             return cached_data
-    
+
     # API 호출
     url = f"{LOSTARK_API_BASE_URL}{endpoint}"
-    api_key = key_manager.get_next_key()
-    
+    try:
+        api_key = _next_key(guild_id)
+    except ValueError:
+        print(f"⚠️ 로스트아크 API 키가 설정되지 않았습니다: {endpoint}")
+        return None
+
     headers = {
         'accept': 'application/json',
         'authorization': f'bearer {api_key}'
@@ -133,14 +166,15 @@ def _make_request(endpoint: str, use_cache: bool = True) -> Optional[dict]:
 
 # ==================== 캐릭터 정보 ====================
 
-def get_character_info(character_name: str, use_cache: bool = True) -> Optional[dict]:
+def get_character_info(character_name: str, use_cache: bool = True, guild_id: int = 0) -> Optional[dict]:
     """
     캐릭터 정보 조회
-    
+
     Args:
         character_name: 캐릭터명
         use_cache: 캐시 사용 여부
-    
+        guild_id: 길드가 등록한 로아 API 키를 우선 사용
+
     Returns:
         캐릭터 정보 딕셔너리 또는 None
         {
@@ -150,26 +184,29 @@ def get_character_info(character_name: str, use_cache: bool = True) -> Optional[
             'ItemAvgLevel': str,  # 평균 아이템 레벨
             'ExpeditionLevel': int,
             'TownName': str,
+            'CharacterImage': str,  # 캐릭터 전신 렌더 이미지 URL
+            'GuildName': str,
             ...
         }
-    
+
     Example:
         >>> info = get_character_info("빛쟁인거니")
         >>> print(info['CharacterClassName'])
         홀리나이트
     """
     endpoint = f"/armories/characters/{character_name}/profiles"
-    return _make_request(endpoint, use_cache)
+    return _make_request(endpoint, use_cache, guild_id)
 
 
-def get_siblings(character_name: str, use_cache: bool = True) -> Optional[List[dict]]:
+def get_siblings(character_name: str, use_cache: bool = True, guild_id: int = 0) -> Optional[List[dict]]:
     """
     원정대 캐릭터 목록 조회
-    
+
     Args:
         character_name: 캐릭터명
         use_cache: 캐시 사용 여부
-    
+        guild_id: 길드가 등록한 로아 API 키를 우선 사용
+
     Returns:
         원정대 캐릭터 리스트 또는 None
         [
@@ -182,64 +219,68 @@ def get_siblings(character_name: str, use_cache: bool = True) -> Optional[List[d
             },
             ...
         ]
-    
+
     Example:
         >>> siblings = get_siblings("빛쟁인거니")
         >>> for char in siblings:
         ...     print(f"{char['CharacterName']} - {char['CharacterClassName']}")
     """
     endpoint = f"/characters/{character_name}/siblings"
-    return _make_request(endpoint, use_cache)
+    return _make_request(endpoint, use_cache, guild_id)
 
 
-def get_character_equipment(character_name: str, use_cache: bool = True) -> Optional[dict]:
+def get_character_equipment(character_name: str, use_cache: bool = True, guild_id: int = 0) -> Optional[dict]:
     """
     캐릭터 장비 정보 조회
-    
+
     Args:
         character_name: 캐릭터명
         use_cache: 캐시 사용 여부
-    
+        guild_id: 길드가 등록한 로아 API 키를 우선 사용
+
     Returns:
         장비 정보 딕셔너리 또는 None
     """
     endpoint = f"/armories/characters/{character_name}/equipment"
-    return _make_request(endpoint, use_cache)
+    return _make_request(endpoint, use_cache, guild_id)
 
 
-def get_character_engravings(character_name: str, use_cache: bool = True) -> Optional[dict]:
+def get_character_engravings(character_name: str, use_cache: bool = True, guild_id: int = 0) -> Optional[dict]:
     """
     캐릭터 각인 정보 조회
-    
+
     Args:
         character_name: 캐릭터명
         use_cache: 캐시 사용 여부
-    
+        guild_id: 길드가 등록한 로아 API 키를 우선 사용
+
     Returns:
         각인 정보 딕셔너리 또는 None
+        { 'Effects': [{'Name': str, 'Description': str}, ...], 'ArkPassiveEffects': [...] }
     """
     endpoint = f"/armories/characters/{character_name}/engravings"
-    return _make_request(endpoint, use_cache)
+    return _make_request(endpoint, use_cache, guild_id)
 
 
 # ==================== 유틸리티 함수 ====================
 
-def get_character_item_level(character_name: str) -> Optional[float]:
+def get_character_item_level(character_name: str, guild_id: int = 0) -> Optional[float]:
     """
     캐릭터 아이템 레벨만 빠르게 조회
-    
+
     Args:
         character_name: 캐릭터명
-    
+        guild_id: 길드가 등록한 로아 API 키를 우선 사용
+
     Returns:
         아이템 레벨 (float) 또는 None
-    
+
     Example:
         >>> level = get_character_item_level("빛쟁인거니")
         >>> print(level)
         1763.33
     """
-    info = get_character_info(character_name)
+    info = get_character_info(character_name, guild_id=guild_id)
     if info and 'ItemAvgLevel' in info:
         try:
             # "1,763.33" → 1763.33
@@ -250,23 +291,24 @@ def get_character_item_level(character_name: str) -> Optional[float]:
     return None
 
 
-def get_account_characters(character_name: str, min_level: float = 0) -> List[dict]:
+def get_account_characters(character_name: str, min_level: float = 0, guild_id: int = 0) -> List[dict]:
     """
     원정대에서 특정 레벨 이상 캐릭터만 필터링
-    
+
     Args:
         character_name: 캐릭터명
         min_level: 최소 아이템 레벨
-    
+        guild_id: 길드가 등록한 로아 API 키를 우선 사용
+
     Returns:
         필터링된 캐릭터 리스트
-    
+
     Example:
         >>> chars = get_account_characters("빛쟁인거니", min_level=1680)
         >>> for char in chars:
         ...     print(f"{char['CharacterName']}: {char['ItemAvgLevel']}")
     """
-    siblings = get_siblings(character_name)
+    siblings = get_siblings(character_name, guild_id=guild_id)
     if not siblings:
         return []
     
@@ -302,7 +344,7 @@ def get_api_stats() -> dict:
     """
     return {
         'total_keys': key_manager.get_total_keys(),
-        'current_key_index': key_manager.current_index,
+        'current_key_index': _guild_key_cursor.get("_global", 0) % max(len(LOSTARK_API_KEYS), 1),
         'cache_size': len(cache.cache)
     }
 

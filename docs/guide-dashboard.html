@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="dark">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>웹 대시보드 사용법 — 로일(LoIl) 가이드</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/site.css">
+<style>
+.container{max-width:760px;margin:0 auto;}
+.toc{background:var(--card);border:1px solid var(--card-bd);border-radius:12px;padding:20px 24px;margin-bottom:8px;}
+.toc h2{font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--accent);margin-bottom:12px;}
+.toc ol{list-style:none;display:grid;grid-template-columns:1fr 1fr;gap:6px 20px;}
+.toc a{font-size:13px;color:var(--text2);transition:color .2s;}.toc a:hover{color:var(--accent);}
+.step-desc ul{margin:10px 0 0 20px;}
+.step-desc li{margin-bottom:6px;}
+.perm-table{width:100%;border-collapse:collapse;font-size:13px;margin:10px 0;}
+.perm-table th,.perm-table td{text-align:left;padding:10px 14px;border-bottom:1px solid var(--border);}
+.perm-table th{color:var(--text3);font-size:11px;text-transform:uppercase;letter-spacing:1px;}
+.perm-table td:first-child{font-weight:700;}
+@media(max-width:768px){.toc ol{grid-template-columns:1fr;}}
+</style>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4097734794611688" crossorigin="anonymous"></script>
+</head>
+<body>
+<div class="ad-strip"><ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-4097734794611688"
+     data-ad-slot="auto"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>(adsbygoogle = window.adsbygoogle || []).push({});</script></div>
+<nav>
+  <a href="/" class="logo">LO<em>I</em>L</a>
+  <ul class="nav-links"><li><a href="/">홈</a></li><li><a href="guide.html" class="active">가이드</a></li><li><a href="contact.html">문의</a></li></ul>
+  <div class="nav-right"><div class="theme-wrap"><span class="theme-lbl" id="lbl">다크</span><button class="theme-toggle" onclick="toggleTheme()" aria-label="테마 전환"></button></div></div>
+</nav>
+<div class="guide-hero">
+  <div class="container">
+    <div class="breadcrumb"><a href="guide.html">가이드</a><span>›</span><span>웹 대시보드 사용법</span></div>
+    <div class="section-label">STEP 5</div>
+    <h1>웹 대시보드 사용법</h1>
+    <p>봇 설정이 끝났다면, 실제 운영은 대부분 여기 웹 대시보드에서 이뤄집니다. 로그인 후 뜨는 화면부터 일정 관리·시너지 분석·AI 자동편성까지 한 번에 훑어봅니다.</p>
+    <div class="guide-meta"><span class="meta-badge"><strong>소요시간</strong> · 처음이면 10분 정도 훑어보기</span><span class="meta-badge"><strong>난이도</strong> · 쉬움</span><span class="meta-badge"><strong>필요한 것</strong> · Discord 로그인</span></div>
+  </div>
+</div>
+<div class="guide-body">
+  <div class="container">
+
+    <div class="toc">
+      <h2>이 페이지에서 다루는 것</h2>
+      <ol>
+        <li><a href="#home">1. 로그인 & 길드 홈</a></li>
+        <li><a href="#schedule">2. 일정 관리</a></li>
+        <li><a href="#synergy">3. 시너지 분석</a></li>
+        <li><a href="#compose">4. AI 자동편성</a></li>
+        <li><a href="#members">5. 길드원 명단</a></li>
+        <li><a href="#policy">6. 시간 정책 & 가능시간</a></li>
+        <li><a href="#requests">7. 가입 신청 관리</a></li>
+        <li><a href="#roles">8. 관리자 vs 길드원, 뭐가 다른가요</a></li>
+      </ol>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="step-block" id="home">
+      <div class="step-header"><div class="step-badge">1</div><h2>로그인 & 길드 홈</h2></div>
+      <p class="step-desc">
+        사이트 홈에서 "Discord로 로그인"을 누르면 관리 가능한 길드로 자동 연결됩니다(길드가 2개 이상이면 목록에서 고르는 화면이 먼저 뜹니다).<br>
+        길드 홈에는 배너, 가입/연결 코드, 그리고 각 기능으로 가는 카드들이 있습니다.
+      </p>
+      <ul class="step-desc" style="margin:0;">
+        <li><strong>가입 코드</strong> — 관리자·길드원 누구나 볼 수 있고, 지인을 초대할 때 공유하면 됩니다. 클릭하면 클립보드에 바로 복사됩니다.</li>
+        <li><strong>봇 연결 코드</strong> — 관리자 전용, 1회용. 봇을 초대하기 전에 웹에서 먼저 길드를 만든 경우에만 씁니다.</li>
+        <li><strong>배너 변경</strong> — 관리자만 가능. 안 바꾸면 로일 기본 배너가 보입니다.</li>
+      </ul>
+      <div class="note">회색으로 흐리게 표시되고 클릭이 안 되는 카드(AI 자동편성, 가입 신청 관리)는 관리자 전용 기능이라는 뜻입니다 — 길드원 화면에서는 정상입니다.</div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="step-block" id="schedule">
+      <div class="step-header"><div class="step-badge">2</div><h2>일정 관리</h2></div>
+      <p class="step-desc">등록된 레이드가 이름별로 접이식(아코디언)으로 묶여 나옵니다. 펼치면 그 레이드의 실제 공대(파티) 목록이 보입니다.</p>
+      <table class="perm-table">
+        <tr><th>배지/상태</th><th>의미</th></tr>
+        <tr><td>미정</td><td>아직 요일·시간이 안 잡힌 공대</td></tr>
+        <tr><td>예정</td><td>요일·시간이 확정된 공대</td></tr>
+        <tr><td>고정멤버</td><td>매주 같은 인원으로 고정 진행한다는 표시(관리자가 직접 남김)</td></tr>
+        <tr><td>트라이</td><td>아직 클리어 못 해서 진행 중인 레이드. 우선/후순위는 시간이 겹칠 때 어느 쪽을 먼저 배정할지</td></tr>
+        <tr><td>클리어</td><td>이번 주 이미 클리어 처리된 공대(초록색 표시)</td></tr>
+        <tr><td>활성/비활성</td><td>비활성화하면 AI 자동편성 대상에서 빠지고 "비활성화 레이드 보기" 탭으로 이동(삭제 아님)</td></tr>
+      </table>
+      <p class="step-desc">관리자는 "+ 레이드 추가"로 새 레이드를 만들고, 각 공대에서 "+공대 추가"(사람이 더 모였을 때), "수정", "게스트"(길드원 아닌 지인 초대 인원), "클리어 처리", "삭제"를 할 수 있습니다. 길드원은 조회만 가능합니다.</p>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="step-block" id="synergy">
+      <div class="step-header"><div class="step-badge">3</div><h2>시너지 분석</h2></div>
+      <p class="step-desc">직업/각인 체크박스를 선택하면 그 조합이 어떤 시너지를 보유하고 있는지 바로 보여줍니다. "레이드에서 불러오기"로 실제 편성된 파티를 자동으로 불러올 수도 있습니다.</p>
+      <div class="tip">같은 시너지를 2명 이상이 제공하면 "겹침"으로 표시됩니다 — 로일은 "필수 시너지가 빠졌다"는 개념 대신, 이미 고른 인원 안에서 겹치는 게 있는지만 알려줍니다.</div>
+      <p class="step-desc">4명(파티 하나) 초과로 선택하면, 시너지가 서로 안 겹치도록 몇 개 파티로 나눌지 자동으로 추천해줍니다 — 로스트아크 시너지는 자기 파티(최대 4명) 안에서만 적용되기 때문입니다.</p>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="step-block" id="compose">
+      <div class="step-header"><div class="step-badge">4</div><h2>AI 자동편성</h2></div>
+      <p class="step-desc">편성할 레이드를 레이드명별로 묶어서 체크하고 "자동 편성 실행"을 누르면, 배정된 인원의 가능시간을 분석해서 시간과 파티(서폿 배치 포함)를 자동으로 짭니다.</p>
+      <p class="step-desc">결과 화면에서 레이드별로 파티 구성, AI 시너지 코멘트, 평균 전투력을 확인할 수 있고, 원하는 레이드만 체크해서 저장하면 그때 실제로 "예정" 상태로 반영됩니다 — 저장 전까지는 아무것도 바뀌지 않습니다.</p>
+      <div class="warn">인원이 있어도 서폿이 부족하는 등 파티 구성이 안 되면 그 레이드는 저장 대상에서 자동으로 빠집니다.</div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="step-block" id="members">
+      <div class="step-header"><div class="step-badge">5</div><h2>길드원 명단</h2></div>
+      <p class="step-desc">닉네임과 Discord 계정 연결 현황을 보여줍니다. "등록 완료"는 이미 연결된 사람, "미청구 명단"은 엑셀로 올렸지만 아직 본인이 Discord에서 <code>/닉네임등록</code>으로 연결하지 않은 사람입니다.</p>
+      <p class="step-desc">"길드장"·"부길드장" 배지는 이름표가 아니라 실제 권한입니다 — 이 배지가 있으면 Discord 로그인만으로 이 웹 대시보드를 관리자로 쓸 수 있습니다. 엑셀 일괄 등록 방법은 <a href="guide-sheets.html" style="color:var(--accent);font-weight:600;">엑셀로 길드원 명단 등록</a> 가이드를 참고하세요.</p>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="step-block" id="policy">
+      <div class="step-header"><div class="step-badge">6</div><h2>시간 정책 & 가능시간</h2></div>
+      <p class="step-desc"><strong>요일별 시간 정책</strong>에서는 길드원이 가능시간을 제출하거나 AI가 트라이 시간을 잡을 때 허용할 시간대를 요일별로 설정합니다(평일은 늦게, 주말은 더 늦게처럼 다르게 설정 가능).</p>
+      <p class="step-desc"><strong>길드 전체 가능시간</strong>은 길드원 전원이 제출한 개인 가능시간을 겹쳐서 보여주는 히트맵입니다 — 진할수록 그 시간대에 가능하다는 사람이 많다는 뜻이고, 칸을 클릭하면 누가 가능한지 바로 보여줍니다. 둘 다 관리자·길드원 모두 조회 가능하고, 정책 저장만 관리자 전용입니다.</p>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="step-block" id="requests">
+      <div class="step-header"><div class="step-badge">7</div><h2>가입 신청 관리</h2></div>
+      <p class="step-desc">길드 홈에서 가입 코드를 공유하면, 받은 사람이 <code>/guild/join</code>에서 Discord 로그인으로 신원을 확인하고 표시 이름·메모를 남겨 신청합니다. 관리자는 이 목록에서 실제 길드원이 맞는지 확인 후 승인/거절하고, 결과는 신청자에게 자동으로 DM 발송됩니다.</p>
+      <div class="note">승인해도 Discord 서버 역할이 자동으로 붙지는 않습니다 — "이 사람을 길드원으로 인정한다"는 기록만 남습니다. 관리자 전용 페이지라 길드원은 이 목록을 볼 수 없습니다.</div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="step-block" id="roles">
+      <div class="step-header"><div class="step-badge">8</div><h2>관리자 vs 길드원, 뭐가 다른가요</h2></div>
+      <table class="perm-table">
+        <tr><th>페이지</th><th>관리자만 되는 것</th><th>길드원도 되는 것</th></tr>
+        <tr><td>길드 홈</td><td>배너 변경, 봇 연결코드 확인</td><td>나머지 카드 전부 조회, 가입 코드 확인/복사</td></tr>
+        <tr><td>일정 관리</td><td>레이드 추가·수정·삭제·클리어처리 등</td><td>레이드 목록·상태 조회</td></tr>
+        <tr><td>시간 정책</td><td>저장(입력칸이 비활성화됨)</td><td>현재 정책 조회</td></tr>
+        <tr><td>길드원 명단</td><td>엑셀 업로드, 미청구 삭제</td><td>명단 조회</td></tr>
+        <tr><td>시너지 분석 / 가능시간</td><td>—</td><td>둘 다 동일하게 사용</td></tr>
+        <tr><td>AI 자동편성 / 가입 신청 관리</td><td>페이지 전체</td><td>접근 불가(카드가 비활성 표시)</td></tr>
+      </table>
+      <p class="step-desc">길드장·부길드장으로 등록된 Discord 계정으로 로그인하면 자동으로 관리자 권한이 적용됩니다 — 별도로 "관리자 신청" 같은 절차는 없습니다.</p>
+    </div>
+
+    <div class="nav-btns">
+      <a href="guide-gemini-api.html" class="btn btn-secondary">← 이전: Gemini API 키 발급</a>
+      <a href="guide.html" class="btn btn-primary">가이드 목록으로 →</a>
+    </div>
+  </div>
+</div>
+<div class="ad-mid"><ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-4097734794611688"
+     data-ad-slot="auto"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>(adsbygoogle = window.adsbygoogle || []).push({});</script></div>
+<footer><div class="footer-logo">LO<em>I</em>L</div><p>© 2026 로일(LoIl) · 로스트아크 길드 레이드 자동화</p></footer>
+<script>
+function toggleTheme(){const h=document.documentElement,l=document.getElementById('lbl');if(h.dataset.theme==='dark'){h.dataset.theme='light';if(l)l.textContent='밝음';localStorage.setItem('loil-theme','light');}else{h.dataset.theme='dark';if(l)l.textContent='다크';localStorage.setItem('loil-theme','dark');}}
+(function(){const s=localStorage.getItem('loil-theme');if(s){document.documentElement.dataset.theme=s;const l=document.getElementById('lbl');if(l)l.textContent=s==='dark'?'다크':'밝음';}})();
+</script>
+</body>
+</html>

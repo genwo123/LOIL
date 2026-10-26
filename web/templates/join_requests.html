@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ guild.name }} · 가입 신청 관리 · 로일(LoIl)</title>
+<style>
+  :root, :root[data-theme="dark"] {
+    --bg: #0d0f14; --card: #161922; --card-dark: #10131a; --accent: #4f63d2;
+    --support: #43B581; --dps: #F04747; --text: #FFFFFF; --text-gray: #8b95b0; --divider: #1e2330; --blurple: #4f63d2;
+  }
+  :root[data-theme="light"] {
+    --bg: #f5f7fd; --card: #FFFFFF; --card-dark: #eef0fa; --accent: #4f63d2;
+    --support: #43B581; --dps: #F04747; --text: #1C1C28; --text-gray: #5a6394; --divider: #e2e6f3; --blurple: #4f63d2;
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font-family:"Noto Sans KR","Malgun Gothic","Apple SD Gothic Neo",sans-serif; padding:24px 16px 80px; }
+  .wrap { max-width: 600px; margin: 0 auto; }
+  @media (min-width: 860px) { .wrap { max-width: 800px; } }
+  .home-btn {
+    display: inline-flex; align-items: center; gap: 6px; text-decoration: none;
+    background: var(--card); border: 1px solid var(--divider); color: var(--text);
+    font-size: 13px; font-weight: bold; padding: 10px 16px; border-radius: 10px;
+  }
+  .home-btn:hover { border-color: var(--accent); background: rgba(79,99,210,.1); }
+  h1 { margin: 0 0 4px; font-size: 20px; }
+  p.lead { margin: 0 0 24px; color: var(--text-gray); font-size: 13px; }
+  .dev-banner { background:#ED4245; color:#fff; font-size:12px; font-weight:bold; text-align:center; padding:6px; border-radius:6px; margin-bottom:16px; }
+  .req-row {
+    background: var(--card); border-radius: 10px; border-left: 4px solid var(--accent);
+    padding: 14px 16px; margin-bottom: 10px;
+  }
+  .req-row .name { font-size: 14px; font-weight: bold; }
+  .req-row .note { font-size: 12px; color: var(--text-gray); margin-top: 2px; }
+  .req-row .time { font-size: 11px; color: var(--text-gray); margin-top: 2px; }
+  .actions { display:flex; gap:6px; margin-top: 10px; flex-wrap: wrap; }
+  .actions input[type="text"] {
+    flex: 1; min-width: 140px; background: var(--bg); border: 1px solid var(--divider); color: var(--text);
+    border-radius: 6px; padding: 7px 10px; font-size: 12.5px; font-family: inherit;
+  }
+  button { font-family: inherit; font-size: 12.5px; font-weight: bold; border: none; border-radius: 6px; padding: 7px 12px; cursor: pointer; flex-shrink: 0; }
+  .btn-approve { background: rgba(87,242,135,0.15); color: var(--support); }
+  .btn-reject { background: rgba(237,66,69,0.15); color: var(--dps); }
+  .no-discord { font-size: 11px; color: var(--dps); margin-top: 4px; }
+  .empty { text-align: center; color: var(--text-gray); padding: 40px 0; font-size: 13px; }
+  .warn { font-size: 11px; color: var(--text-gray); margin-top: 20px; line-height: 1.6; }
+  .top-row { display: flex; justify-content: space-between; align-items: flex-start; }
+  .theme-toggle {
+    background: var(--card); border: 1px solid var(--divider); color: var(--text);
+    font-size: 11px; font-weight: bold; padding: 6px 10px; border-radius: 999px; cursor: pointer;
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    {% if dev_mode %}<div class="dev-banner">⚠ DEV MODE — 로그인 스킵됨 (배포 전 반드시 해제)</div>{% endif %}
+    <div class="top-row">
+      <a class="home-btn" href="/admin/{{ guild.id }}">길드 홈</a>
+      <button class="theme-toggle" onclick="loilToggleTheme()">🌙/☀️</button>
+    </div>
+    <h1>{{ guild.name }} · 가입 신청 관리</h1>
+    <p class="lead">디스코드 로그인으로 신원을 확인하고 신청한 사람들입니다. 표시 이름·메모를 보고 실제 길드원이 맞는지 확인 후 승인해주세요. 승인/거절 메시지는 신청자에게 DM으로 전달됩니다.</p>
+
+    {% if requests %}
+      {% for rid, r in requests.items() %}
+      <div class="req-row">
+        <div>
+          <div class="name">{{ r.display_name }}</div>
+          {% if r.note %}<div class="note">{{ r.note }}</div>{% endif %}
+          <div class="time">신청: {{ r.requested_at }}</div>
+          {% if not r.discord_user_id %}<div class="no-discord">⚠ 디스코드 계정 확인 없이 신청됨 — DM 발송 불가</div>{% endif %}
+        </div>
+        <form method="post" action="/admin/{{ guild.id }}/join-requests/{{ rid }}/approve" class="actions">
+          <input type="text" name="message" placeholder="승인 메시지 (선택)">
+          <button type="submit" class="btn-approve">승인</button>
+        </form>
+        <form method="post" action="/admin/{{ guild.id }}/join-requests/{{ rid }}/reject" class="actions">
+          <input type="text" name="reason" placeholder="거절 사유 (선택, 예: 30대 길드라 조건에 맞지 않아요)">
+          <button type="submit" class="btn-reject">거절</button>
+        </form>
+      </div>
+      {% endfor %}
+    {% else %}
+      <div class="empty">대기 중인 가입 신청이 없습니다.</div>
+    {% endif %}
+
+    <p class="warn">참고: 승인해도 아직 Discord 서버 권한(역할 부여 등)이 자동으로 붙지는 않습니다 — 지금은 "이 사람을 길드원으로 인정한다"는 기록만 남습니다.</p>
+  </div>
+  <script>
+    function loilToggleTheme() {
+      const html = document.documentElement;
+      const cur = html.dataset.theme || 'dark';
+      html.dataset.theme = cur === 'dark' ? 'light' : 'dark';
+      try { localStorage.setItem('loil-theme', html.dataset.theme); } catch (e) {}
+    }
+    (function () {
+      try {
+        const saved = localStorage.getItem('loil-theme');
+        if (saved) document.documentElement.dataset.theme = saved;
+      } catch (e) {}
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,446 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ sheet_name }}님 가능시간 · 로일(LoIl)</title>
+<style>
+  :root, :root[data-theme="dark"] {
+    --bg: #1E1F22;
+    --card: #2B2D31;
+    --card-dark: #232428;
+    --accent: #7C5CFC;
+    --support: #43B581;
+    --text: #FFFFFF;
+    --text-gray: #B5BAC1;
+    --divider: #3F4147;
+    --blurple: #5865F2;
+  }
+  :root[data-theme="light"] {
+    --bg: #F7F7FB;
+    --card: #FFFFFF;
+    --card-dark: #F0F0F5;
+    --accent: #7C5CFC;
+    --support: #43B581;
+    --text: #1C1C28;
+    --text-gray: #77778C;
+    --divider: #E7E7F0;
+    --blurple: #5865F2;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+    padding: 24px 16px 80px;
+  }
+  .wrap { max-width: 560px; margin: 0 auto; }
+  header h1 { margin: 0 0 4px; font-size: 20px; }
+  header p { margin: 0 0 20px; color: var(--text-gray); font-size: 13px; line-height: 1.6; }
+  .saved-banner {
+    background: rgba(87,242,135,0.15); color: var(--support);
+    font-size: 13px; font-weight: bold; padding: 10px 14px; border-radius: 8px; margin-bottom: 18px;
+  }
+  .day-row {
+    background: var(--card);
+    border-radius: 10px;
+    border-left: 4px solid var(--accent);
+    padding: 12px 16px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .day-row label.day-label { font-size: 14px; font-weight: bold; width: 70px; display: flex; align-items: center; gap: 6px; }
+  .day-row input[type="checkbox"] { width: auto; }
+  .time-inputs { display: flex; align-items: center; gap: 6px; opacity: 0.4; }
+  .time-inputs.active { opacity: 1; }
+  input[type="number"] {
+    width: 60px;
+    background: var(--card-dark);
+    color: var(--text);
+    border: 1px solid var(--divider);
+    border-radius: 6px;
+    padding: 7px 8px;
+    font-size: 13px;
+    font-family: inherit;
+  }
+  .time-inputs span { color: var(--text-gray); font-size: 12px; }
+  button {
+    font-family: inherit; font-size: 14px; font-weight: bold;
+    border: none; border-radius: 8px; padding: 12px 16px; cursor: pointer;
+    background: var(--blurple); color: #fff; width: 100%; margin-top: 16px;
+  }
+  .hint { font-size: 12px; color: var(--text-gray); margin-top: 14px; line-height: 1.6; }
+  .top-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+  .theme-toggle {
+    background: var(--card-dark); border: 1px solid var(--divider); color: var(--text);
+    font-size: 11px; font-weight: bold; padding: 6px 10px; border-radius: 999px; cursor: pointer; flex-shrink: 0;
+    width: auto; margin-top: 0;
+  }
+  .week-badge {
+    display: inline-block; background: var(--accent); color: #fff; font-size: 11px; font-weight: bold;
+    padding: 3px 10px; border-radius: 999px; margin-bottom: 8px;
+  }
+  .grid-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+  .grid-toolbar .legend { font-size: 11px; color: var(--text-gray); display: flex; align-items: center; gap: 6px; }
+  .legend .swatch { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+  .btn-small {
+    width: auto; margin: 0; padding: 7px 12px; font-size: 12px;
+    background: var(--card-dark); color: var(--text); border: 1px solid var(--divider);
+  }
+  .dnd-grid {
+    display: grid;
+    grid-template-columns: 44px repeat(7, 1fr);
+    user-select: none;
+    -webkit-user-select: none;
+    border: 1px solid var(--divider);
+    border-radius: 10px;
+    overflow: hidden;
+    background: var(--card);
+  }
+  .dnd-grid .corner { background: var(--card-dark); }
+  .dnd-grid .day-head {
+    background: var(--card-dark); text-align: center; font-size: 12px; font-weight: bold;
+    padding: 6px 0; border-left: 1px solid var(--divider);
+  }
+  .dnd-grid .hour-label {
+    font-size: 10px; color: var(--text-gray); text-align: right; padding: 0 6px;
+    display: flex; align-items: center; justify-content: flex-end;
+    border-top: 1px solid var(--divider);
+  }
+  .dnd-grid .cell {
+    height: 18px; border-top: 1px solid var(--divider); border-left: 1px solid var(--divider);
+    background: transparent; cursor: pointer; touch-action: none;
+  }
+  .dnd-grid .cell:nth-child(14n).on, .dnd-grid .cell.on { background: var(--support); }
+  .dnd-grid .cell.hour-mark { border-top: 1px solid var(--divider); }
+  .dnd-grid .cell.policy-disabled {
+    background: repeating-linear-gradient(45deg, var(--card-dark), var(--card-dark) 4px, var(--bg) 4px, var(--bg) 8px);
+    cursor: not-allowed;
+  }
+  .interest-scroll { overflow-x: auto; overflow-y: auto; max-height: 420px; border: 1px solid var(--divider); border-radius: 10px; background: var(--card); }
+  .interest-grid {
+    display: grid;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .interest-grid .corner { background: var(--card-dark); }
+  .interest-grid .char-head {
+    background: var(--card-dark); text-align: center; font-size: 11px; font-weight: bold;
+    padding: 6px 4px; border-left: 1px solid var(--divider); line-height: 1.5;
+  }
+  .interest-grid .char-head span { font-weight: normal; color: var(--text-gray); font-size: 10px; }
+  .interest-grid .raid-label {
+    background: var(--card-dark); font-size: 12px; font-weight: bold; padding: 8px 10px;
+    border-top: 1px solid var(--divider); line-height: 1.5;
+  }
+  .interest-grid .raid-label span { display: block; font-weight: normal; color: var(--text-gray); font-size: 10px; margin-top: 2px; }
+  .interest-grid .interest-cell {
+    border-top: 1px solid var(--divider); border-left: 1px solid var(--divider);
+    cursor: pointer; touch-action: none; position: relative;
+  }
+  .interest-grid .interest-cell.on { background: var(--support); }
+  .interest-grid .interest-cell.disabled { background: repeating-linear-gradient(45deg, var(--card-dark), var(--card-dark) 4px, var(--bg) 4px, var(--bg) 8px); cursor: not-allowed; }
+  .collapse-section { margin: 24px 0 10px; }
+  .collapse-section summary {
+    font-size: 14px; font-weight: bold; color: var(--text); cursor: pointer;
+    list-style: none; display: flex; align-items: center; gap: 8px;
+    padding: 4px 0;
+  }
+  .collapse-section summary::-webkit-details-marker { display: none; }
+  .collapse-section summary::before {
+    content: "▶"; font-size: 10px; color: var(--text-gray); transition: transform 0.15s;
+  }
+  .collapse-section[open] summary::before { transform: rotate(90deg); }
+  .collapse-count {
+    background: var(--accent); color: #fff; font-size: 11px; font-weight: bold;
+    padding: 1px 7px; border-radius: 999px;
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="top-row">
+      <header>
+        <h1>{{ sheet_name }}님의 가능시간</h1>
+        <p>칸을 클릭하거나 드래그해서 가능한 시간대를 칠해주세요. 자정을 넘기면 다음 요일 0시부터 다시 칠하면 됩니다.</p>
+        {% if last_saved %}<p style="margin:0; font-size:11px; color:var(--text-gray);">마지막 저장: {{ last_saved }}</p>{% endif %}
+      </header>
+      <button class="theme-toggle" onclick="loilToggleTheme()">🌙/☀️</button>
+    </div>
+
+    {% if saved %}<div class="saved-banner">저장됐습니다{% if last_saved %} ({{ last_saved }}){% endif %}</div>{% endif %}
+
+    {% if active_raids %}
+    <details class="collapse-section" id="interest-details">
+      <summary>
+        관심 있는 레이드
+        {% if my_checked_count %}<span class="collapse-count">{{ my_checked_count }}</span>{% endif %}
+      </summary>
+      <p class="hint" style="margin-top:8px;">칸을 눌러서 체크. 레이드 하나에 캐릭터 여러 개 체크해도 됩니다(메인/부캐 둘 다 갈 수 있으면 둘 다). 회색 칸은 그 캐릭터로는 레벨이 안 돼서 못 가는 조합이에요.</p>
+      {% if char_error %}<p style="font-size:12px; color:var(--dps);">⚠ {{ char_error }}</p>{% endif %}
+
+      {% if my_chars %}
+      <form method="post" action="/{{ guild_url_name }}/일정/{{ member_name }}/interest" id="interest-form">
+        <div class="interest-scroll">
+          <div class="interest-grid" id="interest-grid" style="grid-template-columns: 120px repeat({{ my_chars|length }}, 56px);">
+            <div class="corner"></div>
+            {% for c in my_chars %}
+            <div class="char-head">{{ c.name }}<br><span>{{ c.ilvl }}</span></div>
+            {% endfor %}
+            {% for raid in active_raids %}
+            <div class="raid-label">{{ raid.raid_name }} {{ raid.diff }}<br><span>{{ raid.size }}인 · 최소 {{ raid.ilvl }} · 관심 {{ raid.interest_count }}명</span></div>
+            {% for c in my_chars %}
+            <div class="interest-cell{{ ' disabled' if c.ilvl < raid.ilvl else '' }}"
+                 data-raid="{{ raid.key }}" data-char="{{ c.name }}" data-ilvl="{{ c.ilvl }}"></div>
+            {% endfor %}
+            {% endfor %}
+          </div>
+        </div>
+        <input type="hidden" name="interest_json" id="interest-input">
+        <button type="submit">관심 레이드 저장</button>
+      </form>
+      {% endif %}
+    </details>
+    {% endif %}
+
+    <div class="week-badge">{{ week_label }} 제출</div>
+    <div class="grid-toolbar">
+      <div class="legend">
+        <span class="swatch" style="background:var(--support);"></span> 가능
+        <span class="swatch" style="background:transparent; border:1px solid var(--divider);"></span> 불가능
+      </div>
+      <div style="display:flex; gap:6px;">
+        <button type="button" class="btn-small" id="granularity-btn">{{ '1시간 단위로' if granularity == 30 else '30분 단위로' }}</button>
+        {% if has_prev_week %}
+        <button type="button" class="btn-small" id="load-prev-btn">저번주 불러오기</button>
+        {% endif %}
+      </div>
+    </div>
+
+    <form method="post" action="/{{ guild_url_name }}/일정/{{ member_name }}" id="avail-form">
+      <div class="dnd-grid" id="avail-grid">
+        <div class="corner"></div>
+        {% for d in days %}<div class="day-head">{{ d }}</div>{% endfor %}
+      </div>
+      <input type="hidden" name="blocks" id="blocks-input">
+      <button type="submit">저장</button>
+    </form>
+
+    <p class="hint">이 링크는 본인만 사용하는 개인 링크입니다. 다른 사람과 공유하지 마세요.</p>
+  </div>
+  <script>
+    function loilToggleTheme() {
+      const html = document.documentElement;
+      const cur = html.dataset.theme || 'dark';
+      html.dataset.theme = cur === 'dark' ? 'light' : 'dark';
+      try { localStorage.setItem('loil-theme', html.dataset.theme); } catch (e) {}
+    }
+    (function () {
+      try {
+        const saved = localStorage.getItem('loil-theme');
+        if (saved) document.documentElement.dataset.theme = saved;
+      } catch (e) {}
+    })();
+
+    (function () {
+      const details = document.getElementById('interest-details');
+      if (!details) return;
+      try {
+        details.open = localStorage.getItem('loil-interest-open') === '1';
+      } catch (e) {}
+      details.addEventListener('toggle', () => {
+        try { localStorage.setItem('loil-interest-open', details.open ? '1' : '0'); } catch (e) {}
+      });
+    })();
+
+    (function () {
+      const DAYS = {{ days | tojson }};
+      const existingBlocks = {{ existing_blocks_json | safe }};
+      const prevWeekBlocks = {{ prev_week_blocks_json | safe }};
+      const POLICY = {{ policy_json | safe }};
+      const grid = document.getElementById('avail-grid');
+
+      // 1시간 단위(기본) / 30분 단위("세밀 설정") 전환 가능. slot 인덱스 ↔ 실제 시각(float)은
+      // slotsPerHour로 변환한다 — 예: slotsPerHour=2일 때 slot 13 = 6.5시(6시30분).
+      // 시작 단위는 길드장이 요일별 시간 정책 화면에서 지정한 기본값을 따른다.
+      let slotsPerHour = {{ granularity }} === 30 ? 2 : 1;
+      let totalSlots = 24 * slotsPerHour;
+
+      function isPolicyDisabled(dayIndex, slot) {
+        const day = DAYS[dayIndex];
+        const pol = POLICY[day];
+        if (!pol) return false;
+        const hour = slot / slotsPerHour;
+        return hour < pol.start || hour >= pol.end;
+      }
+
+      // state[dayIndex][slot] = true/false
+      let state = DAYS.map(() => new Array(totalSlots).fill(false));
+
+      function applyBlocksToState(blocks) {
+        state = DAYS.map(() => new Array(totalSlots).fill(false));
+        (blocks || []).forEach(b => {
+          const di = DAYS.indexOf(b.day);
+          if (di === -1) return;
+          const start = Math.max(0, Math.round(b.start * slotsPerHour));
+          const end = Math.min(totalSlots, Math.round(b.end * slotsPerHour));
+          for (let s = start; s < end; s++) state[di][s] = true;
+        });
+      }
+      applyBlocksToState(existingBlocks);
+
+      function serializeState() {
+        const blocks = [];
+        for (let di = 0; di < DAYS.length; di++) {
+          let start = null;
+          for (let s = 0; s <= totalSlots; s++) {
+            const on = s < totalSlots && state[di][s];
+            if (on && start === null) {
+              start = s;
+            } else if (!on && start !== null) {
+              blocks.push({ day: DAYS[di], start: start / slotsPerHour, end: s / slotsPerHour });
+              start = null;
+            }
+          }
+        }
+        return blocks;
+      }
+
+      function buildGrid() {
+        grid.querySelectorAll('.hour-label, .cell').forEach(el => el.remove());
+        for (let s = 0; s < totalSlots; s++) {
+          const label = document.createElement('div');
+          label.className = 'hour-label';
+          const hour = s / slotsPerHour;
+          label.textContent = (s % slotsPerHour === 0 && hour % 2 === 0) ? (hour + '시') : '';
+          grid.appendChild(label);
+          for (let di = 0; di < DAYS.length; di++) {
+            const cell = document.createElement('div');
+            cell.className = 'cell';
+            cell.dataset.day = di;
+            cell.dataset.slot = s;
+            if (state[di][s]) cell.classList.add('on');
+            if (isPolicyDisabled(di, s)) cell.classList.add('policy-disabled');
+            grid.appendChild(cell);
+          }
+        }
+      }
+      buildGrid();
+
+      function refreshCells() {
+        grid.querySelectorAll('.cell').forEach(cell => {
+          const di = Number(cell.dataset.day);
+          const s = Number(cell.dataset.slot);
+          cell.classList.toggle('on', !!state[di][s]);
+        });
+      }
+
+      let painting = false;
+      let paintValue = true;
+
+      function paintCell(cell) {
+        if (!cell || !cell.classList.contains('cell') || cell.classList.contains('policy-disabled')) return;
+        const di = Number(cell.dataset.day);
+        const s = Number(cell.dataset.slot);
+        state[di][s] = paintValue;
+        cell.classList.toggle('on', paintValue);
+      }
+
+      grid.addEventListener('mousedown', (e) => {
+        const cell = e.target.closest('.cell');
+        if (!cell || cell.classList.contains('policy-disabled')) return;
+        e.preventDefault();
+        const di = Number(cell.dataset.day);
+        const s = Number(cell.dataset.slot);
+        paintValue = !state[di][s];
+        painting = true;
+        paintCell(cell);
+      });
+      grid.addEventListener('mouseover', (e) => {
+        if (!painting) return;
+        paintCell(e.target.closest('.cell'));
+      });
+      document.addEventListener('mouseup', () => { painting = false; });
+
+      grid.addEventListener('touchstart', (e) => {
+        const cell = e.target.closest('.cell');
+        if (!cell || cell.classList.contains('policy-disabled')) return;
+        e.preventDefault();
+        const di = Number(cell.dataset.day);
+        const s = Number(cell.dataset.slot);
+        paintValue = !state[di][s];
+        painting = true;
+        paintCell(cell);
+      }, { passive: false });
+      grid.addEventListener('touchmove', (e) => {
+        if (!painting) return;
+        e.preventDefault();
+        const touch = e.touches[0];
+        const el = document.elementFromPoint(touch.clientX, touch.clientY);
+        const cell = el && el.closest('.cell');
+        if (cell) paintCell(cell);
+      }, { passive: false });
+      document.addEventListener('touchend', () => { painting = false; });
+
+      const loadPrevBtn = document.getElementById('load-prev-btn');
+      if (loadPrevBtn) {
+        loadPrevBtn.addEventListener('click', () => {
+          applyBlocksToState(prevWeekBlocks);
+          refreshCells();
+        });
+      }
+
+      const granularityBtn = document.getElementById('granularity-btn');
+      if (granularityBtn) {
+        granularityBtn.addEventListener('click', () => {
+          const currentBlocks = serializeState();
+          slotsPerHour = slotsPerHour === 1 ? 2 : 1;
+          totalSlots = 24 * slotsPerHour;
+          granularityBtn.textContent = slotsPerHour === 2 ? '1시간 단위로' : '30분 단위로';
+          applyBlocksToState(currentBlocks);
+          buildGrid();
+        });
+      }
+
+      document.getElementById('avail-form').addEventListener('submit', () => {
+        document.getElementById('blocks-input').value = JSON.stringify(serializeState());
+      });
+    })();
+
+    (function () {
+      const interestGrid = document.getElementById('interest-grid');
+      if (!interestGrid) return;
+
+      const myChecked = {{ my_checked_json | default('[]') | safe }};
+      const checkedSet = new Set(myChecked.map(pair => pair[0] + '|' + pair[1]));
+
+      interestGrid.querySelectorAll('.interest-cell').forEach(cell => {
+        const key = cell.dataset.raid + '|' + cell.dataset.char;
+        if (checkedSet.has(key)) cell.classList.add('on');
+      });
+
+      interestGrid.addEventListener('click', (e) => {
+        const cell = e.target.closest('.interest-cell');
+        if (!cell || cell.classList.contains('disabled')) return;
+        cell.classList.toggle('on');
+      });
+
+      document.getElementById('interest-form').addEventListener('submit', () => {
+        const selections = [];
+        interestGrid.querySelectorAll('.interest-cell.on').forEach(cell => {
+          selections.push({
+            raid_key: cell.dataset.raid,
+            character: cell.dataset.char,
+            item_level: cell.dataset.ilvl,
+          });
+        });
+        document.getElementById('interest-input').value = JSON.stringify(selections);
+      });
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>로일(LoIl) 색상 플레이그라운드</title>
+<style>
+  :root, :root[data-theme="dark"] {
+    --bg: #1E1F22;
+    --card: #2B2D31;
+    --card-dark: #232428;
+    --border: #3F4147;
+    --accent: #7C5CFC;
+    --support: #43B581;
+    --gold: #FAA61A;
+    --dps: #F04747;
+    --text: #FFFFFF;
+    --text-gray: #B5BAC1;
+  }
+  :root[data-theme="light"] {
+    --bg: #F7F7FB;
+    --card: #FFFFFF;
+    --card-dark: #F0F0F5;
+    --border: #E7E7F0;
+    --accent: #7C5CFC;
+    --support: #43B581;
+    --gold: #FAA61A;
+    --dps: #F04747;
+    --text: #1C1C28;
+    --text-gray: #77778C;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+    transition: background .15s, color .15s;
+  }
+  .layout { display: grid; grid-template-columns: 320px 1fr; min-height: 100vh; }
+  @media (max-width: 800px) { .layout { grid-template-columns: 1fr; } }
+
+  /* ── 컨트롤 패널 ── */
+  .panel {
+    background: var(--card);
+    border-right: 1px solid var(--border);
+    padding: 24px 20px;
+  }
+  .panel h1 { font-size: 16px; margin: 0 0 4px; }
+  .panel .sub { font-size: 12px; color: var(--text-gray); margin: 0 0 20px; line-height: 1.6; }
+
+  .mode-toggle { display: flex; gap: 6px; margin-bottom: 22px; }
+  .mode-toggle button {
+    flex: 1; padding: 8px; border-radius: 8px; border: 1px solid var(--border);
+    background: var(--card-dark); color: var(--text); font-size: 12px; font-weight: bold; cursor: pointer;
+  }
+  .mode-toggle button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+  .section-label { font-size: 11px; text-transform: uppercase; letter-spacing: .6px; color: var(--text-gray); margin: 18px 0 8px; font-weight: bold; }
+
+  .preset-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .preset-btn {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border);
+    background: var(--card-dark); color: var(--text); font-size: 11.5px; cursor: pointer; text-align: left;
+  }
+  .preset-btn:hover { border-color: var(--accent); }
+  .preset-dot { width: 16px; height: 16px; border-radius: 50%; flex-shrink: 0; border: 1px solid rgba(128,128,128,.3); }
+
+  .color-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+  .color-row label { font-size: 12.5px; }
+  .color-row input[type="color"] {
+    width: 40px; height: 28px; border: 1px solid var(--border); border-radius: 6px; padding: 0; cursor: pointer; background: none;
+  }
+
+  .copy-box {
+    margin-top: 20px; background: var(--card-dark); border: 1px solid var(--border); border-radius: 8px;
+    padding: 12px; font-size: 10.5px; font-family: monospace; color: var(--text-gray); white-space: pre-wrap; line-height: 1.6;
+  }
+  .copy-btn {
+    margin-top: 8px; width: 100%; padding: 10px; border-radius: 8px; border: none;
+    background: var(--accent); color: #fff; font-weight: bold; font-size: 12.5px; cursor: pointer;
+  }
+
+  /* ── 미리보기 ── */
+  .preview { padding: 32px 28px; }
+  .preview-inner { max-width: 640px; margin: 0 auto; }
+  .nav {
+    display: flex; justify-content: space-between; align-items: center;
+    background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+    padding: 12px 18px; margin-bottom: 20px;
+  }
+  .nav .brand { font-weight: bold; font-size: 15px; }
+  .nav .brand span { color: var(--accent); }
+
+  .stat-row { display: flex; gap: 10px; margin-bottom: 20px; }
+  .stat { flex: 1; background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+  .stat .num { font-size: 20px; font-weight: bold; color: var(--accent); }
+  .stat .label { font-size: 11px; color: var(--text-gray); margin-top: 2px; }
+
+  .raid-card {
+    background: var(--card); border: 1px solid var(--border); border-left: 4px solid var(--accent);
+    border-radius: 10px; padding: 14px 16px; margin-bottom: 10px;
+  }
+  .raid-card .top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  .raid-card .name { font-weight: bold; font-size: 15px; }
+  .raid-card .meta { font-size: 12px; color: var(--text-gray); display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  .pill { padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: bold; }
+  .pill-support { background: color-mix(in srgb, var(--support) 18%, transparent); color: var(--support); }
+  .pill-gold    { background: color-mix(in srgb, var(--gold) 18%, transparent); color: var(--gold); }
+  .pill-dps     { background: color-mix(in srgb, var(--dps) 18%, transparent); color: var(--dps); }
+
+  .btn-row { display: flex; gap: 8px; margin-top: 10px; }
+  .btn { padding: 8px 14px; border-radius: 8px; border: none; font-size: 12.5px; font-weight: bold; cursor: pointer; }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-secondary { background: var(--card-dark); color: var(--text); border: 1px solid var(--border); }
+
+  .field { margin-top: 20px; }
+  .field label { display: block; font-size: 11px; color: var(--text-gray); margin-bottom: 5px; }
+  .field input { width: 100%; background: var(--card-dark); border: 1px solid var(--border); border-radius: 8px; padding: 9px 11px; color: var(--text); font-size: 13px; }
+  .field input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+</style>
+</head>
+<body>
+  <div class="layout">
+    <div class="panel">
+      <h1>🎨 색상 플레이그라운드</h1>
+      <p class="sub">프리셋을 눌러보거나 색상피커로 직접 조정하세요. 오른쪽이 실제 화면 톤으로 바로 반영됩니다.</p>
+
+      <div class="mode-toggle">
+        <button id="btn-dark" onclick="setMode('dark')">🌙 다크</button>
+        <button id="btn-light" onclick="setMode('light')">☀️ 라이트</button>
+      </div>
+
+      <div class="section-label">프리셋 (실제 사이트 참고)</div>
+      <div class="preset-grid" id="presets"></div>
+
+      <button class="btn-secondary" style="width:100%; margin-top:10px; padding:10px; border-radius:8px; cursor:pointer; font-size:12.5px; font-weight:bold;" onclick="randomize()">🎲 랜덤 조합</button>
+
+      <div class="section-label">직접 조정</div>
+      <div class="color-row"><label>배경</label><input type="color" id="pick-bg"></div>
+      <div class="color-row"><label>카드</label><input type="color" id="pick-card"></div>
+      <div class="color-row"><label>포인트(브랜드)</label><input type="color" id="pick-accent"></div>
+      <div class="color-row"><label>성공/클리어</label><input type="color" id="pick-support"></div>
+      <div class="color-row"><label>경고/고정</label><input type="color" id="pick-gold"></div>
+      <div class="color-row"><label>위험/트라이</label><input type="color" id="pick-dps"></div>
+
+      <div class="copy-box" id="copy-box"></div>
+      <button class="copy-btn" onclick="copyValues()">이 조합 값 복사하기</button>
+    </div>
+
+    <div class="preview">
+      <div class="preview-inner">
+        <div class="nav">
+          <div class="brand">로일 · <span>LoIl</span></div>
+          <div class="meta" style="font-size:12px; color:var(--text-gray);">다크히어로즈</div>
+        </div>
+
+        <div class="stat-row">
+          <div class="stat"><div class="num">5</div><div class="label">활성 레이드</div></div>
+          <div class="stat"><div class="num">24</div><div class="label">등록 캐릭터</div></div>
+          <div class="stat"><div class="num">1</div><div class="label">진행 중 트라이</div></div>
+        </div>
+
+        <div class="raid-card">
+          <div class="top">
+            <span class="name">카멘 하드</span>
+            <span style="font-size:12px; color:var(--text-gray);">6/8명</span>
+          </div>
+          <div class="meta">
+            수요일 21:00 · 90분
+            <span class="pill pill-support">클리어</span>
+          </div>
+        </div>
+
+        <div class="raid-card">
+          <div class="top">
+            <span class="name">아브렐슈드 하드</span>
+            <span style="font-size:12px; color:var(--text-gray);">3/8명</span>
+          </div>
+          <div class="meta">
+            시간 미정
+            <span class="pill pill-gold">고정멤버</span>
+            <span class="pill pill-dps">🔥 트라이(우선)</span>
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-primary">참가 신청</button>
+            <button class="btn btn-secondary">수정</button>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>레이드명</label>
+          <input type="text" placeholder="예: 카멘" value="상아탑">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const KEYS = ['bg','card','accent','support','gold','dps'];
+    const DEFAULTS = {
+      dark:  { bg:'#1E1F22', card:'#2B2D31', accent:'#7C5CFC', support:'#43B581', gold:'#FAA61A', dps:'#F04747' },
+      light: { bg:'#F7F7FB', card:'#FFFFFF', accent:'#7C5CFC', support:'#43B581', gold:'#FAA61A', dps:'#F04747' },
+    };
+    const PRESETS = [
+      { name: '로일 기본',        accent: '#7C5CFC' },
+      { name: 'Raid-Helper 진보라', accent: '#9C27B0' },
+      { name: 'RaidPlan 블루',    accent: '#0F69D2' },
+      { name: 'Discord 블러플',   accent: '#5865F2' },
+      { name: '틸/그린',         accent: '#14B8A6' },
+      { name: '앰버/골드',       accent: '#F59E0B' },
+    ];
+
+    let mode = 'dark';
+    let state = { ...DEFAULTS.dark };
+
+    function luminance(hex) {
+      const n = parseInt(hex.slice(1), 16);
+      const r = (n >> 16) / 255, g = ((n >> 8) & 0xff) / 255, b = (n & 0xff) / 255;
+      const lin = c => c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+      return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
+    }
+
+    function applyState() {
+      const root = document.documentElement;
+      root.dataset.theme = mode;
+      KEYS.forEach(k => root.style.setProperty('--' + (k === 'bg' ? 'bg' : k === 'card' ? 'card' : k), state[k]));
+      // card-dark, border는 카드/배경 톤에서 살짝 파생
+      root.style.setProperty('--card-dark', mode === 'dark' ? shade(state.card, -8) : shade(state.card, -4));
+      root.style.setProperty('--border', mode === 'dark' ? shade(state.bg, 14) : shade(state.bg, -10));
+
+      // 글자색 자동 대비: 카드 배경이 밝으면 검은 글자, 어두우면 흰 글자 — 카드 색을
+      // 뭘 골라도(모드 무관) 텍스트가 안 묻히도록 매번 실제 밝기 기준으로 다시 계산한다.
+      const cardIsLight = luminance(state.card) > 0.45;
+      root.style.setProperty('--text', cardIsLight ? '#1C1C28' : '#FFFFFF');
+      root.style.setProperty('--text-gray', cardIsLight ? '#5B5B6E' : '#B5BAC1');
+
+      KEYS.forEach(k => {
+        const input = document.getElementById('pick-' + k);
+        if (input) input.value = state[k];
+      });
+
+      document.getElementById('btn-dark').classList.toggle('active', mode === 'dark');
+      document.getElementById('btn-light').classList.toggle('active', mode === 'light');
+
+      document.getElementById('copy-box').textContent =
+        `--bg: ${state.bg};\n--card: ${state.card};\n--accent: ${state.accent};\n--support: ${state.support};\n--gold: ${state.gold};\n--dps: ${state.dps};`;
+    }
+
+    function shade(hex, percent) {
+      const n = parseInt(hex.slice(1), 16);
+      let r = (n >> 16) + Math.round(255 * percent / 100);
+      let g = ((n >> 8) & 0xff) + Math.round(255 * percent / 100);
+      let b = (n & 0xff) + Math.round(255 * percent / 100);
+      r = Math.max(0, Math.min(255, r));
+      g = Math.max(0, Math.min(255, g));
+      b = Math.max(0, Math.min(255, b));
+      return '#' + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('');
+    }
+
+    function setMode(m) {
+      const accent = state.accent, support = state.support, gold = state.gold, dps = state.dps;
+      mode = m;
+      state = { ...DEFAULTS[m], accent, support, gold, dps };
+      applyState();
+    }
+
+    function applyPreset(p) {
+      state.accent = p.accent;
+      applyState();
+    }
+
+    function hslToHex(h, s, l) {
+      s /= 100; l /= 100;
+      const k = n => (n + h / 30) % 12;
+      const a = s * Math.min(l, 1 - l);
+      const f = n => l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
+      const toHex = x => Math.round(255 * x).toString(16).padStart(2, '0');
+      return '#' + toHex(f(0)) + toHex(f(8)) + toHex(f(4));
+    }
+
+    function randHue(min, max) {
+      return Math.floor(min + Math.random() * (max - min));
+    }
+
+    function randomize() {
+      state.accent  = hslToHex(randHue(0, 360), 65 + Math.random() * 20, 55 + Math.random() * 10);
+      state.support = hslToHex(randHue(95, 165), 55 + Math.random() * 20, 42 + Math.random() * 12);
+      state.gold    = hslToHex(randHue(25, 50), 75 + Math.random() * 15, 50 + Math.random() * 10);
+      state.dps     = hslToHex(randHue(345, 370) % 360, 65 + Math.random() * 20, 55 + Math.random() * 10);
+      applyState();
+    }
+
+    function buildPresets() {
+      const wrap = document.getElementById('presets');
+      wrap.innerHTML = '';
+      PRESETS.forEach(p => {
+        const btn = document.createElement('button');
+        btn.className = 'preset-btn';
+        btn.innerHTML = `<span class="preset-dot" style="background:${p.accent};"></span>${p.name}`;
+        btn.onclick = () => applyPreset(p);
+        wrap.appendChild(btn);
+      });
+    }
+
+    KEYS.forEach(k => {
+      document.getElementById('pick-' + k).addEventListener('input', e => {
+        state[k] = e.target.value;
+        applyState();
+      });
+    });
+
+    function copyValues() {
+      const text = document.getElementById('copy-box').textContent;
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text)
+          .then(() => alert('복사됐습니다! 채팅에 붙여넣어 주세요.'))
+          .catch(() => alert('자동 복사가 안 돼서 아래 값을 직접 복사해주세요:\n\n' + text));
+      } else {
+        alert('자동 복사가 안 되는 환경이라 아래 값을 직접 복사해주세요:\n\n' + text);
+      }
+    }
+
+    buildPresets();
+    applyState();
+  </script>
+</body>
+</html>

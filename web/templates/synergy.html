@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ guild.name }} · 시너지 분석 · 로일(LoIl)</title>
+<style>
+  :root, :root[data-theme="dark"] {
+    --bg: #0d0f14; --card: #161922; --card-dark: #10131a; --accent: #4f63d2;
+    --support: #43B581; --dps: #F04747; --text: #FFFFFF; --text-gray: #8b95b0; --divider: #1e2330; --blurple: #4f63d2;
+  }
+  :root[data-theme="light"] {
+    --bg: #f5f7fd; --card: #FFFFFF; --card-dark: #eef0fa; --accent: #4f63d2;
+    --support: #43B581; --dps: #F04747; --text: #1C1C28; --text-gray: #5a6394; --divider: #e2e6f3; --blurple: #4f63d2;
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font-family:"Noto Sans KR","Malgun Gothic","Apple SD Gothic Neo",sans-serif; padding:24px 16px 80px; }
+  .wrap { max-width: 680px; margin: 0 auto; }
+  @media (min-width: 900px) { .wrap { max-width: 920px; } }
+  @media (min-width: 1300px) { .wrap { max-width: 1280px; } }
+  .synergy-layout { display: grid; grid-template-columns: 1.4fr 1fr; gap: 16px; align-items: start; }
+  @media (max-width: 860px) { .synergy-layout { grid-template-columns: 1fr; } .result-panel { position: static !important; } }
+  .result-panel { position: sticky; top: 20px; }
+  .top-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 20px; }
+  header h1 { margin: 0 0 4px; font-size: 20px; }
+  header p { margin: 0; color: var(--text-gray); font-size: 13px; }
+  .dev-banner { background:#ED4245; color:#fff; font-size:12px; font-weight:bold; text-align:center; padding:6px; border-radius:6px; margin-bottom:16px; }
+  .theme-toggle { background: var(--card-dark); border: 1px solid var(--divider); color: var(--text); font-size: 11px; font-weight: bold; padding: 6px 10px; border-radius: 999px; cursor: pointer; }
+  .back { color: var(--text-gray); font-size: 12px; text-decoration: none; display:inline-block; margin-bottom:20px; }
+  .home-btn {
+    display: inline-flex; align-items: center; gap: 6px; text-decoration: none;
+    background: var(--card); border: 1px solid var(--divider); color: var(--text);
+    font-size: 13px; font-weight: bold; padding: 10px 16px; border-radius: 10px; margin-bottom: 20px;
+  }
+  .home-btn:hover { border-color: var(--accent); background: rgba(79,99,210,.1); }
+  .load-bar {
+    display: flex; align-items: center; gap: 10px; background: var(--card); border-radius: 10px;
+    padding: 10px 16px; margin-bottom: 12px; font-size: 12.5px;
+  }
+  .load-bar label { font-weight: bold; color: var(--text-gray); white-space: nowrap; }
+  .load-bar select {
+    flex: 1; background: var(--card-dark); color: var(--text); border: 1px solid var(--divider);
+    border-radius: 6px; padding: 7px 10px; font-size: 12.5px; font-family: inherit;
+  }
+  .loaded-note {
+    background: rgba(155,89,182,0.1); border: 1px solid var(--accent); border-radius: 10px;
+    padding: 10px 14px; margin-bottom: 12px; font-size: 12px; color: var(--text-gray); line-height: 1.6;
+  }
+  .class-group {
+    background: var(--card); border-radius: 10px; padding: 12px 16px; margin-bottom: 8px;
+  }
+  .class-group .class-name { font-size: 13px; font-weight: bold; margin-bottom: 8px; }
+  .job-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px 10px; }
+  .job-opt {
+    display: flex; align-items: center; gap: 7px; font-size: 12.5px;
+    padding: 7px 12px; border-radius: 999px; border: 1px solid var(--divider);
+    background: var(--card-dark); cursor: pointer; user-select: none;
+    transition: background 0.12s, border-color 0.12s;
+  }
+  .job-opt input { position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none; }
+  .job-opt .check-icon {
+    width: 15px; height: 15px; border-radius: 50%; border: 1.5px solid var(--text-gray);
+    flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+    font-size: 10px; line-height: 1; color: transparent; transition: all 0.12s;
+  }
+  .job-opt .job-name { transition: color 0.12s; }
+  .job-opt:has(input:checked) { background: rgba(67,181,129,0.15); border-color: var(--support); }
+  .job-opt:has(input:checked) .job-name { color: var(--support); font-weight: bold; }
+  .job-opt:has(input:checked) .check-icon { border-color: var(--support); background: var(--support); color: #fff; }
+  .submit-bar { margin: 16px 0 24px; }
+  button.btn-primary {
+    width: 100%; font-family: inherit; font-size: 14px; font-weight: bold; border: none;
+    border-radius: 8px; padding: 12px; cursor: pointer; background: var(--accent); color: #fff;
+  }
+  button.btn-primary:hover { filter: brightness(1.1); }
+  .result { background: var(--card); border-radius: 10px; border-left: 4px solid var(--accent); padding: 16px; }
+  .result .selected-summary { font-size: 12.5px; color: var(--text-gray); margin-bottom: 12px; }
+  .syn-row { padding: 8px 0; border-top: 1px solid var(--divider); }
+  .syn-row:first-child { border-top: none; }
+  .syn-row .syn-name { font-size: 13px; font-weight: bold; color: var(--support); }
+  .syn-row .syn-jobs { font-size: 12px; color: var(--text-gray); margin-top: 2px; }
+  .syn-row .syn-desc { font-size: 11.5px; color: var(--text-gray); font-style: italic; margin-top: 2px; }
+  .syn-row.overlap { background: rgba(240,71,71,0.06); margin: 0 -16px; padding: 8px 16px; border-radius: 8px; }
+  .overlap-tag { font-size: 10.5px; font-weight: bold; color: var(--dps); }
+  .overlap-note { font-size: 11.5px; color: var(--dps); margin-top: 4px; }
+  .suggest-box { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--divider); }
+  .suggest-title { font-size: 12px; font-weight: bold; color: var(--accent); margin-bottom: 6px; }
+  .suggest-row { font-size: 11.5px; color: var(--text-gray); margin-bottom: 4px; }
+  .suggest-row .suggest-name { color: var(--text); font-weight: bold; }
+  .party-split-note { font-size: 11.5px; color: var(--text-gray); line-height: 1.6; margin-bottom: 12px; }
+  .party-block { background: var(--card-dark); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; }
+  .party-block:last-child { margin-bottom: 0; }
+  .party-title { font-size: 12px; font-weight: bold; color: var(--accent); margin-bottom: 4px; }
+  .party-members { font-size: 12.5px; margin-bottom: 4px; }
+  .party-synergies { font-size: 11.5px; color: var(--support); }
+  .party-synergies .empty-inline { color: var(--text-gray); }
+  .empty { text-align: center; color: var(--text-gray); padding: 20px 0; font-size: 13px; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    {% if dev_mode %}<div class="dev-banner">⚠ DEV MODE — 로그인 스킵됨 (배포 전 반드시 해제)</div>{% endif %}
+    <a class="home-btn" href="/admin/{{ guild.id }}">길드 홈</a>
+    <div class="top-row">
+      <header>
+        <h1>{{ guild.name }} · 시너지 분석</h1>
+        <p>파티에 넣을 직업/각인을 체크하고 분석하면, 보유·누락 시너지를 바로 볼 수 있어요.</p>
+      </header>
+      <button class="theme-toggle" onclick="loilToggleTheme()">🌙/☀️</button>
+    </div>
+
+    {% if loadable_raids %}
+    <div class="load-bar">
+      <label for="load_col_select">레이드에서 불러오기</label>
+      <select id="load_col_select" onchange="if(this.value) location.href='/admin/{{ guild.id }}/synergy?load_col='+this.value; else location.href='/admin/{{ guild.id }}/synergy';">
+        <option value="">직접 선택할게요</option>
+        {% for r in loadable_raids %}
+        <option value="{{ r.col }}" {{ 'selected' if load_col == r.col|string else '' }}>{{ r.full_name }} · {{ r.day }}{% if r.day != '미정' %} {{ r.time_str }}{% endif %}</option>
+        {% endfor %}
+      </select>
+    </div>
+    {% endif %}
+
+    {% if loaded_note %}<div class="loaded-note">{{ loaded_note }}</div>{% endif %}
+
+    <div class="synergy-layout">
+      <form method="get" action="/admin/{{ guild.id }}/synergy" id="synergyForm">
+        <input type="hidden" name="load_col" value="{{ load_col }}">
+        {% for class_key, data in class_options.items() %}
+        <div class="class-group">
+          <div class="class-name">{{ data.name }}</div>
+          <div class="job-grid">
+            {% for label, val in data.jobs %}
+            <label class="job-opt">
+              <input type="checkbox" name="jobs" value="{{ val }}" {{ 'checked' if val in selected else '' }}>
+              <span class="check-icon">✓</span>
+              <span class="job-name">{{ label }}</span>
+            </label>
+            {% endfor %}
+          </div>
+        </div>
+        {% endfor %}
+        <div class="submit-bar">
+          <button type="submit" class="btn-primary">시너지 분석</button>
+        </div>
+      </form>
+
+      <div class="result-panel">
+        <div class="result" id="resultBox">
+          {% if has_selection %}
+            <div class="selected-summary"><b>선택 직업:</b> {{ selected_labels | join(' · ') }}</div>
+
+            {% if party_split %}
+              <div class="party-split-note">{{ selected_labels | length }}명이라 파티 {{ party_split | length }}개로 나누면 이렇게 겹치지 않게 짤 수 있어요 — 시너지는 자기 파티(최대 4명) 안에서만 적용돼서, 전체 합산이 아니라 파티별로 나눠서 봐야 해요.</div>
+              {% for p in party_split %}
+              <div class="party-block">
+                <div class="party-title">파티 {{ loop.index }}</div>
+                <div class="party-members">{{ p.members | join(' · ') }}</div>
+                <div class="party-synergies">
+                  {% if p.synergies %}{{ p.synergies | join(' · ') }}{% else %}<span class="empty-inline">제공하는 시너지 없음</span>{% endif %}
+                </div>
+              </div>
+              {% endfor %}
+            {% elif not has_any_synergy %}
+              <div class="empty">선택한 직업들이 제공하는 시너지가 없습니다.</div>
+            {% else %}
+              {% for syn in covered %}
+              <div class="syn-row{{ ' overlap' if syn.overlap else '' }}">
+                <div class="syn-name">{{ syn.name }}{% if syn.overlap %} <span class="overlap-tag">⚠️ 겹침</span>{% endif %}</div>
+                <div class="syn-jobs">{{ syn.jobs | join(' · ') }}</div>
+                {% if syn.description %}<div class="syn-desc">{{ syn.description }}</div>{% endif %}
+                {% if syn.overlap %}<div class="overlap-note">같은 시너지를 {{ syn.jobs | length }}명이 같이 제공하고 있어요 — 한쪽은 낭비될 수 있으니 다른 조합을 고려해보세요.</div>{% endif %}
+              </div>
+              {% endfor %}
+              {% if suggestions %}
+              <div class="suggest-box">
+                <div class="suggest-title">더 채울 수 있는 시너지</div>
+                {% for s in suggestions %}
+                <div class="suggest-row">
+                  <span class="suggest-name">{{ s.name }}</span>
+                  <span class="suggest-jobs">{{ s.jobs | join(' · ') }}{% if s.more %} 외 {{ s.more }}개{% endif %} 중 하나</span>
+                </div>
+                {% endfor %}
+              </div>
+              {% endif %}
+            {% endif %}
+          {% else %}
+            <div class="empty">왼쪽에서 직업을 체크하면 여기 결과가 뜹니다.</div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    function loilToggleTheme() {
+      const html = document.documentElement;
+      const cur = html.dataset.theme || 'dark';
+      html.dataset.theme = cur === 'dark' ? 'light' : 'dark';
+      try { localStorage.setItem('loil-theme', html.dataset.theme); } catch (e) {}
+    }
+    (function () {
+      try {
+        const saved = localStorage.getItem('loil-theme');
+        if (saved) document.documentElement.dataset.theme = saved;
+      } catch (e) {}
+    })();
+
+    // 체크박스 위치를 유지한 채로 결과만 갱신 — 매번 페이지 맨 위로 튀는 것 방지.
+    (function () {
+      const form = document.getElementById('synergyForm');
+      const resultBox = document.getElementById('resultBox');
+      if (!form || !resultBox) return;
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const params = new URLSearchParams(new FormData(form));
+        const url = form.getAttribute('action') + '?' + params.toString();
+        try {
+          const res = await fetch(url);
+          const html = await res.text();
+          const doc = new DOMParser().parseFromString(html, 'text/html');
+          const newResult = doc.getElementById('resultBox');
+          if (newResult) {
+            resultBox.innerHTML = newResult.innerHTML;
+            history.pushState({}, '', url);
+          } else {
+            location.href = url;
+          }
+        } catch (err) {
+          location.href = url;
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

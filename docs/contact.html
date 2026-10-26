@@ -4,19 +4,10 @@
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>문의 — 로일(LoIl)</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/site.css">
 <style>
-[data-theme="dark"]{--bg:#0d0f14;--bg2:#111318;--border:#1e2330;--border2:#252d40;--text:#e8eaf0;--text2:#8b95b0;--text3:#3a4060;--accent:#4f63d2;--accent-h:#3d50c0;--accent-bg:rgba(79,99,210,.1);--accent-bd:rgba(79,99,210,.22);--card:#161922;--card-bd:#1e2330;--nav-bg:rgba(13,15,20,.9);--shadow:0 4px 32px rgba(0,0,0,.5);--hero-grad:radial-gradient(ellipse at 50% -5%,rgba(79,99,210,.14) 0%,transparent 65%);--toggle-bg:#252d40;--ad-bg:#0d0f14;--ad-bd:#1e2330;--ad-tx:#2a3050;}
-[data-theme="light"]{--bg:#f5f7fd;--bg2:#ffffff;--border:#e2e6f3;--border2:#d0d6f0;--text:#1a1d2e;--text2:#5a6394;--text3:#b0b8d4;--accent:#4f63d2;--accent-h:#3d50c0;--accent-bg:rgba(79,99,210,.07);--accent-bd:rgba(79,99,210,.18);--card:#ffffff;--card-bd:#e2e6f3;--nav-bg:rgba(245,247,253,.92);--shadow:0 4px 24px rgba(79,99,210,.08);--hero-grad:radial-gradient(ellipse at 50% -5%,rgba(79,99,210,.08) 0%,transparent 65%);--toggle-bg:#d0d6f0;--ad-bg:#eef0fa;--ad-bd:#d0d6f0;--ad-tx:#c0c8e0;}
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-family:'Noto Sans KR',sans-serif;line-height:1.6;transition:background .3s,color .3s;}a{text-decoration:none;color:inherit;}
-.ad-strip{background:var(--ad-bg);border-bottom:1px solid var(--ad-bd);display:flex;align-items:center;justify-content:center;min-height:64px;padding:10px;}.ad-label{font-size:10px;color:var(--ad-tx);letter-spacing:2px;text-transform:uppercase;padding:12px 40px;border:1px dashed var(--ad-bd);border-radius:4px;}
-nav{position:sticky;top:0;z-index:100;height:62px;background:var(--nav-bg);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 52px;transition:background .3s,border-color .3s;}
-.logo{font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;letter-spacing:4px;color:var(--text);flex-shrink:0;transition:color .3s;}.logo em{color:var(--accent);font-style:normal;}
-.nav-links{display:flex;align-items:center;gap:4px;list-style:none;}.nav-links a{padding:6px 13px;border-radius:6px;font-size:14px;font-weight:500;color:var(--text2);transition:color .2s,background .2s;}.nav-links a:hover{color:var(--text);background:var(--accent-bg);}.nav-links a.active{color:var(--accent);background:var(--accent-bg);}
-.nav-right{display:flex;align-items:center;gap:10px;flex-shrink:0;}.theme-wrap{display:flex;align-items:center;gap:7px;}.theme-lbl{font-size:12px;font-weight:700;color:var(--text3);width:24px;text-align:right;transition:color .3s;user-select:none;white-space:nowrap;}
-.theme-toggle{width:42px;height:24px;border-radius:12px;background:var(--toggle-bg);border:1px solid var(--border2);cursor:pointer;position:relative;flex-shrink:0;transition:background .3s;}.theme-toggle::after{content:'';position:absolute;width:16px;height:16px;border-radius:50%;background:var(--accent);top:3px;left:3px;transition:transform .3s cubic-bezier(.4,0,.2,1);}[data-theme="light"] .theme-toggle::after{transform:translateX(18px);}
-.container{max-width:760px;margin:0 auto;}.section-label{display:inline-block;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--accent);background:var(--accent-bg);border:1px solid var(--accent-bd);padding:4px 12px;border-radius:20px;margin-bottom:14px;}
-.btn{display:inline-flex;align-items:center;gap:6px;padding:13px 28px;border-radius:9px;border:none;cursor:pointer;font-family:'Noto Sans KR',sans-serif;font-size:15px;font-weight:700;transition:all .2s;text-decoration:none;}.btn-primary{background:var(--accent);color:#fff;box-shadow:0 4px 16px rgba(79,99,210,.28);}.btn-primary:hover{background:var(--accent-h);transform:translateY(-2px);box-shadow:0 8px 24px rgba(79,99,210,.4);}
-footer{background:var(--bg2);border-top:1px solid var(--border);padding:32px 52px;display:flex;align-items:center;justify-content:space-between;transition:background .3s,border-color .3s;}.footer-logo{font-family:'Rajdhani',sans-serif;font-size:17px;font-weight:700;letter-spacing:3px;color:var(--text3);}.footer-logo em{color:var(--accent);font-style:normal;}footer p{font-size:12px;color:var(--text3);}
+.container{max-width:760px;margin:0 auto;}
+.btn{padding:13px 28px;font-size:15px;}
 .contact-hero{padding:110px 24px 80px;background:var(--hero-grad);text-align:center;}
 .contact-hero h1{font-size:42px;font-weight:900;margin-bottom:14px;}
 .contact-hero p{font-size:16px;color:var(--text2);line-height:1.8;max-width:480px;margin:0 auto;}
@@ -30,7 +21,7 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:32px 52p
 .feature-item:hover{border-color:var(--accent-bd);}
 .feature-item h4{font-size:14px;font-weight:700;margin-bottom:6px;}
 .feature-item p{font-size:12px;color:var(--text2);line-height:1.6;}
-@media(max-width:768px){nav{padding:0 18px;}.nav-links{display:none;}.contact-hero{padding:80px 18px 60px;}.contact-hero h1{font-size:30px;}.contact-body{padding:48px 18px 80px;}.discord-card{padding:36px 24px;}.feature-list{grid-template-columns:1fr;}footer{flex-direction:column;gap:10px;text-align:center;padding:24px 18px;}}
+@media(max-width:768px){.contact-hero{padding:80px 18px 60px;}.contact-hero h1{font-size:30px;}.contact-body{padding:48px 18px 80px;}.discord-card{padding:36px 24px;}.feature-list{grid-template-columns:1fr;}}
 </style>
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4097734794611688" crossorigin="anonymous"></script>
 </head>
@@ -43,8 +34,8 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:32px 52p
      data-full-width-responsive="true"></ins>
 <script>(adsbygoogle = window.adsbygoogle || []).push({});</script></div>
 <nav>
-  <a href="index.html" class="logo">LO<em>I</em>L</a>
-  <ul class="nav-links"><li><a href="index.html">홈</a></li><li><a href="guide.html">가이드</a></li><li><a href="contact.html" class="active">문의</a></li></ul>
+  <a href="/" class="logo">LO<em>I</em>L</a>
+  <ul class="nav-links"><li><a href="/">홈</a></li><li><a href="guide.html">가이드</a></li><li><a href="contact.html" class="active">문의</a></li></ul>
   <div class="nav-right"><div class="theme-wrap"><span class="theme-lbl" id="lbl">다크</span><button class="theme-toggle" onclick="toggleTheme()" aria-label="테마 전환"></button></div></div>
 </nav>
 <div class="contact-hero">

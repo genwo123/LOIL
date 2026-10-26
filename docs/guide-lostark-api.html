@@ -5,115 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>로아 API 키 발급 — 로일(LoIl) 가이드</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/site.css">
 <style>
-[data-theme="dark"]{
-  --bg:#0d0f14;--bg2:#111318;--border:#1e2330;--border2:#252d40;
-  --text:#e8eaf0;--text2:#8b95b0;--text3:#3a4060;
-  --accent:#4f63d2;--accent-h:#3d50c0;
-  --accent-bg:rgba(79,99,210,.1);--accent-bd:rgba(79,99,210,.22);
-  --card:#161922;--card-bd:#1e2330;
-  --nav-bg:rgba(13,15,20,.9);--shadow:0 4px 32px rgba(0,0,0,.5);
-  --hero-grad:radial-gradient(ellipse at 50% -5%,rgba(79,99,210,.14) 0%,transparent 65%);
-  --toggle-bg:#252d40;
-  --ad-bg:#0d0f14;--ad-bd:#1e2330;--ad-tx:#2a3050;
-  --img-bg:#161922;--img-bd:#1e2330;--img-tx:#3a4060;
-  --warn-bg:rgba(237,180,37,.06);--warn-bd:rgba(237,180,37,.2);--warn-tx:#e8c84a;
-  --tip-bg:rgba(59,165,93,.06);--tip-bd:rgba(59,165,93,.2);--tip-tx:#57f287;
-  --code-bg:rgba(79,99,210,.1);--code-bd:rgba(79,99,210,.22);--code-tx:#a8b4f8;
-}
-[data-theme="light"]{
-  --bg:#f5f7fd;--bg2:#ffffff;--border:#e2e6f3;--border2:#d0d6f0;
-  --text:#1a1d2e;--text2:#5a6394;--text3:#b0b8d4;
-  --accent:#4f63d2;--accent-h:#3d50c0;
-  --accent-bg:rgba(79,99,210,.07);--accent-bd:rgba(79,99,210,.18);
-  --card:#ffffff;--card-bd:#e2e6f3;
-  --nav-bg:rgba(245,247,253,.92);--shadow:0 4px 24px rgba(79,99,210,.08);
-  --hero-grad:radial-gradient(ellipse at 50% -5%,rgba(79,99,210,.08) 0%,transparent 65%);
-  --toggle-bg:#d0d6f0;
-  --ad-bg:#eef0fa;--ad-bd:#d0d6f0;--ad-tx:#c0c8e0;
-  --img-bg:#f0f2fa;--img-bd:#d0d6f0;--img-tx:#b0b8d4;
-  --warn-bg:rgba(237,180,37,.05);--warn-bd:rgba(237,180,37,.18);--warn-tx:#9a7a10;
-  --tip-bg:rgba(59,165,93,.05);--tip-bd:rgba(59,165,93,.18);--tip-tx:#1a7a40;
-  --code-bg:rgba(79,99,210,.07);--code-bd:rgba(79,99,210,.18);--code-tx:#4f63d2;
-}
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-html{scroll-behavior:smooth;}
-body{background:var(--bg);color:var(--text);font-family:'Noto Sans KR',sans-serif;line-height:1.6;transition:background .3s,color .3s;}
-a{text-decoration:none;color:inherit;}
-
-.ad-strip{background:var(--ad-bg);border-bottom:1px solid var(--ad-bd);display:flex;align-items:center;justify-content:center;min-height:64px;padding:10px;transition:background .3s,border-color .3s;}
-.ad-label{font-size:10px;color:var(--ad-tx);letter-spacing:2px;text-transform:uppercase;padding:12px 40px;border:1px dashed var(--ad-bd);border-radius:4px;}
-.ad-mid{background:var(--ad-bg);border-top:1px solid var(--ad-bd);border-bottom:1px solid var(--ad-bd);display:flex;align-items:center;justify-content:center;min-height:80px;padding:12px;transition:background .3s,border-color .3s;}
-
-nav{position:sticky;top:0;z-index:100;height:62px;background:var(--nav-bg);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 52px;transition:background .3s,border-color .3s;}
-.logo{font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;letter-spacing:4px;color:var(--text);flex-shrink:0;transition:color .3s;}
-.logo em{color:var(--accent);font-style:normal;}
-.nav-links{display:flex;align-items:center;gap:4px;list-style:none;}
-.nav-links a{padding:6px 13px;border-radius:6px;font-size:14px;font-weight:500;color:var(--text2);transition:color .2s,background .2s;}
-.nav-links a:hover{color:var(--text);background:var(--accent-bg);}
-.nav-links a.active{color:var(--accent);background:var(--accent-bg);}
-.nav-right{display:flex;align-items:center;gap:10px;flex-shrink:0;}
-.theme-wrap{display:flex;align-items:center;gap:7px;}
-.theme-lbl{font-size:12px;font-weight:700;color:var(--text3);width:24px;text-align:right;transition:color .3s;user-select:none;white-space:nowrap;}
-.theme-toggle{width:42px;height:24px;border-radius:12px;background:var(--toggle-bg);border:1px solid var(--border2);cursor:pointer;position:relative;flex-shrink:0;transition:background .3s;}
-.theme-toggle::after{content:'';position:absolute;width:16px;height:16px;border-radius:50%;background:var(--accent);top:3px;left:3px;transition:transform .3s cubic-bezier(.4,0,.2,1);}
-[data-theme="light"] .theme-toggle::after{transform:translateX(18px);}
-
 .container{max-width:760px;margin:0 auto;}
-.section-label{display:inline-block;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--accent);background:var(--accent-bg);border:1px solid var(--accent-bd);padding:4px 12px;border-radius:20px;margin-bottom:14px;}
-
-.btn{display:inline-flex;align-items:center;gap:6px;padding:11px 24px;border-radius:9px;border:none;cursor:pointer;font-family:'Noto Sans KR',sans-serif;font-size:14px;font-weight:700;transition:all .2s;text-decoration:none;}
-.btn-primary{background:var(--accent);color:#fff;box-shadow:0 4px 16px rgba(79,99,210,.28);}
-.btn-primary:hover{background:var(--accent-h);transform:translateY(-2px);}
-.btn-secondary{background:var(--card);color:var(--text);border:1px solid var(--card-bd);}
-.btn-secondary:hover{border-color:var(--accent);color:var(--accent);transform:translateY(-2px);}
-.btn-ghost{background:transparent;color:var(--accent);border:1px solid var(--accent-bd);}
-.btn-ghost:hover{background:var(--accent-bg);}
-
-.note{background:var(--accent-bg);border:1px solid var(--accent-bd);border-left:3px solid var(--accent);border-radius:0 8px 8px 0;padding:13px 17px;font-size:13px;color:var(--text2);line-height:1.7;margin:16px 0;}
-.warn{background:var(--warn-bg);border:1px solid var(--warn-bd);border-left:3px solid var(--warn-tx);border-radius:0 8px 8px 0;padding:13px 17px;font-size:13px;color:var(--warn-tx);line-height:1.7;margin:16px 0;}
-.tip{background:var(--tip-bg);border:1px solid var(--tip-bd);border-left:3px solid var(--tip-tx);border-radius:0 8px 8px 0;padding:13px 17px;font-size:13px;color:var(--tip-tx);line-height:1.7;margin:16px 0;}
-code{background:var(--code-bg);border:1px solid var(--code-bd);color:var(--code-tx);font-family:'Courier New',monospace;font-size:12px;padding:2px 7px;border-radius:4px;}
-
-.img-ph{width:100%;background:var(--img-bg);border:1px dashed var(--img-bd);border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--img-tx);font-size:11px;letter-spacing:1px;text-transform:uppercase;transition:background .3s;}
-.img-ph.h160{height:160px;}.img-ph.h200{height:200px;}.img-ph.h280{height:280px;}.img-ph.h360{height:360px;}
-
-footer{background:var(--bg2);border-top:1px solid var(--border);padding:32px 52px;display:flex;align-items:center;justify-content:space-between;transition:background .3s,border-color .3s;}
-.footer-logo{font-family:'Rajdhani',sans-serif;font-size:17px;font-weight:700;letter-spacing:3px;color:var(--text3);}
-.footer-logo em{color:var(--accent);font-style:normal;}
-footer p{font-size:12px;color:var(--text3);}
-
-/* ── 가이드 전용 ── */
-.guide-hero{padding:100px 24px 60px;background:var(--hero-grad);}
-.breadcrumb{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text3);margin-bottom:20px;}
-.breadcrumb a{color:var(--text2);transition:color .2s;}
-.breadcrumb a:hover{color:var(--accent);}
-.guide-hero h1{font-size:36px;font-weight:900;margin-bottom:10px;line-height:1.2;}
-.guide-hero p{font-size:15px;color:var(--text2);line-height:1.7;max-width:560px;margin-top:10px;}
-.guide-meta{display:flex;gap:20px;margin-top:18px;flex-wrap:wrap;}
-.meta-badge{font-size:12px;color:var(--text2);background:var(--card);border:1px solid var(--card-bd);padding:4px 12px;border-radius:20px;}
-.meta-badge strong{color:var(--text);font-weight:700;}
-
-.guide-body{padding:56px 24px 100px;}
-
-.step-block{margin-bottom:56px;}
-.step-header{display:flex;align-items:center;gap:14px;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--border);}
-.step-badge{width:34px;height:34px;border-radius:9px;flex-shrink:0;background:var(--accent);color:#fff;font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700;display:flex;align-items:center;justify-content:center;}
-.step-header h2{font-size:20px;font-weight:700;}
-.step-desc{font-size:14px;color:var(--text2);line-height:1.8;margin-bottom:18px;}
-.divider{height:1px;background:var(--border);margin:40px 0;}
-
-.nav-btns{display:flex;justify-content:space-between;gap:12px;margin-top:60px;padding-top:32px;border-top:1px solid var(--border);}
-
-@media(max-width:768px){
-  nav{padding:0 18px;}
-  .nav-links{display:none;}
-  .guide-hero{padding:80px 18px 48px;}
-  .guide-hero h1{font-size:28px;}
-  .guide-body{padding:40px 18px 80px;}
-  footer{flex-direction:column;gap:10px;text-align:center;padding:24px 18px;}
-  .nav-btns{flex-direction:column;}
-}
+.guide-meta{gap:20px;}
 </style>
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4097734794611688" crossorigin="anonymous"></script>
 </head>
@@ -130,9 +25,9 @@ footer p{font-size:12px;color:var(--text3);}
 </div>
 
 <nav>
-  <a href="index.html" class="logo">LO<em>I</em>L</a>
+  <a href="/" class="logo">LO<em>I</em>L</a>
   <ul class="nav-links">
-    <li><a href="index.html">홈</a></li>
+    <li><a href="/">홈</a></li>
     <li><a href="guide.html" class="active">가이드</a></li>
     <li><a href="contact.html">문의</a></li>
   </ul>
@@ -246,7 +141,7 @@ footer p{font-size:12px;color:var(--text3);}
 
     <!-- 이전/다음 -->
     <div class="nav-btns">
-      <a href="guide-sheets.html" class="btn btn-secondary">← 이전: 시트 템플릿 작성</a>
+      <a href="guide-sheets.html" class="btn btn-secondary">← 이전: 엑셀로 명단 등록</a>
       <a href="guide-gemini-api.html" class="btn btn-primary">다음: Gemini API 발급 →</a>
     </div>
 

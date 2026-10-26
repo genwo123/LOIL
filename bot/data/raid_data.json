@@ -73,22 +73,29 @@
     },
     "종막": {
       "노말": {"ilvl": 1710, "category": 3, "size": 8, "duration": 60},
-      "하드": {"ilvl": 1730, "category": 3, "size": 8, "duration": 90}
+      "하드": {"ilvl": 1730, "category": 3, "size": 8, "duration": 90},
+      "더퍼스트": {"ilvl": 1730, "category": 3, "size": 8, "duration": 90}
     },
 
     "세르카": {
       "노말":        {"ilvl": 1710, "category": 4, "size": 4, "duration": 60},
       "하드":        {"ilvl": 1730, "category": 4, "size": 4, "duration": 60},
       "나이트메어":  {"ilvl": 1740, "category": 4, "size": 4, "duration": 60}
+    },
+    "벨가르딘": {
+      "노말":        {"ilvl": 1750, "category": 4, "size": 8, "duration": 60},
+      "하드":        {"ilvl": 1770, "category": 4, "size": 8, "duration": 60},
+      "나이트메어":  {"ilvl": 1780, "category": 4, "size": 8, "duration": 60}
     }
   },
 
   "diff_keywords": [
-    "나이트메어", "나메", "하드", "노말",
+    "나이트메어", "나메", "더퍼스트", "더퍼", "하드", "노말",
     "1단계", "2단계", "3단계"
   ],
 
   "diff_aliases": {
-    "나메": "나이트메어"
+    "나메": "나이트메어",
+    "더퍼": "더퍼스트"
   }
 }

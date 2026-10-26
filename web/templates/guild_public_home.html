@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ guild_name }} · 로일(LoIl)</title>
+<meta property="og:title" content="{{ guild_name }} · 로일(LoIl)">
+<meta property="og:description" content="{{ guild_name }} 길드 일정 대시보드">
+{% if banner_url_abs %}<meta property="og:image" content="{{ banner_url_abs }}">{% endif %}
+<style>
+  :root, :root[data-theme="dark"] {
+    --bg: #1E1F22;
+    --card: #2B2D31;
+    --card-border: #3F4147;
+    --accent: #7C5CFC;
+    --accent2: #5865F2;
+    --support: #43B581;
+    --text: #FFFFFF;
+    --text-gray: #B5BAC1;
+    --shadow: 0 8px 24px -12px rgba(155,89,182,0.35);
+  }
+  :root[data-theme="light"] {
+    --bg: #F7F7FB;
+    --card: #FFFFFF;
+    --card-border: #E7E7F0;
+    --accent: #7C5CFC;
+    --accent2: #5865F2;
+    --support: #43B581;
+    --text: #1C1C28;
+    --text-gray: #77778C;
+    --shadow: 0 1px 2px rgba(20,20,40,0.05), 0 8px 24px rgba(20,20,40,0.07);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+    padding: 48px 20px 80px;
+  }
+  .wrap { max-width: 560px; margin: 0 auto; }
+  .top-row { display: flex; justify-content: flex-end; margin-bottom: 12px; }
+  .theme-toggle {
+    background: var(--card); border: 1px solid var(--card-border); color: var(--text);
+    font-size: 12px; font-weight: 700; padding: 8px 14px; border-radius: 999px; cursor: pointer;
+  }
+  .badge {
+    display: inline-block; background: var(--accent2); color: #fff; font-size: 11px; font-weight: bold;
+    padding: 3px 10px; border-radius: 999px; margin-bottom: 16px;
+  }
+  h1 { margin: 0 0 28px; font-size: 26px; font-weight: 800; letter-spacing: -0.5px; }
+  .card {
+    background: var(--card); border: 1px solid var(--card-border); border-radius: 16px;
+    padding: 22px 24px; box-shadow: var(--shadow); margin-bottom: 16px;
+  }
+  .card .title { font-size: 14.5px; font-weight: 700; margin-bottom: 6px; }
+  .card .desc { font-size: 12.5px; color: var(--text-gray); line-height: 1.6; margin-bottom: 14px; }
+  .card input {
+    width: 100%; padding: 11px 12px; border-radius: 10px; border: 1px solid var(--card-border);
+    background: var(--bg); color: var(--text); font-size: 13px; margin-bottom: 10px;
+  }
+  .card button, .card a.btn {
+    display: block; width: 100%; text-align: center; text-decoration: none;
+    background: linear-gradient(135deg, var(--accent2), var(--accent)); color: #fff;
+    border: none; border-radius: 10px; padding: 11px; font-size: 13.5px; font-weight: 700; cursor: pointer;
+  }
+  .admin-link { text-align: center; margin-top: 8px; }
+  .admin-link a { color: var(--text-gray); font-size: 12px; text-decoration: none; }
+  .banner {
+    width: 100%; aspect-ratio: 3/1; object-fit: cover; border-radius: 16px;
+    margin-bottom: 20px; box-shadow: var(--shadow); display: block;
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="top-row">
+      <button class="theme-toggle" onclick="loilToggleTheme()">🌙 / ☀️</button>
+    </div>
+    {% if banner_url %}<img class="banner" src="{{ banner_url }}" alt="{{ guild_name }}">{% endif %}
+    <span class="badge">로일 · LoIl</span>
+    <h1>{{ guild_name }}</h1>
+
+    <div class="card">
+      <div class="title">내 일정 보러가기</div>
+      <div class="desc">Discord에서 등록한 닉네임을 입력하세요. 본인 확인을 위해 Discord 로그인이 필요합니다.</div>
+      <form onsubmit="event.preventDefault(); const n=document.getElementById('nick').value.trim(); if(n) location.href='/{{ guild_url_name }}/일정/'+encodeURIComponent(n);">
+        <input id="nick" placeholder="닉네임 (예: 거니)" required>
+        <button type="submit">이동</button>
+      </form>
+    </div>
+
+    <div class="admin-link">
+      <a href="/{{ guild_url_name }}/홈/관리자">길드 대시보드 보기 →</a>
+    </div>
+  </div>
+
+  <script>
+    function loilToggleTheme() {
+      const html = document.documentElement;
+      const cur = html.dataset.theme || 'dark';
+      const next = cur === 'dark' ? 'light' : 'dark';
+      html.dataset.theme = next;
+      try { localStorage.setItem('loil-theme', next); } catch (e) {}
+    }
+    (function () {
+      try {
+        const saved = localStorage.getItem('loil-theme');
+        if (saved) document.documentElement.dataset.theme = saved;
+      } catch (e) {}
+    })();
+  </script>
+</body>
+</html>

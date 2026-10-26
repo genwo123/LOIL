@@ -386,6 +386,7 @@ class AliasCog(commands.Cog, name="AliasCog"):
         self.bot = bot
 
     @app_commands.command(name="별명추가", description="직업 또는 각인 별명을 추가 요청합니다")
+    @app_commands.checks.cooldown(1, 86400.0, key=lambda i: i.user.id)
     async def alias_add(self, interaction: discord.Interaction):
         embed = discord.Embed(
             title="📝 별명 추가 요청",
@@ -460,6 +461,18 @@ class AliasCog(commands.Cog, name="AliasCog"):
             )
 
         await interaction.response.send_message(embed=embed, ephemeral=True)
+
+    @alias_add.error
+    async def alias_add_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
+        if isinstance(error, app_commands.CommandOnCooldown):
+            hours   = int(error.retry_after // 3600)
+            minutes = int((error.retry_after % 3600) // 60)
+            await interaction.response.send_message(
+                f"⏳ 별명 추가 요청은 하루에 한 번만 가능해요. {hours}시간 {minutes}분 후 다시 시도해주세요.",
+                ephemeral=True
+            )
+        else:
+            raise error
 
 
 # ==================== Cog 등록 ====================

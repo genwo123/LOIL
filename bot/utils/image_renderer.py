@@ -59,6 +59,12 @@ def _hex(c):
     c = c.lstrip("#")
     return tuple(int(c[i:i+2],16) for i in (0,2,4))
 
+def _blend(fg_hex, bg_hex, alpha):
+    """fg를 bg 위에 alpha 비율로 얹은 불투명 RGB. 최종 PNG가 RGB로 저장돼
+    실제 알파 채널은 무시되므로, 반투명 느낌은 색 자체를 섞어서 흉내낸다."""
+    fg, bg = _hex(fg_hex), _hex(bg_hex)
+    return tuple(round(f*alpha + b*(1-alpha)) for f, b in zip(fg, bg))
+
 def _tw(draw, text, font):
     return int(draw.textlength(text, font=font))
 
@@ -224,7 +230,7 @@ def render_my_schedule(nickname: str, schedule: list, guild_name: str = "로일�
             pill_x = W - PAD - 110
             pill_y = y + 12
             role_txt = "서폿" if is_sup else "딜러"
-            role_bg  = role_col + "55"
+            role_bg  = _blend(role_col, C["card"], 0.33)
             _pill(draw, pill_x, pill_y, role_txt, bg=role_bg, fg=role_col, font=f_job, px=16, py=7)
             if std_job:
                 _pill(draw, pill_x, pill_y+36, std_job, bg=PILL_JOB, fg="#ffffff", font=f_job, px=12, py=7)

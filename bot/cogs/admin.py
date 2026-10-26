@@ -8,21 +8,8 @@
 import discord
 from discord.ext import commands
 from discord import app_commands
-import json
-import os
 from bot.utils.lostark_api import get_api_stats, clear_cache
 from bot.config.settings import BOT_VERSION
-
-SETTINGS_FILE = "bot/data/guild_settings.json"
-
-def get_guild_setting(guild_id: int) -> dict:
-    if not os.path.exists(SETTINGS_FILE):
-        return {}
-    try:
-        with open(SETTINGS_FILE, "r", encoding="utf-8") as f:
-            return json.load(f).get(str(guild_id), {})
-    except Exception:
-        return {}
 
 
 class AdminCog(commands.Cog, name="AdminCog"):
@@ -51,9 +38,8 @@ class AdminCog(commands.Cog, name="AdminCog"):
             status_text = "느림"
             color       = 0xED4245
 
-        setting  = get_guild_setting(interaction.guild_id)
-        sheet_ok = bool(setting.get("sheet_url"))
-        loa_ok   = bool(setting.get("loa_api_keys"))
+        from bot.utils.raid_schedule import get_raids
+        raid_count = len(get_raids(interaction.guild_id))
 
         embed = discord.Embed(
             title="🤖 로일봇 상태",
@@ -85,8 +71,8 @@ class AdminCog(commands.Cog, name="AdminCog"):
             inline=True
         )
         embed.add_field(
-            name="📋 시트 연동",
-            value="✅ 연동됨" if sheet_ok else "❌ 미연동",
+            name="📋 등록 레이드",
+            value=f"{raid_count}개",
             inline=True
         )
         embed.set_footer(text="설정 변경은 ⚙️ 로일-설정 채널에서 해주세요")
@@ -108,7 +94,8 @@ class AdminCog(commands.Cog, name="AdminCog"):
             embed.set_footer(text="다음 조회부터 최신 데이터가 사용됩니다")
             await interaction.followup.send(embed=embed, ephemeral=True)
         except Exception as e:
-            await interaction.followup.send(f"❌ 초기화 실패: {e}", ephemeral=True)
+            print(f"[admin] 캐시 초기화 실패: {e}")
+            await interaction.followup.send("❌ 캐시 초기화에 실패했습니다. 잠시 후 다시 시도해주세요.", ephemeral=True)
 
     @clear_api_cache.error
     async def cache_error(self, interaction: discord.Interaction, error):

@@ -9,24 +9,25 @@ discord.py==2.3.2
 discord-ext-menus==1.0.0a34
 
 # ============================================
-# Database
+# Database — 실제로는 안 씀. Google Sheets가 source of truth라 SQL DB 자체가 필요없음
+# (CLAUDE.md 정책). 예전 기획 단계 흔적으로 남아있던 것 — 코드에서 전혀 import 안 하는 것
+# 확인 후 주석 처리. 특히 mysqlclient는 새 서버에 빌드 도구/헤더 없으면 설치 자체가 실패하는
+# 흔한 배포 실패 원인이라, 안 쓰는데 남겨두면 호스팅 이전할 때 괜히 걸림돌이 됨.
 # ============================================
-# MySQL (추천 - 개발자 경험)
-pymysql==1.1.0
-mysqlclient==2.2.1
-
-# 또는 PostgreSQL
+# pymysql==1.1.0
+# mysqlclient==2.2.1
 # psycopg2-binary==2.9.9
-
-# ORM & Migration
-SQLAlchemy==2.0.23
-alembic==1.13.1
+# SQLAlchemy==2.0.23
+# alembic==1.13.1
 
 # ============================================
 # AI
 # ============================================
 # Gemini (Google) - 메인 AI
+# google-generativeai(구 SDK)는 공식 단종(EOL) — 실제 앱(bot/utils/gemini_ai.py, bot/debug_gemini.py)은
+# 새 SDK(google-genai)로 이전함. 구 SDK는 bot/tests/test_gemini_ai.py(수동 테스트 스크립트)에서만 씀.
 google-generativeai==0.3.2
+google-genai==1.63.0
 
 # Groq - 백업 AI
 groq==0.4.2
@@ -106,11 +107,16 @@ ipython==8.19.0
 rich==13.7.0
 
 # ============================================
-# 웹 (선택사항 - 향후)
+# 웹 (관리자 로그인 + 일정 관리 + 편성 결과 조회, web/)
 # ============================================
-# fastapi==0.108.0
-# uvicorn==0.25.0
-# jinja2==3.1.2
+fastapi==0.108.0
+uvicorn==0.25.0
+jinja2==3.1.2
+itsdangerous==2.1.2
+python-multipart==0.0.6
+
+# 초기 등록용 엑셀 업로드 파싱 (roster_import.py) — 레이드/멤버 명단 일괄 등록
+openpyxl==3.1.5
 
 # ============================================
 # 모니터링 (선택사항)
@@ -124,9 +130,10 @@ rich==13.7.0
 # hiredis==2.3.2
 
 # ============================================
-# 이미지 처리 (차트 생성용)
+# 이미지 처리 — bot/utils/image_renderer.py(주간 레이드 이미지 렌더링)가 실제로 씀.
+# 예전엔 주석 처리돼 있었는데, 실제로는 필수 의존성이라 새 서버에 배포하면 빠져서 깨졌을 것.
 # ============================================
-# pillow==10.1.0
+pillow==12.1.1
 # matplotlib==3.8.2
 
 # ============================================

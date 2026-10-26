@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>새 길드 만들기 · 로일(LoIl)</title>
+<style>
+  :root, :root[data-theme="dark"] { --bg:#1E1F22; --card:#2B2D31; --card-dark:#232428; --accent: #7C5CFC; --text:#FFFFFF; --text-gray:#B5BAC1; --divider:#3F4147; --blurple:#5865F2; }
+  :root[data-theme="light"] { --bg:#F7F7FB; --card:#FFFFFF; --card-dark:#F0F0F5; --accent:#7C5CFC; --text:#1C1C28; --text-gray:#77778C; --divider:#E7E7F0; --blurple:#5865F2; }
+  * { box-sizing: border-box; }
+  body { margin:0; min-height:100vh; background:var(--bg); color:var(--text); font-family:"Malgun Gothic","Apple SD Gothic Neo","Noto Sans KR",sans-serif; display:flex; align-items:center; justify-content:center; padding:24px; }
+  .card { max-width: 420px; width: 100%; background: var(--card); border-radius: 12px; border-left: 4px solid var(--accent); padding: 32px 28px; }
+  .badge { display:inline-block; background:var(--blurple); color:#fff; font-size:11px; font-weight:bold; padding:3px 10px; border-radius:999px; margin-bottom:14px; }
+  h1 { margin: 0 0 8px; font-size: 20px; }
+  p { color: var(--text-gray); font-size: 13px; line-height: 1.6; margin: 0 0 20px; }
+  label { display:block; font-size:12px; color:var(--text-gray); margin-bottom:6px; font-weight:bold; }
+  input[type="text"] { width:100%; background:var(--card-dark); color:var(--text); border:1px solid var(--divider); border-radius:8px; padding:10px 12px; font-size:14px; font-family:inherit; margin-bottom:18px; }
+  button { width:100%; background:var(--blurple); color:#fff; border:none; border-radius:8px; padding:12px 16px; font-size:14px; font-weight:bold; cursor:pointer; }
+  button:hover { filter:brightness(1.08); }
+  .hint { font-size: 11px; color: var(--text-gray); margin-top: 16px; margin-bottom:0; line-height:1.6; opacity:0.8; }
+  .theme-toggle { position: fixed; top: 18px; right: 18px; width: auto; margin-top: 0; background: var(--card); border: 1px solid var(--divider); color: var(--text); font-size: 11px; font-weight: bold; padding: 6px 10px; border-radius: 999px; cursor: pointer; }
+  .back-home { position: fixed; top: 18px; left: 18px; font-size: 12px; color: var(--text-gray); text-decoration: none; }
+  .back-home:hover { color: var(--text); }
+</style>
+</head>
+<body>
+  <a class="back-home" href="/">← 로일 홈</a>
+  <button class="theme-toggle" onclick="loilToggleTheme()">🌙/☀️</button>
+  <div class="card">
+    <span class="badge">로일 · LoIl</span>
+    <h1>새 길드 그룹 만들기</h1>
+    <p>Discord에 봇을 아직 초대하지 않았어도 괜찮습니다. 먼저 여기서 길드 이름만 정하고, 레이드/시간 정책 등을 미리 설정해두었다가 나중에 봇을 초대하면 그대로 이어붙일 수 있어요.</p>
+    <form method="post" action="/guild/new">
+      <label>길드 이름</label>
+      <input type="text" name="guild_name" placeholder="예: 모코코히어로즈" required maxlength="50">
+      <button type="submit">만들기</button>
+    </form>
+    <p class="hint">{{ user.username }}님 계정으로 생성됩니다. 만든 뒤 가입 코드/봇 연결 코드가 발급돼요.</p>
+  </div>
+  <script>
+    function loilToggleTheme() {
+      const html = document.documentElement;
+      const cur = html.dataset.theme || 'dark';
+      html.dataset.theme = cur === 'dark' ? 'light' : 'dark';
+      try { localStorage.setItem('loil-theme', html.dataset.theme); } catch (e) {}
+    }
+    (function () {
+      try {
+        const saved = localStorage.getItem('loil-theme');
+        if (saved) document.documentElement.dataset.theme = saved;
+      } catch (e) {}
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ guild.name }} · 길드원 명단 · 로일(LoIl)</title>
+<style>
+  :root, :root[data-theme="dark"] {
+    --bg: #0d0f14; --card: #161922; --card-dark: #10131a; --accent: #4f63d2;
+    --support: #43B581; --dps: #F04747; --text: #FFFFFF; --text-gray: #8b95b0; --divider: #1e2330; --blurple: #4f63d2;
+  }
+  :root[data-theme="light"] {
+    --bg: #f5f7fd; --card: #FFFFFF; --card-dark: #eef0fa; --accent: #4f63d2;
+    --support: #43B581; --dps: #F04747; --text: #1C1C28; --text-gray: #5a6394; --divider: #e2e6f3; --blurple: #4f63d2;
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font-family:"Noto Sans KR","Malgun Gothic","Apple SD Gothic Neo",sans-serif; padding:24px 16px 80px; }
+  .wrap { max-width: 640px; margin: 0 auto; }
+  @media (min-width: 880px) { .wrap { max-width: 860px; } }
+  .top-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 16px; }
+  header h1 { margin: 0 0 4px; font-size: 20px; }
+  header p { margin: 0; color: var(--text-gray); font-size: 13px; }
+  .dev-banner { background:#ED4245; color:#fff; font-size:12px; font-weight:bold; text-align:center; padding:6px; border-radius:6px; margin-bottom:16px; }
+  .theme-toggle { background: var(--card-dark); border: 1px solid var(--divider); color: var(--text); font-size: 11px; font-weight: bold; padding: 6px 10px; border-radius: 999px; cursor: pointer; }
+  .back { color: var(--text-gray); font-size: 12px; text-decoration: none; display:inline-block; margin-bottom:20px; }
+  .home-btn {
+    display: inline-flex; align-items: center; gap: 6px; text-decoration: none;
+    background: var(--card); border: 1px solid var(--divider); color: var(--text);
+    font-size: 13px; font-weight: bold; padding: 10px 16px; border-radius: 10px; margin-bottom: 20px;
+  }
+  .home-btn:hover { border-color: var(--accent); background: rgba(79,99,210,.1); }
+  .section-title { font-size: 14px; font-weight: bold; margin: 24px 0 8px; display:flex; align-items:center; justify-content:space-between; }
+  .import-link { font-size: 12px; color: var(--accent); text-decoration: none; font-weight: bold; }
+  .list { background: var(--card); border-radius: 10px; overflow: hidden; }
+  .row { display:flex; align-items:center; justify-content:space-between; padding: 12px 16px; border-top: 1px solid var(--divider); }
+  .row:first-child { border-top: none; }
+  .row .name { font-size: 13.5px; font-weight: bold; }
+  .row .char { font-size: 12px; color: var(--text-gray); margin-top: 2px; }
+  .row.pending .name { color: var(--text-gray); }
+  .badge { font-size: 10.5px; padding: 2px 8px; border-radius: 999px; font-weight: bold; }
+  .badge.claimed { background: rgba(67,181,129,0.15); color: var(--support); }
+  .badge.pending { background: rgba(240,71,71,0.12); color: var(--dps); }
+  .badge.role { background: rgba(79,99,210,0.15); color: var(--accent); margin-right: 6px; }
+  .badges { display: flex; align-items: center; }
+  .del-btn { background:none; border:1px solid var(--divider); color:var(--text-gray); font-size:11px; padding:4px 10px; border-radius:6px; cursor:pointer; font-family:inherit; }
+  .del-btn:hover { color: var(--dps); border-color: var(--dps); }
+  .empty { text-align: center; color: var(--text-gray); padding: 20px 0; font-size: 13px; background: var(--card); border-radius: 10px; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    {% if dev_mode %}<div class="dev-banner">⚠ DEV MODE — 로그인 스킵됨 (배포 전 반드시 해제)</div>{% endif %}
+    <a class="home-btn" href="/admin/{{ guild.id }}">길드 홈</a>
+    <div class="top-row">
+      <header>
+        <h1>{{ guild.name }} · 길드원 명단</h1>
+        <p>{{ '닉네임 등록 현황 조회 · 관리' if is_admin else '닉네임 등록 현황 조회' }}</p>
+      </header>
+      <button class="theme-toggle" onclick="loilToggleTheme()">🌙/☀️</button>
+    </div>
+
+    <p style="font-size:11.5px; color:var(--text-gray); margin:-8px 0 16px; line-height:1.6;">
+      "길드장"/"부길드장" 배지는 이름표가 아니라 실제 권한입니다 — 이 배지가 붙은 사람은 Discord 로그인만 하면 이 웹 대시보드에서 레이드/시간정책 등을 직접 수정할 수 있습니다.
+    </p>
+
+    <div class="section-title">
+      <span>등록 완료 ({{ claimed|length }}명)</span>
+    </div>
+    {% if claimed %}
+    <div class="list">
+      {% for m in claimed %}
+      <div class="row">
+        <div>
+          <div class="name">{{ m.nickname }}</div>
+          {% if m.character and m.character != m.nickname %}<div class="char">캐릭터: {{ m.character }}</div>{% endif %}
+        </div>
+        <div class="badges">
+          {% if m.role %}<span class="badge role">{{ m.role }}</span>{% endif %}
+          <span class="badge claimed">연결됨</span>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty">아직 등록된 사람이 없습니다.</div>
+    {% endif %}
+
+    <div class="section-title">
+      <span>⏳ 미청구 명단 ({{ pending|length }}명)</span>
+      {% if is_admin %}<a class="import-link" href="/admin/{{ guild.id }}/import">+ 엑셀로 일괄 등록</a>{% endif %}
+    </div>
+    {% if pending %}
+    <div class="list">
+      {% for p in pending %}
+      <div class="row pending">
+        <div>
+          <div class="name">{{ p.nickname }}</div>
+          {% if p.character and p.character != p.nickname %}<div class="char">캐릭터: {{ p.character }}</div>{% endif %}
+        </div>
+        <div class="badges">
+          {% if p.role %}<span class="badge role">{{ p.role }}</span>{% endif %}
+          {% if is_admin %}
+          <form method="post" action="/admin/{{ guild.id }}/members/remove-pending" onsubmit="return confirm('{{ p.nickname }} 항목을 삭제할까요?');">
+            <input type="hidden" name="nickname" value="{{ p.nickname }}">
+            <button type="submit" class="del-btn">삭제</button>
+          </form>
+          {% else %}
+          <span class="badge pending">대기중</span>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    <p style="font-size:11.5px; color:var(--text-gray); margin-top:8px;">디스코드에서 <b>/닉네임등록</b> 실행 시 이 목록에서 본인 이름을 골라 연결할 수 있습니다.</p>
+    {% else %}
+    <div class="empty">미청구 인원이 없습니다.{% if is_admin %} 엑셀로 명단을 올리면 여기 쌓여요.{% endif %}</div>
+    {% endif %}
+  </div>
+  <script>
+    function loilToggleTheme() {
+      const html = document.documentElement;
+      const cur = html.dataset.theme || 'dark';
+      html.dataset.theme = cur === 'dark' ? 'light' : 'dark';
+      try { localStorage.setItem('loil-theme', html.dataset.theme); } catch (e) {}
+    }
+    (function () {
+      try {
+        const saved = localStorage.getItem('loil-theme');
+        if (saved) document.documentElement.dataset.theme = saved;
+      } catch (e) {}
+    })();
+  </script>
+</body>
+</html>

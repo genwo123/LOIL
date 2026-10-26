@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>[디자인 미리보기] 일정 관리 · 로일(LoIl)</title>
+<style>
+  :root {
+    --bg: #1E1F22;
+    --card: #2B2D31;
+    --card-dark: #232428;
+    --accent: #9B59B6;
+    --support: #57F287;
+    --dps: #ED4245;
+    --gold: #FFD700;
+    --text: #FFFFFF;
+    --text-gray: #B5BAC1;
+    --divider: #3F4147;
+    --blurple: #5865F2;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+    padding: 24px 16px 80px;
+  }
+  .wrap { max-width: 720px; margin: 0 auto; }
+  .preview-banner {
+    background: var(--blurple);
+    color: #fff;
+    font-size: 12px;
+    font-weight: bold;
+    text-align: center;
+    padding: 8px;
+    border-radius: 6px;
+    margin-bottom: 16px;
+  }
+  .top-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 24px; }
+  header h1 { margin: 0 0 4px; font-size: 20px; }
+  header p { margin: 0; color: var(--text-gray); font-size: 13px; }
+  .logout { color: var(--text-gray); font-size: 12px; text-decoration: none; }
+
+  h2.section-title { font-size: 14px; color: var(--text-gray); margin: 32px 0 12px; font-weight: normal; }
+
+  .raid-row {
+    background: var(--card);
+    border-radius: 10px;
+    border-left: 4px solid var(--accent);
+    padding: 14px 16px;
+    margin-bottom: 10px;
+  }
+  .raid-row .view-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+  .raid-row .info { display: flex; flex-direction: column; gap: 2px; }
+  .raid-row .name { font-size: 15px; font-weight: bold; }
+  .raid-row .meta { font-size: 12px; color: var(--text-gray); }
+  .raid-row .meta .cleared { color: var(--support); }
+  .raid-row .meta .fixed { color: var(--gold); }
+  .raid-row .actions { display: flex; gap: 6px; flex-shrink: 0; }
+
+  button, .btn {
+    font-family: inherit;
+    font-size: 12.5px;
+    font-weight: bold;
+    border: none;
+    border-radius: 6px;
+    padding: 7px 12px;
+    cursor: pointer;
+  }
+  .btn-edit { background: var(--card-dark); color: var(--text); }
+  .btn-delete { background: var(--card-dark); color: var(--dps); }
+  .btn-primary { background: var(--blurple); color: #fff; }
+  .btn-primary:hover { filter: brightness(1.08); }
+
+  .edit-form { display: none; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--divider); }
+  .edit-form.open { display: block; }
+  .field-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 10px; }
+  .field-grid .full { grid-column: 1 / -1; }
+  label { display: block; font-size: 11px; color: var(--text-gray); margin-bottom: 4px; }
+  input, select {
+    width: 100%;
+    background: var(--card-dark);
+    color: var(--text);
+    border: 1px solid var(--divider);
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-size: 13px;
+    font-family: inherit;
+  }
+  .form-actions { display: flex; gap: 8px; }
+
+  .add-card {
+    background: var(--card);
+    border-radius: 10px;
+    border-left: 4px solid var(--blurple);
+    padding: 16px;
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="preview-banner">🖼 디자인 미리보기 전용 — 실제 데이터/서버 연결 없음, 버튼 동작 안 함</div>
+
+    <div class="top-row">
+      <header>
+        <h1>샘플 길드 · 일정 관리</h1>
+        <p>테스트유저님 · 여기서 바꾸면 Google Sheets에 바로 반영됩니다</p>
+      </header>
+      <a class="logout" href="#">로그아웃</a>
+    </div>
+
+    <h2 class="section-title">등록된 레이드</h2>
+
+    <div class="raid-row">
+      <div class="view-row">
+        <div class="info">
+          <span class="name">카멘 하드</span>
+          <span class="meta">수요일 21:00 · 120분 · <span class="cleared">클리어</span></span>
+        </div>
+        <div class="actions">
+          <button type="button" class="btn-edit" onclick="toggleEdit(1)">수정</button>
+          <button type="button" class="btn-delete">삭제</button>
+        </div>
+      </div>
+      <div class="edit-form" id="edit-1">
+        <div class="field-grid">
+          <div class="full"><label>레이드명</label><input type="text" value="카멘 하드"></div>
+          <div><label>요일</label><select><option selected>수</option><option>목</option></select></div>
+          <div><label>시(0~23)</label><input type="number" value="21"></div>
+          <div><label>분</label><select><option selected>00</option><option>30</option></select></div>
+          <div><label>소요시간(분)</label><input type="number" value="120"></div>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn-primary">저장</button>
+          <button type="button" class="btn-edit" onclick="toggleEdit(1)">취소</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="raid-row">
+      <div class="view-row">
+        <div class="info">
+          <span class="name">아브렐슈드 하드</span>
+          <span class="meta">시간 미정 · 90분 · <span class="fixed">고정멤버</span> · <span style="color:var(--dps);">🔥트라이</span></span>
+        </div>
+        <div class="actions">
+          <button type="button" class="btn-edit" onclick="toggleEdit(2)">수정</button>
+          <button type="button" class="btn-delete">삭제</button>
+        </div>
+      </div>
+      <div class="edit-form" id="edit-2">
+        <div class="field-grid">
+          <div class="full"><label>레이드명</label><input type="text" value="아브렐슈드 하드"></div>
+          <div><label>요일</label><select><option>수</option><option>목</option><option>금</option><option selected>토</option></select></div>
+          <div><label>시(0~23)</label><input type="number" value="20"></div>
+          <div><label>분</label><select><option>00</option><option selected>30</option></select></div>
+          <div><label>소요시간(분)</label><input type="number" value="90"></div>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn-primary">저장</button>
+          <button type="button" class="btn-edit" onclick="toggleEdit(2)">취소</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="raid-row">
+      <div class="view-row">
+        <div class="info">
+          <span class="name">발탄 노말</span>
+          <span class="meta">미정요일 -</span>
+        </div>
+        <div class="actions">
+          <button type="button" class="btn-edit" onclick="toggleEdit(3)">수정</button>
+          <button type="button" class="btn-delete">삭제</button>
+        </div>
+      </div>
+      <div class="edit-form" id="edit-3">
+        <div class="field-grid">
+          <div class="full"><label>레이드명</label><input type="text" value="발탄 노말"></div>
+          <div><label>요일</label><select><option selected>미정</option></select></div>
+          <div><label>시(0~23)</label><input type="number" value="0"></div>
+          <div><label>분</label><select><option selected>00</option><option>30</option></select></div>
+          <div><label>소요시간(분)</label><input type="number" value="60"></div>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn-primary">저장</button>
+          <button type="button" class="btn-edit" onclick="toggleEdit(3)">취소</button>
+        </div>
+      </div>
+    </div>
+
+    <h2 class="section-title">새 레이드 추가</h2>
+    <div class="add-card">
+      <div class="field-grid">
+        <div class="full"><label>레이드명</label><input type="text" placeholder="예: 카멘"></div>
+        <div><label>난이도</label><select><option>노말</option><option selected>하드</option><option>나이트메어</option></select></div>
+        <div><label>인원수</label><select><option>4인</option><option selected>8인</option></select></div>
+        <div><label>소요시간(분)</label><input type="number" value="120"></div>
+        <div class="full" style="display:flex; align-items:center; gap:8px;">
+          <input type="checkbox" checked style="width:auto;"> <label style="margin:0;">🔥 트라이 (진행 중 / 미클리어)</label>
+        </div>
+        <div class="full" style="display:flex; gap:16px; align-items:center;">
+          <label style="margin:0; display:flex; align-items:center; gap:4px;"><input type="radio" name="p" checked style="width:auto;"> 트라이 우선</label>
+          <label style="margin:0; display:flex; align-items:center; gap:4px;"><input type="radio" name="p" style="width:auto;"> 트라이 후순위</label>
+        </div>
+      </div>
+      <p class="meta" style="margin:0 0 10px; color:var(--text-gray); font-size:12px;">요일/시간은 입력하지 않습니다 — 등록 인원(결석 제외) ÷ 인원수로 파티 수를 자동 계산해 "미정" 상태로 생성합니다.</p>
+      <button type="button" class="btn-primary">추가</button>
+    </div>
+  </div>
+
+  <script>
+    function toggleEdit(id) {
+      const form = document.getElementById('edit-' + id);
+      if (form) form.classList.toggle('open');
+    }
+  </script>
+</body>
+</html>

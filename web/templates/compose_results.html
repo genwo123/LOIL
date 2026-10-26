@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ guild.name }} · 편성 결과 · 로일(LoIl)</title>
+<style>
+  :root, :root[data-theme="dark"] {
+    --bg: #0d0f14; --card: #161922; --card-dark: #10131a; --accent: #4f63d2;
+    --support: #43B581; --dps: #F04747; --text: #FFFFFF; --text-gray: #8b95b0; --divider: #1e2330; --blurple: #4f63d2;
+  }
+  :root[data-theme="light"] {
+    --bg: #f5f7fd; --card: #FFFFFF; --card-dark: #eef0fa; --accent: #4f63d2;
+    --support: #43B581; --dps: #F04747; --text: #1C1C28; --text-gray: #5a6394; --divider: #e2e6f3; --blurple: #4f63d2;
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font-family:"Noto Sans KR","Malgun Gothic","Apple SD Gothic Neo",sans-serif; padding:24px 16px 80px; }
+  .wrap { max-width: 680px; margin: 0 auto; }
+  @media (min-width: 900px) { .wrap { max-width: 920px; } }
+  @media (min-width: 1300px) { .wrap { max-width: 1280px; } }
+  .top-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 20px; }
+  header h1 { margin: 0 0 4px; font-size: 20px; }
+  header p { margin: 0; color: var(--text-gray); font-size: 13px; }
+  .dev-banner { background:#ED4245; color:#fff; font-size:12px; font-weight:bold; text-align:center; padding:6px; border-radius:6px; margin-bottom:16px; }
+  .header-actions { display: flex; align-items: center; gap: 12px; }
+  .theme-toggle { background: var(--card-dark); border: 1px solid var(--divider); color: var(--text); font-size: 11px; font-weight: bold; padding: 6px 10px; border-radius: 999px; cursor: pointer; }
+  .back { color: var(--text-gray); font-size: 12px; text-decoration: none; display:inline-block; margin-bottom:10px; }
+  .home-btn {
+    display: inline-flex; align-items: center; gap: 6px; text-decoration: none;
+    background: var(--card); border: 1px solid var(--divider); color: var(--text);
+    font-size: 13px; font-weight: bold; padding: 10px 16px; border-radius: 10px; margin-bottom: 20px;
+  }
+  .home-btn:hover { border-color: var(--accent); background: rgba(79,99,210,.1); }
+
+  .compose-layout { display: grid; grid-template-columns: 1.6fr 1fr; gap: 16px; align-items: start; }
+  @media (max-width: 860px) { .compose-layout { grid-template-columns: 1fr; } }
+  .summary-panel { position: sticky; top: 20px; }
+
+  .raid-card {
+    background: var(--card); border-radius: 10px; border-left: 4px solid var(--accent);
+    padding: 14px 16px; margin-bottom: 10px;
+  }
+  .raid-card.undecided { border-left-color: var(--dps); opacity: 0.75; }
+  .raid-head { display: flex; align-items: flex-start; gap: 10px; }
+  .raid-head input[type="checkbox"] { width: 18px; height: 18px; margin-top: 2px; flex-shrink: 0; }
+  .name { font-size: 14.5px; font-weight: bold; }
+  .meta { font-size: 12px; color: var(--text-gray); margin-top: 2px; }
+  .parties { margin-top: 10px; display: flex; flex-direction: column; gap: 6px; }
+  .party { font-size: 12.5px; background: var(--card-dark); border-radius: 6px; padding: 8px 10px; }
+  .party .label { font-weight: bold; color: var(--accent); margin-right: 6px; }
+  .party .sup { color: var(--support); }
+  .conflict { font-size: 11.5px; color: var(--dps); margin-top: 6px; }
+  .avg-level { font-size: 12px; color: var(--text-gray); margin-top: 8px; }
+  .avg-level b { color: var(--support); }
+  .ai-comment { font-size: 12px; color: var(--text-gray); margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--divider); white-space: pre-wrap; line-height: 1.6; }
+  .ai-comment-label { font-size: 11.5px; font-weight: bold; color: var(--accent); margin-bottom: 4px; }
+  .empty { text-align: center; color: var(--text-gray); padding: 40px 0; font-size: 13px; }
+
+  .summary-box { background: var(--card); border-radius: 10px; padding: 16px; }
+  .summary-box h3 { margin: 0 0 12px; font-size: 13px; color: var(--text-gray); font-weight: normal; }
+  .summary-stats { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+  .summary-stat { display: flex; justify-content: space-between; font-size: 13px; }
+  .summary-stat b { font-size: 15px; }
+  .summary-stat.ok b { color: var(--support); }
+  .summary-stat.warn b { color: var(--dps); }
+  .submit-bar { margin-top: 0; }
+  button.btn-primary {
+    width: 100%; font-family: inherit; font-size: 14px; font-weight: bold; border: none;
+    border-radius: 8px; padding: 12px; cursor: pointer; background: var(--blurple); color: #fff;
+  }
+  button.btn-primary:hover { filter: brightness(1.08); }
+  .hint { font-size: 11.5px; color: var(--text-gray); margin-top: 10px; line-height: 1.6; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    {% if dev_mode %}<div class="dev-banner">⚠ DEV MODE — 로그인 스킵됨 (배포 전 반드시 해제)</div>{% endif %}
+    <a class="back" href="/admin/{{ guild.id }}/compose">← 다시 선택하기</a><br>
+    <a class="home-btn" href="/admin/{{ guild.id }}">길드 홈</a>
+    <div class="top-row">
+      <header>
+        <h1>{{ guild.name }} · 편성 결과</h1>
+        <p>확인 후 저장할 레이드만 체크하고 전체 저장을 눌러주세요. 저장 전까지는 아무것도 반영되지 않습니다.</p>
+      </header>
+      <button class="theme-toggle" onclick="loilToggleTheme()">🌙/☀️</button>
+    </div>
+
+    {% if assignments %}
+    {% set ok_count = assignments | selectattr('assigned_day', 'ne', '미정') | selectattr('parties') | list | length %}
+    {% set warn_count = assignments | length - ok_count %}
+    <form method="post" action="/admin/{{ guild.id }}/compose/save">
+      <div class="compose-layout">
+        <div class="raid-cards">
+          {% for a in assignments %}
+          {% set raid = a.raid %}
+          <div class="raid-card {{ 'undecided' if a.assigned_day == '미정' else '' }}">
+            <label class="raid-head">
+              <input type="checkbox" name="include" value="{{ raid.col }}" {{ 'checked' if a.assigned_day != '미정' and a.parties else 'disabled' }}>
+              <input type="hidden" name="day_{{ raid.col }}" value="{{ a.assigned_day }}">
+              <input type="hidden" name="hour_{{ raid.col }}" value="{{ a.assigned_hour }}">
+              <input type="hidden" name="minute_{{ raid.col }}" value="{{ a.assigned_minute }}">
+              <div>
+                <div class="name">{{ raid.name }} {{ raid.diff }}</div>
+                <div class="meta">
+                  {% if a.assigned_day == '미정' %}⚠ 시간 배정 불가 (가능시간 겹치는 시간대 없음){% else %}{{ a.assigned_day }}요일 {{ a.time_str }}{% endif %}
+                  · {{ a.members | length }}명
+                </div>
+              </div>
+            </label>
+
+            {% if a.parties %}
+            <div class="parties">
+              {% for party in a.parties %}
+              <div class="party">
+                <span class="label">파티{{ loop.index }}</span>
+                {% for m in party %}{{ m.name }}({{ m.character }}{{ ' · 서폿' if m.is_support else '' }}){% if not loop.last %}, {% endif %}{% endfor %}
+              </div>
+              {% endfor %}
+            </div>
+            {% if a.avg_level %}<div class="avg-level">평균 전투력: <b>{{ '%.2f' % a.avg_level }}</b> ({{ a.level_count }}/{{ a.members | length }}명 조회)</div>{% endif %}
+            {% if a.ai_comment %}<div class="ai-comment"><div class="ai-comment-label">AI 시너지 추천</div>{{ a.ai_comment }}</div>{% endif %}
+            {% elif a.members %}
+            <div class="conflict">인원은 있지만 파티 구성이 안 됨(서폿 부족 등) — 저장 대상에서 자동 제외됨</div>
+            {% endif %}
+
+            {% for c in a.conflicts %}
+            <div class="conflict">⚠ {{ c.name }}님이 다른 레이드({{ c.other_raid }})와 시간 겹침</div>
+            {% endfor %}
+          </div>
+          {% endfor %}
+        </div>
+
+        <div class="summary-panel">
+          <div class="summary-box">
+            <h3>편성 요약</h3>
+            <div class="summary-stats">
+              <div class="summary-stat"><span>총 레이드</span><b>{{ assignments | length }}개</b></div>
+              <div class="summary-stat ok"><span>편성 완료</span><b>{{ ok_count }}개</b></div>
+              {% if warn_count %}<div class="summary-stat warn"><span>배정 불가 / 파티 실패</span><b>{{ warn_count }}개</b></div>{% endif %}
+            </div>
+            <div class="submit-bar">
+              <button type="submit" class="btn-primary">체크된 레이드 전체 저장</button>
+              <p class="hint">저장하면 해당 레이드가 그 시간으로 "예정" 처리됩니다. 파티 구성 자체(누가 몇 번 파티인지)는 별도로 저장되지 않고 이 화면과 디스코드 공지에서만 보여집니다 — 실제로 누가 참여하는지는 일정 관리 화면의 배정 목록이 기준입니다.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </form>
+    {% else %}
+      <div class="empty">편성 가능한 레이드가 없습니다 (배정된 인원이 없거나 전부 1명뿐).</div>
+    {% endif %}
+  </div>
+  <script>
+    function loilToggleTheme() {
+      const html = document.documentElement;
+      const cur = html.dataset.theme || 'dark';
+      html.dataset.theme = cur === 'dark' ? 'light' : 'dark';
+      try { localStorage.setItem('loil-theme', html.dataset.theme); } catch (e) {}
+    }
+    (function () {
+      try {
+        const saved = localStorage.getItem('loil-theme');
+        if (saved) document.documentElement.dataset.theme = saved;
+      } catch (e) {}
+    })();
+  </script>
+</body>
+</html>

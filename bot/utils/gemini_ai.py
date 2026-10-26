@@ -5,8 +5,9 @@ dps_types, synergy_benefits 데이터를 프롬프트에 주입해
 """
 
 import json
+from pathlib import Path
 from typing import List
-import google.generativeai as genai
+from google import genai
 
 from bot.config.settings import (
     GEMINI_API_KEY,
@@ -18,9 +19,25 @@ from bot.config.settings import (
 
 # ==================== 초기화 ====================
 
-def _get_model():
-    genai.configure(api_key=GEMINI_API_KEY)
-    return genai.GenerativeModel(GEMINI_MODEL)
+SETTINGS_FILE = Path("bot/data/guild_settings.json")
+
+def _get_guild_api_key(guild_id: int) -> str:
+    """길드가 /설정에서 등록한 Gemini API 키. 없으면 빈 문자열."""
+    if not guild_id:
+        return ""
+    try:
+        with open(SETTINGS_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        return data.get(str(guild_id), {}).get("gemini_api_key", "")
+    except Exception:
+        return ""
+
+def _resolve_api_key(guild_id: int = 0) -> str:
+    """길드 전용 키 우선, 없으면 .env의 전역 키."""
+    return _get_guild_api_key(guild_id) or GEMINI_API_KEY
+
+def _get_client(guild_id: int = 0) -> genai.Client:
+    return genai.Client(api_key=_resolve_api_key(guild_id))
 
 
 # ==================== 컨텍스트 빌더 ====================
@@ -104,22 +121,24 @@ def _build_party_rules() -> str:
 
 # ==================== 파티 추천 ====================
 
-def recommend_party(members: list, raid_name: str) -> str:
+def recommend_party(members: list, raid_name: str, guild_id: int = 0) -> str:
     """
-    AI 파티 편성 추천
+    AI 파티 편성 추천 — 이미 확정된 편성 결과에 대한 시너지 해설/코멘트.
+    (파티 배정 자체를 바꾸지는 않음. 결과 화면에 참고용으로 덧붙이는 용도)
 
     Args:
-        members: [{ name, character, std_job, is_support, is_alt, level }, ...]
+        members:  [{ name, character, std_job, is_support, is_alt, level }, ...]
         raid_name: 레이드 이름
+        guild_id: 길드 ID (등록된 길드 전용 Gemini 키 우선 사용)
 
     Returns:
         추천 결과 문자열
     """
-    if not GEMINI_API_KEY:
+    if not _resolve_api_key(guild_id):
         return "❌ Gemini API 키가 설정되지 않았습니다."
 
     try:
-        model = _get_model()
+        client = _get_client(guild_id)
 
         # 참여 인원 정리
         member_lines = []
@@ -173,7 +192,7 @@ def recommend_party(members: list, raid_name: str) -> str:
 
 답변은 간결하게, 500자 이내로 해주세요."""
 
-        response = model.generate_content(prompt)
+        response = client.models.generate_content(model=GEMINI_MODEL, contents=prompt)
         return response.text
 
     except Exception as e:
@@ -196,7 +215,7 @@ def analyze_synergy(jobs: List[str]) -> str:
         return "❌ Gemini API 키가 설정되지 않았습니다."
 
     try:
-        model = _get_model()
+        client = _get_client()
 
         synergy_context = _build_synergy_context()
         dps_context     = _build_dps_context()
@@ -231,7 +250,7 @@ def analyze_synergy(jobs: List[str]) -> str:
 
 400자 이내로 간결하게."""
 
-        response = model.generate_content(prompt)
+        response = client.models.generate_content(model=GEMINI_MODEL, contents=prompt)
         return response.text
 
     except Exception as e:
@@ -246,13 +265,13 @@ def get_raid_guide(raid_name: str) -> str:
         return "❌ Gemini API 키가 설정되지 않았습니다."
 
     try:
-        model  = _get_model()
+        client = _get_client()
         prompt = f"""로스트아크 {raid_name} 레이드를 3~5줄로 요약해주세요.
 1. 레이드 특징
 2. 주의사항
 3. 추천 파티 구성"""
 
-        response = model.generate_content(prompt)
+        response = client.models.generate_content(model=GEMINI_MODEL, contents=prompt)
         return response.text
 
     except Exception as e:
@@ -267,9 +286,9 @@ def ask_ai(question: str) -> str:
         return "❌ Gemini API 키가 설정되지 않았습니다."
 
     try:
-        model  = _get_model()
+        client = _get_client()
         prompt = f"로스트아크 전문가로서 간략하게 답변해주세요.\n\n질문: {question}"
-        response = model.generate_content(prompt)
+        response = client.models.generate_content(model=GEMINI_MODEL, contents=prompt)
         return response.text
 
     except Exception as e:

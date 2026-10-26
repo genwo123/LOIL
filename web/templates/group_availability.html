@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ guild.name }} · 길드 전체 가능시간 · 로일(LoIl)</title>
+<style>
+  :root, :root[data-theme="dark"] {
+    --bg: #0d0f14;
+    --card: #161922;
+    --card-dark: #10131a;
+    --accent: #4f63d2;
+    --support: #43B581;
+    --dps: #F04747;
+    --gold: #FAA61A;
+    --text: #FFFFFF;
+    --text-gray: #8b95b0;
+    --divider: #1e2330;
+    --blurple: #4f63d2;
+  }
+  :root[data-theme="light"] {
+    --bg: #f5f7fd;
+    --card: #FFFFFF;
+    --card-dark: #eef0fa;
+    --accent: #4f63d2;
+    --support: #43B581;
+    --dps: #F04747;
+    --gold: #FAA61A;
+    --text: #1C1C28;
+    --text-gray: #5a6394;
+    --divider: #e2e6f3;
+    --blurple: #4f63d2;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Noto Sans KR", "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+    padding: 24px 16px 80px;
+  }
+  .wrap { max-width: 720px; margin: 0 auto; }
+  @media (min-width: 1000px) { .wrap { max-width: 980px; } }
+  .top-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 16px; }
+  header h1 { margin: 0 0 4px; font-size: 20px; }
+  header p { margin: 0; color: var(--text-gray); font-size: 13px; }
+  .theme-toggle {
+    background: var(--card-dark); border: 1px solid var(--divider); color: var(--text);
+    font-size: 11px; font-weight: bold; padding: 6px 10px; border-radius: 999px; cursor: pointer;
+  }
+  .week-badge {
+    display: inline-block; background: var(--accent); color: #fff; font-size: 11px; font-weight: bold;
+    padding: 3px 10px; border-radius: 999px; margin-bottom: 12px;
+  }
+  .sub-hint { font-size: 12px; color: var(--text-gray); margin: 0 0 16px; }
+  .heat-scroll { overflow-x: auto; border: 1px solid var(--divider); border-radius: 10px; background: var(--card); }
+  .heat-grid {
+    display: grid;
+    grid-template-columns: 44px repeat(7, minmax(48px, 1fr));
+    user-select: none;
+  }
+  .heat-grid .corner { background: var(--card-dark); }
+  .heat-grid .day-head {
+    background: var(--card-dark); text-align: center; font-size: 12px; font-weight: bold;
+    padding: 6px 0; border-left: 1px solid var(--divider);
+  }
+  .heat-grid .hour-label {
+    font-size: 10px; color: var(--text-gray); text-align: right; padding: 0 6px;
+    display: flex; align-items: center; justify-content: flex-end;
+    border-top: 1px solid var(--divider);
+  }
+  .heat-grid .cell {
+    height: 18px; border-top: 1px solid var(--divider); border-left: 1px solid var(--divider);
+    cursor: pointer;
+  }
+  .heat-grid .cell.empty-cell {
+    background: repeating-linear-gradient(45deg, var(--card-dark), var(--card-dark) 4px, var(--bg) 4px, var(--bg) 8px);
+  }
+  .heat-grid .cell.policy-disabled {
+    background: var(--card-dark);
+    cursor: not-allowed;
+  }
+  .heat-grid .cell.selected { outline: 2px solid var(--blurple); outline-offset: -2px; }
+  .legend { display: flex; align-items: center; gap: 8px; margin: 12px 0; font-size: 11px; color: var(--text-gray); }
+  .legend .empty-swatch {
+    display: inline-block; width: 14px; height: 14px; border-radius: 3px;
+    background: repeating-linear-gradient(45deg, var(--card-dark), var(--card-dark) 3px, var(--bg) 3px, var(--bg) 6px);
+    border: 1px solid var(--divider);
+  }
+  .legend .scale-gradient {
+    display: inline-block; width: 100px; height: 12px; border-radius: 3px;
+    background: linear-gradient(to right, #4f63d2, #43B581, #FAA61A);
+  }
+  .detail-panel {
+    background: var(--card); border-radius: 10px; padding: 14px 16px; margin-top: 16px;
+    font-size: 13px; min-height: 20px;
+  }
+  .detail-panel .title { font-weight: bold; margin-bottom: 6px; }
+  .detail-panel .names { color: var(--text-gray); }
+  .empty { text-align: center; color: var(--text-gray); padding: 32px 0; }
+  .home-btn {
+    display: inline-flex; align-items: center; gap: 6px; text-decoration: none;
+    background: var(--card); border: 1px solid var(--divider); color: var(--text);
+    font-size: 13px; font-weight: bold; padding: 10px 16px; border-radius: 10px; margin-bottom: 16px;
+  }
+  .home-btn:hover { border-color: var(--accent); background: rgba(79,99,210,.1); }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <a class="home-btn" href="/admin/{{ guild.id }}">길드 홈</a>
+    <div class="top-row">
+      <header>
+        <h1>{{ guild.name }} · 길드 전체 가능시간</h1>
+        <p>진하게 칠해진 칸일수록 그 시간대에 가능하다고 한 사람이 많습니다. 칸을 클릭하면 누가 가능한지 보여줍니다.</p>
+      </header>
+      <button class="theme-toggle" onclick="loilToggleTheme()">🌙/☀️</button>
+    </div>
+
+    <div class="week-badge">{{ week_label }} 취합</div>
+    <p class="sub-hint">이번 주 제출 인원: {{ submitted_count }}명</p>
+
+    {% if max_count > 0 %}
+    <div class="legend">
+      <span class="empty-swatch"></span> 0명
+      <span class="scale-gradient"></span>
+      적음 → 많음
+      <span style="display:inline-block; width:14px; height:14px; border-radius:3px; background:var(--card-dark); margin-left:8px;"></span>
+      그 요일엔 정책상 제외된 시간대
+    </div>
+
+    <div class="heat-scroll">
+      <div class="heat-grid" id="heat-grid">
+        <div class="corner"></div>
+        {% for d in days %}<div class="day-head">{{ d }}</div>{% endfor %}
+      </div>
+    </div>
+
+    <div class="detail-panel" id="detail-panel">
+      <span class="names">칸을 클릭하면 여기에 명단이 표시됩니다.</span>
+    </div>
+    {% else %}
+    <div class="empty">아직 아무도 가능시간을 제출하지 않았습니다.</div>
+    {% endif %}
+  </div>
+  <script>
+    function loilToggleTheme() {
+      const html = document.documentElement;
+      const cur = html.dataset.theme || 'dark';
+      html.dataset.theme = cur === 'dark' ? 'light' : 'dark';
+      try { localStorage.setItem('loil-theme', html.dataset.theme); } catch (e) {}
+    }
+    (function () {
+      try {
+        const saved = localStorage.getItem('loil-theme');
+        if (saved) document.documentElement.dataset.theme = saved;
+      } catch (e) {}
+    })();
+
+    (function () {
+      const grid = document.getElementById('heat-grid');
+      if (!grid) return;
+
+      const DAYS = {{ days | tojson }};
+      const gridData = {{ grid_json | safe }};
+      const maxCount = {{ max_count }};
+      const slotsPerHour = {{ slots_per_hour }};
+      const startSlotOffset = {{ start_slot_offset }};
+      const totalSlots = gridData.length ? gridData[0].length : 0;
+      const policyRanges = {{ policy_ranges_json | safe }};
+      const panel = document.getElementById('detail-panel');
+
+      function slotTime(slot) {
+        const abs = slot + startSlotOffset;
+        const h = Math.floor(abs / slotsPerHour);
+        const m = (abs % slotsPerHour) * (60 / slotsPerHour);
+        return h + ':' + String(m).padStart(2, '0');
+      }
+
+      function isPolicyDisabled(day, slot) {
+        const range = policyRanges[day];
+        if (!range) return false;
+        return slot < range[0] || slot >= range[1];
+      }
+
+      // 단일 색조 대신 퍼플→그린→골드 다색(diverging) 스케일 — 진할수록 배경색과 구분이 안 되던 문제 해결.
+      const HEAT_STOPS = [
+        [0.0, [79, 99, 210]],  // #4f63d2
+        [0.5, [67, 181, 129]],  // #43B581
+        [1.0, [250, 166, 26]],  // #FAA61A
+      ];
+      function heatColor(ratio) {
+        let lo = HEAT_STOPS[0], hi = HEAT_STOPS[HEAT_STOPS.length - 1];
+        for (let i = 0; i < HEAT_STOPS.length - 1; i++) {
+          if (ratio >= HEAT_STOPS[i][0] && ratio <= HEAT_STOPS[i + 1][0]) {
+            lo = HEAT_STOPS[i]; hi = HEAT_STOPS[i + 1];
+            break;
+          }
+        }
+        const span = hi[0] - lo[0] || 1;
+        const t = (ratio - lo[0]) / span;
+        const rgb = lo[1].map((c, i) => Math.round(c + (hi[1][i] - c) * t));
+        return `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`;
+      }
+
+      for (let s = 0; s < totalSlots; s++) {
+        const abs = s + startSlotOffset;
+        const label = document.createElement('div');
+        label.className = 'hour-label';
+        label.textContent = (abs % slotsPerHour === 0 && Math.floor(abs / slotsPerHour) % 2 === 0) ? (Math.floor(abs / slotsPerHour) + '시') : '';
+        grid.appendChild(label);
+        for (let di = 0; di < DAYS.length; di++) {
+          const day = DAYS[di];
+          const names = gridData[di][s] || [];
+          const cell = document.createElement('div');
+          cell.className = 'cell';
+          cell.dataset.day = di;
+          cell.dataset.slot = s;
+          if (isPolicyDisabled(day, s)) {
+            cell.classList.add('policy-disabled');
+          } else if (names.length > 0) {
+            cell.style.background = heatColor(names.length / maxCount);
+          } else {
+            cell.classList.add('empty-cell');
+          }
+          cell.addEventListener('click', () => {
+            if (isPolicyDisabled(day, s)) return;
+            grid.querySelectorAll('.cell.selected').forEach(c => c.classList.remove('selected'));
+            cell.classList.add('selected');
+            const from = slotTime(s), to = slotTime(s + 1);
+            if (names.length === 0) {
+              panel.innerHTML = `<span class="names">${day}요일 ${from} — 가능한 사람이 없습니다.</span>`;
+            } else {
+              panel.innerHTML = `<div class="title">${day}요일 ${from} ~ ${to} · ${names.length}명 가능</div>`
+                + `<div class="names">${names.join(', ')}</div>`;
+            }
+          });
+          grid.appendChild(cell);
+        }
+      }
+    })();
+  </script>
+</body>
+</html>

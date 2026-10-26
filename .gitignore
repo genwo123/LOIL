@@ -55,6 +55,12 @@ service-account-*.json
 credentials.json
 google-credentials.json
 
+# 길드별 실제 API 키/시트 URL이 들어있는 런타임 설정 (커밋 금지)
+bot/data/guild_settings.json
+
+# 웹 대시보드용 편성 결과 스냅샷 (런타임 생성, 커밋 금지)
+bot/data/web_results/
+
 # ============================================
 # 데이터베이스
 # ============================================

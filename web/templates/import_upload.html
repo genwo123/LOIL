@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ guild.name }} · 엑셀로 일괄 등록 · 로일(LoIl)</title>
+<style>
+  :root, :root[data-theme="dark"] {
+    --bg: #0d0f14; --card: #161922; --card-dark: #10131a; --accent: #4f63d2;
+    --text: #FFFFFF; --text-gray: #8b95b0; --divider: #1e2330;
+  }
+  :root[data-theme="light"] {
+    --bg: #f5f7fd; --card: #FFFFFF; --card-dark: #eef0fa; --accent: #4f63d2;
+    --text: #1C1C28; --text-gray: #5a6394; --divider: #e2e6f3;
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font-family:"Noto Sans KR","Malgun Gothic","Apple SD Gothic Neo",sans-serif; padding:24px 16px 80px; }
+  .wrap { max-width: 560px; margin: 0 auto; }
+  @media (min-width: 820px) { .wrap { max-width: 760px; } }
+  .top-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 16px; }
+  header h1 { margin: 0 0 4px; font-size: 20px; }
+  header p { margin: 0; color: var(--text-gray); font-size: 13px; }
+  .dev-banner { background:#ED4245; color:#fff; font-size:12px; font-weight:bold; text-align:center; padding:6px; border-radius:6px; margin-bottom:16px; }
+  .theme-toggle { background: var(--card-dark); border: 1px solid var(--divider); color: var(--text); font-size: 11px; font-weight: bold; padding: 6px 10px; border-radius: 999px; cursor: pointer; }
+  .back { color: var(--text-gray); font-size: 12px; text-decoration: none; display:inline-block; margin-bottom:10px; }
+  .home-btn {
+    display: inline-flex; align-items: center; gap: 6px; text-decoration: none;
+    background: var(--card); border: 1px solid var(--divider); color: var(--text);
+    font-size: 13px; font-weight: bold; padding: 10px 16px; border-radius: 10px; margin-bottom: 20px;
+  }
+  .home-btn:hover { border-color: var(--accent); background: rgba(79,99,210,.1); }
+  .card { background: var(--card); border-radius: 10px; padding: 18px 20px; margin-bottom: 16px; }
+  .card h3 { margin: 0 0 10px; font-size: 13.5px; }
+  table.spec { width: 100%; border-collapse: collapse; font-size: 12px; }
+  table.spec th, table.spec td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--divider); color: var(--text-gray); }
+  table.spec th { color: var(--text); }
+  table.spec td.req { color: var(--accent); font-weight: bold; }
+  .upload-box { background: var(--card); border-radius: 10px; padding: 20px; }
+  input[type="file"] { width: 100%; font-size: 13px; color: var(--text); }
+  button.btn-primary {
+    width: 100%; margin-top: 14px; font-family: inherit; font-size: 14px; font-weight: bold; border: none;
+    border-radius: 8px; padding: 12px; cursor: pointer; background: var(--accent); color: #fff;
+  }
+  button.btn-primary:hover { filter: brightness(1.1); }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    {% if dev_mode %}<div class="dev-banner">⚠ DEV MODE — 로그인 스킵됨 (배포 전 반드시 해제)</div>{% endif %}
+    <a class="back" href="/admin/{{ guild.id }}/members">← 길드원 명단</a><br>
+    <a class="home-btn" href="/admin/{{ guild.id }}">길드 홈</a>
+    <div class="top-row">
+      <header>
+        <h1>{{ guild.name }} · 엑셀로 일괄 등록</h1>
+        <p>레이드 목록과 멤버 명단을 엑셀 하나로 한번에 올려요.</p>
+      </header>
+      <button class="theme-toggle" onclick="loilToggleTheme()">🌙/☀️</button>
+    </div>
+
+    <div class="card">
+      <h3>파일 형식 (.xlsx, 시트 탭 2개)</h3>
+      <p style="font-size:12px; color:var(--text-gray); margin:0 0 10px;">탭 이름에 <b>"레이드"</b>, <b>"멤버"</b> 글자가 들어가면 자동 인식돼요. 첫 행은 헤더로 사용합니다.</p>
+      <table class="spec">
+        <tr><th colspan="2">"레이드" 탭</th></tr>
+        <tr><td class="req">레이드명</td><td>필수 — 예: 종막</td></tr>
+        <tr><td class="req">난이도</td><td>필수 — 노말/하드/나이트메어</td></tr>
+        <tr><td>요일</td><td>선택 — 월~일, 비우면 "미정"</td></tr>
+        <tr><td>시간</td><td>선택 — 예: 21:00</td></tr>
+        <tr><td>소요시간</td><td>선택 — 분 단위, 비우면 60</td></tr>
+      </table>
+      <table class="spec" style="margin-top:14px;">
+        <tr><th colspan="2">"멤버" 탭</th></tr>
+        <tr><td>닉네임</td><td>선택 — 비우면 캐릭터명을 그대로 사용</td></tr>
+        <tr><td class="req">캐릭터명</td><td>필수 — 실제 로스트아크 캐릭터명</td></tr>
+        <tr><td>권한</td><td>선택 — 길드장/부길드장/공란(일반 길드원), 길드장은 1명만</td></tr>
+      </table>
+      <p style="font-size:11.5px; color:var(--text-gray); margin:14px 0 0; line-height:1.6;">
+        같은 파일을 다시 올리면(재업로드) — 레이드는 중복 체크 없이 매번 새로 추가되니 이미 올린 파일을 또 올리지 않게 주의하세요. 멤버는 이미 등록됐거나 대기 중인 닉네임이면 자동으로 건너뛰어서 중복 등록되지 않습니다.
+      </p>
+    </div>
+
+    <form class="upload-box" method="post" action="/admin/{{ guild.id }}/import/preview" enctype="multipart/form-data">
+      <input type="file" name="file" accept=".xlsx" required>
+      <button type="submit" class="btn-primary">미리보기</button>
+    </form>
+  </div>
+  <script>
+    function loilToggleTheme() {
+      const html = document.documentElement;
+      const cur = html.dataset.theme || 'dark';
+      html.dataset.theme = cur === 'dark' ? 'light' : 'dark';
+      try { localStorage.setItem('loil-theme', html.dataset.theme); } catch (e) {}
+    }
+    (function () {
+      try {
+        const saved = localStorage.getItem('loil-theme');
+        if (saved) document.documentElement.dataset.theme = saved;
+      } catch (e) {}
+    })();
+  </script>
+</body>
+</html>

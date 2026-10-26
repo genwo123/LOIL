@@ -9,7 +9,7 @@
 import discord
 from discord.ext import commands
 from discord import app_commands
-from bot.config.settings import BOT_VERSION
+from bot.config.settings import BOT_VERSION, WEB_BASE_URL
 
 
 class HelpCog(commands.Cog, name="HelpCog"):
@@ -44,8 +44,19 @@ class HelpCog(commands.Cog, name="HelpCog"):
             name="⚔️ 레이드 카탈로그 (관리자 전용)",
             value=(
                 "**⚔️│레이드설정 채널 버튼으로 사용:**\n"
-                "　레이드 활성/비활성 · 슬롯 수 설정 · 소요시간 설정\n"
+                "　레이드 활성/비활성 · 소요시간 설정\n"
                 "　변경사항은 구글 시트에 즉시 반영됩니다."
+            ),
+            inline=False
+        )
+
+        # ── 웹 대시보드 ──
+        embed.add_field(
+            name="🌐 웹 대시보드",
+            value=(
+                f"[관리자 로그인]({WEB_BASE_URL.rstrip('/')}/login) — 일정 관리·요일별 시간정책·길드 전체 가능시간을 웹에서 확인\n"
+                "`/주간일정설정` — 이번 주 가능시간 + 관심 레이드 제출용 개인 링크 발급\n"
+                "⚙│봇설정 패널의 **🔗 길드 연결** 버튼 — 웹에서 미리 만들어둔 길드 설정을 이 서버에 연결 (관리자)"
             ),
             inline=False
         )
@@ -54,13 +65,9 @@ class HelpCog(commands.Cog, name="HelpCog"):
         embed.add_field(
             name="📅 일정 관리 (관리자 전용)",
             value=(
-                "**🛡│레이드편성 채널 버튼으로 사용:**\n"
-                "　`일정 추가` — 이번 주 시트에 레이드 일정 추가\n"
-                "　`일정 수정` — 등록된 일정 수정\n"
-                "　`일정 삭제` — 등록된 일정 삭제\n\n"
+                f"[웹 대시보드]({WEB_BASE_URL.rstrip('/')}/login) — 일정 추가·수정·삭제는 여기서\n\n"
                 "**슬래시 명령어:**\n"
-                "`/일정추가` · `/일정수정` · `/일정삭제`\n"
-                "`/레이드클리어` · `/레이드토글` · `/레이드갱신`"
+                "`/레이드갱신` — 시트 변경사항을 디스코드 채널에 반영"
             ),
             inline=False
         )
@@ -82,8 +89,8 @@ class HelpCog(commands.Cog, name="HelpCog"):
             name="🛡 파티 편성",
             value=(
                 "**🛡│레이드편성 채널 버튼으로 사용:**\n"
-                "　`주간 전체 편성` — 레이드 선택 → AI 자동 편성\n"
-                "　`개별 레이드 편성` — 특정 레이드 하나만 AI 편성\n"
+                "　`주간 전체 편성` — 레이드 선택 → 자동 편성 + AI 시너지 추천\n"
+                "　`개별 레이드 편성` — 특정 레이드 하나만 자동 편성 + AI 시너지 추천\n"
                 "　`시너지 분석` — 직업 목록 입력 → 시너지 분석\n\n"
                 "**슬래시 명령어:**\n"
                 "`/시너지` — 시너지 분석\n"
@@ -98,6 +105,18 @@ class HelpCog(commands.Cog, name="HelpCog"):
             value=(
                 "`/별명추가` — 직업 / 각인 별명 추가 요청\n"
                 "`/별명목록` — 등록된 별명 확인"
+            ),
+            inline=False
+        )
+
+        # ── 캐릭터 정보 · 링크 ──
+        embed.add_field(
+            name="⚔️ 캐릭터 정보 · 링크",
+            value=(
+                "`/캐릭터조회` — 로스트아크 캐릭터 정보 조회 (초상화·전투력·각인)\n"
+                "`/링크` — 길드 즐겨찾기 링크 보기\n"
+                "`/링크추가`, `/링크삭제` — 즐겨찾기 링크 관리 (관리자)\n"
+                "`/링크고정` — 이 채널에 링크 보드 고정 (관리자)"
             ),
             inline=False
         )
@@ -118,9 +137,9 @@ class HelpCog(commands.Cog, name="HelpCog"):
         embed.add_field(
             name="💡 처음 사용하신다면",
             value=(
-                "1️⃣ **⚙│봇설정** 채널 → 시트 URL · API 키 등록\n"
+                "1️⃣ **⚙│봇설정** 채널 → API 키 등록 · 대시보드 연결\n"
                 "2️⃣ **⚔️│레이드설정** 채널 → 운영할 레이드 활성화 · 슬롯 수 설정\n"
-                "3️⃣ **🛡│레이드편성** 채널 → 일정 추가 후 AI 파티 편성\n"
+                "3️⃣ **🛡│레이드편성** 채널 → 일정 추가 후 자동 파티 편성\n"
                 "4️⃣ **📡│공지** 채널 → 일정 입력 요청 시작 🎉"
             ),
             inline=False
@@ -164,7 +183,7 @@ class HelpCog(commands.Cog, name="HelpCog"):
 
         embed = discord.Embed(
             title="🤖 로일(LoIl) 봇 정보",
-            description="로스트아크 길드 레이드 자동화 · AI 파티 편성 봇",
+            description="로스트아크 길드 레이드 자동화 · AI 시너지 추천 봇",
             color=0x9B59B6
         )
 
@@ -176,7 +195,7 @@ class HelpCog(commands.Cog, name="HelpCog"):
             name="✨ 주요 기능",
             value=(
                 "• 구글 시트 기반 레이드 일정 관리\n"
-                "• AI(Gemini) 파티 자동 편성\n"
+                "• 자동 파티 편성 + AI(Gemini) 시너지 추천\n"
                 "• 레이드 카탈로그 관리 (활성/슬롯/소요시간)\n"
                 "• 시간 충돌 자동 감지 · 서폿 배치 자동화\n"
                 "• 로아 API 키 풀링 (최대 3개)\n"

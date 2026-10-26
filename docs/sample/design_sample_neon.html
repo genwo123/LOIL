@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>[샘플 A: 네온 게이밍] 로일(LoIl)</title>
+<style>
+  :root {
+    --bg: #0A0A0F;
+    --bg-grad: radial-gradient(circle at 20% -10%, rgba(155,89,182,0.25), transparent 45%),
+                radial-gradient(circle at 90% 10%, rgba(88,101,242,0.2), transparent 40%),
+                #0A0A0F;
+    --card: #15151F;
+    --card-border: rgba(255,255,255,0.08);
+    --accent: #B265F0;
+    --accent2: #5865F2;
+    --support: #4CE0A6;
+    --dps: #FF5C7C;
+    --gold: #FFD866;
+    --text: #F4F2FF;
+    --text-gray: #9A97B8;
+    --divider: rgba(255,255,255,0.08);
+  }
+  [data-theme="light"] {
+    --bg: #F3F0FB;
+    --bg-grad: radial-gradient(circle at 20% -10%, rgba(155,89,182,0.15), transparent 45%),
+                radial-gradient(circle at 90% 10%, rgba(88,101,242,0.12), transparent 40%),
+                #F3F0FB;
+    --card: #FFFFFF;
+    --card-border: rgba(70,50,120,0.10);
+    --text: #241C3D;
+    --text-gray: #7A7395;
+    --divider: rgba(70,50,120,0.10);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg-grad);
+    color: var(--text);
+    font-family: "Pretendard", "Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+    padding: 28px 18px 90px;
+    transition: background .2s, color .2s;
+  }
+  .wrap { max-width: 740px; margin: 0 auto; }
+  .preview-banner {
+    background: linear-gradient(90deg, var(--accent2), var(--accent));
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    text-align: center;
+    padding: 9px;
+    border-radius: 10px;
+    margin-bottom: 18px;
+    letter-spacing: .2px;
+  }
+  .top-row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 28px; gap: 12px; }
+  header h1 {
+    margin: 0 0 4px; font-size: 24px; font-weight: 800; letter-spacing: -0.3px;
+    background: linear-gradient(90deg, var(--text), var(--accent));
+    -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  header p { margin: 0; color: var(--text-gray); font-size: 13px; }
+  .theme-toggle {
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    color: var(--text);
+    font-size: 12px;
+    font-weight: 700;
+    padding: 8px 14px;
+    border-radius: 999px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  h2.section-title {
+    font-size: 12px; text-transform: uppercase; letter-spacing: 1.2px;
+    color: var(--accent); margin: 34px 0 14px; font-weight: 800;
+  }
+  .raid-row {
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: 16px;
+    padding: 16px 18px;
+    margin-bottom: 12px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 8px 24px -12px rgba(155,89,182,0.35);
+  }
+  .raid-row::before {
+    content: "";
+    position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
+    background: linear-gradient(180deg, var(--accent2), var(--accent));
+  }
+  .raid-row .view-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+  .raid-row .info { display: flex; flex-direction: column; gap: 4px; }
+  .raid-row .name { font-size: 16px; font-weight: 800; }
+  .raid-row .meta { font-size: 12px; color: var(--text-gray); display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  .pill {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 9px; border-radius: 999px; font-size: 11px; font-weight: 700;
+  }
+  .pill-cleared { background: rgba(76,224,166,0.15); color: var(--support); }
+  .pill-fixed { background: rgba(255,216,102,0.15); color: var(--gold); }
+  .pill-trai { background: rgba(255,92,124,0.15); color: var(--dps); }
+  .raid-row .actions { display: flex; gap: 6px; flex-shrink: 0; }
+
+  button, .btn {
+    font-family: inherit; font-size: 12.5px; font-weight: 700;
+    border: none; border-radius: 10px; padding: 8px 14px; cursor: pointer;
+  }
+  .btn-edit { background: var(--divider); color: var(--text); }
+  .btn-delete { background: rgba(255,92,124,0.15); color: var(--dps); }
+  .btn-primary { background: linear-gradient(90deg, var(--accent2), var(--accent)); color: #fff; box-shadow: 0 6px 18px -6px rgba(155,89,182,0.6); }
+  .btn-primary:hover { filter: brightness(1.08); }
+
+  .field-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 12px; }
+  .field-grid .full { grid-column: 1 / -1; }
+  label { display: block; font-size: 11px; color: var(--text-gray); margin-bottom: 5px; font-weight: 600; }
+  input, select {
+    width: 100%;
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--card-border);
+    border-radius: 8px;
+    padding: 9px 11px;
+    font-size: 13px;
+    font-family: inherit;
+  }
+  .add-card {
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 8px 24px -12px rgba(88,101,242,0.35);
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="preview-banner">🖼 디자인 샘플 A — 네온 게이밍 스타일 (실제 데이터 없음)</div>
+
+    <div class="top-row">
+      <header>
+        <h1>다크히어로즈 · 일정 관리</h1>
+        <p>Google Sheets에 바로 반영됩니다</p>
+      </header>
+      <button class="theme-toggle" onclick="toggleTheme()">🌙 다크 / ☀️ 라이트</button>
+    </div>
+
+    <h2 class="section-title">등록된 레이드</h2>
+
+    <div class="raid-row">
+      <div class="view-row">
+        <div class="info">
+          <span class="name">카멘 하드</span>
+          <span class="meta">시간 미정 · 120분 <span class="pill pill-cleared">클리어</span></span>
+        </div>
+        <div class="actions">
+          <button type="button" class="btn-edit">수정</button>
+          <button type="button" class="btn-delete">삭제</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="raid-row">
+      <div class="view-row">
+        <div class="info">
+          <span class="name">아브렐슈드 하드</span>
+          <span class="meta">시간 미정 · 90분 <span class="pill pill-fixed">고정멤버</span> <span class="pill pill-trai">🔥 트라이</span></span>
+        </div>
+        <div class="actions">
+          <button type="button" class="btn-edit">수정</button>
+          <button type="button" class="btn-delete">삭제</button>
+        </div>
+      </div>
+    </div>
+
+    <h2 class="section-title">새 레이드 추가</h2>
+    <div class="add-card">
+      <div class="field-grid">
+        <div class="full"><label>레이드명</label><input type="text" placeholder="예: 카멘"></div>
+        <div><label>난이도</label><select><option>노말</option><option selected>하드</option><option>나이트메어</option></select></div>
+        <div><label>인원수</label><select><option>4인</option><option selected>8인</option></select></div>
+        <div><label>소요시간(분)</label><input type="number" value="120"></div>
+        <div class="full" style="display:flex; align-items:center; gap:8px;">
+          <input type="checkbox" checked style="width:auto;"> <label style="margin:0;">🔥 트라이</label>
+        </div>
+        <div class="full" style="display:flex; gap:16px; align-items:center;">
+          <label style="margin:0; display:flex; align-items:center; gap:4px; font-size:12px;"><input type="radio" name="p" checked style="width:auto;"> 트라이 우선</label>
+          <label style="margin:0; display:flex; align-items:center; gap:4px; font-size:12px;"><input type="radio" name="p" style="width:auto;"> 트라이 후순위</label>
+        </div>
+      </div>
+      <button type="button" class="btn-primary">추가</button>
+    </div>
+  </div>
+
+  <script>
+    function toggleTheme() {
+      const html = document.documentElement;
+      html.dataset.theme = html.dataset.theme === 'light' ? 'dark' : 'light';
+    }
+  </script>
+</body>
+</html>

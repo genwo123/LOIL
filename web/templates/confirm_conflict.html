@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>시간 충돌 확인 · 로일(LoIl)</title>
+<style>
+  :root, :root[data-theme="dark"] {
+    --bg: #1E1F22; --card: #2B2D31; --dps: #F04747; --text: #FFFFFF; --text-gray: #B5BAC1; --blurple: #5865F2;
+  }
+  :root[data-theme="light"] {
+    --bg: #F7F7FB; --card: #FFFFFF; --dps: #F04747; --text: #1C1C28; --text-gray: #77778C; --blurple: #5865F2;
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; min-height:100vh; background:var(--bg); color:var(--text); font-family:"Malgun Gothic","Apple SD Gothic Neo","Noto Sans KR",sans-serif; display:flex; align-items:center; justify-content:center; padding:24px; }
+  .card { max-width: 460px; width: 100%; background: var(--card); border-radius: 12px; border-left: 4px solid var(--dps); padding: 28px 26px; }
+  h1 { margin: 0 0 12px; font-size: 18px; }
+  p { color: var(--text-gray); font-size: 13.5px; line-height: 1.7; margin: 0 0 16px; }
+  ul { margin: 0 0 20px; padding-left: 18px; font-size: 13px; line-height: 1.8; }
+  .actions { display: flex; gap: 8px; }
+  button { flex: 1; font-family: inherit; font-size: 14px; font-weight: bold; border: none; border-radius: 8px; padding: 12px; cursor: pointer; }
+  .btn-force { background: var(--dps); color: #fff; }
+  .btn-cancel { background: transparent; border: 1px solid var(--text-gray); color: var(--text); }
+  .dev-banner { background:#ED4245; color:#fff; font-size:12px; font-weight:bold; text-align:center; padding:6px; border-radius:6px; margin-bottom:16px; }
+</style>
+</head>
+<body>
+  <div class="card">
+    {% if dev_mode %}<div class="dev-banner">⚠ DEV MODE — 로그인 스킵됨 (배포 전 반드시 해제)</div>{% endif %}
+    <h1>⚠ 트라이 레이드가 다른 일정과 겹칩니다</h1>
+    <p><b>{{ name }} {{ diff }}</b>을(를) <b>{{ day }}요일 {{ hour }}:{{ '%02d' % minute }}</b>로 저장하면 아래 확정된 일정과 시간이 겹쳐요:</p>
+    <ul>
+      {% for c in conflicts %}
+      <li>{{ c.name }} {{ c.diff }} — {{ c.day }}요일 {{ c.time_str }} ({{ c.duration }}분)</li>
+      {% endfor %}
+    </ul>
+    <p>그래도 이 시간으로 저장할까요? (트라이 우선이니 다른 일정을 조정해야 할 수 있어요)</p>
+    <form method="post" action="/admin/{{ guild.id }}/schedule/{{ col }}/update">
+      <input type="hidden" name="name" value="{{ name }}">
+      <input type="hidden" name="diff" value="{{ diff }}">
+      <input type="hidden" name="day" value="{{ day }}">
+      <input type="hidden" name="hour" value="{{ hour }}">
+      <input type="hidden" name="minute" value="{{ minute }}">
+      <input type="hidden" name="duration_minutes" value="{{ duration_minutes }}">
+      <input type="hidden" name="size" value="{{ size }}">
+      <input type="hidden" name="force" value="1">
+      <div class="actions">
+        <button type="submit" class="btn-force">그래도 저장</button>
+        <a href="/admin/{{ guild.id }}/schedule" style="flex:1;"><button type="button" class="btn-cancel" style="width:100%;">취소</button></a>
+      </div>
+    </form>
+  </div>
+</body>
+</html>

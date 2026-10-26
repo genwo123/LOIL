@@ -5,99 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>로일(LoIl) — 로스트아크 길드 레이드 자동화</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/site.css">
 <style>
-[data-theme="dark"]{
-  --bg:#0d0f14;--bg2:#111318;--border:#1e2330;--border2:#252d40;
-  --text:#e8eaf0;--text2:#8b95b0;--text3:#3a4060;
-  --accent:#4f63d2;--accent-h:#3d50c0;
-  --accent-bg:rgba(79,99,210,.1);--accent-bd:rgba(79,99,210,.22);
-  --card:#161922;--card-bd:#1e2330;
-  --nav-bg:rgba(13,15,20,.9);--shadow:0 4px 32px rgba(0,0,0,.5);
-  --hero-grad:radial-gradient(ellipse at 50% -5%,rgba(79,99,210,.16) 0%,transparent 65%);
-  --toggle-bg:#252d40;
-  --ad-bg:#0d0f14;--ad-bd:#1e2330;--ad-tx:#2a3050;
-  --img-bg:#161922;--img-bd:#1e2330;--img-tx:#3a4060;
-  --warn-bg:rgba(237,180,37,.06);--warn-bd:rgba(237,180,37,.2);--warn-tx:#e8c84a;
-  --tip-bg:rgba(59,165,93,.06);--tip-bd:rgba(59,165,93,.2);--tip-tx:#57f287;
-  --note-bd:rgba(79,99,210,.22);
-}
-[data-theme="light"]{
-  --bg:#f5f7fd;--bg2:#ffffff;--border:#e2e6f3;--border2:#d0d6f0;
-  --text:#1a1d2e;--text2:#5a6394;--text3:#b0b8d4;
-  --accent:#4f63d2;--accent-h:#3d50c0;
-  --accent-bg:rgba(79,99,210,.07);--accent-bd:rgba(79,99,210,.18);
-  --card:#ffffff;--card-bd:#e2e6f3;
-  --nav-bg:rgba(245,247,253,.92);--shadow:0 4px 24px rgba(79,99,210,.08);
-  --hero-grad:radial-gradient(ellipse at 50% -5%,rgba(79,99,210,.09) 0%,transparent 65%);
-  --toggle-bg:#d0d6f0;
-  --ad-bg:#eef0fa;--ad-bd:#d0d6f0;--ad-tx:#c0c8e0;
-  --img-bg:#f0f2fa;--img-bd:#d0d6f0;--img-tx:#b0b8d4;
-  --warn-bg:rgba(237,180,37,.05);--warn-bd:rgba(237,180,37,.18);--warn-tx:#9a7a10;
-  --tip-bg:rgba(59,165,93,.05);--tip-bd:rgba(59,165,93,.18);--tip-tx:#1a7a40;
-  --note-bd:rgba(79,99,210,.18);
-}
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-html{scroll-behavior:smooth;}
-body{background:var(--bg);color:var(--text);font-family:'Noto Sans KR',sans-serif;line-height:1.6;transition:background .3s,color .3s;}
-a{text-decoration:none;color:inherit;}
-
-/* 광고 */
-.ad-strip{background:var(--ad-bg);border-bottom:1px solid var(--ad-bd);display:flex;align-items:center;justify-content:center;min-height:64px;padding:10px;transition:background .3s,border-color .3s;}
-.ad-label{font-size:10px;color:var(--ad-tx);letter-spacing:2px;text-transform:uppercase;padding:12px 40px;border:1px dashed var(--ad-bd);border-radius:4px;}
-.ad-mid{background:var(--ad-bg);border-top:1px solid var(--ad-bd);border-bottom:1px solid var(--ad-bd);display:flex;align-items:center;justify-content:center;min-height:80px;padding:12px;transition:background .3s,border-color .3s;}
-
-/* 네비 */
-nav{position:sticky;top:0;z-index:100;height:62px;background:var(--nav-bg);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 52px;transition:background .3s,border-color .3s;}
-.logo{font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;letter-spacing:4px;color:var(--text);flex-shrink:0;transition:color .3s;}
-.logo em{color:var(--accent);font-style:normal;}
-.nav-links{display:flex;align-items:center;gap:4px;list-style:none;}
-.nav-links a{padding:6px 13px;border-radius:6px;font-size:14px;font-weight:500;color:var(--text2);transition:color .2s,background .2s;white-space:nowrap;}
-.nav-links a:hover{color:var(--text);background:var(--accent-bg);}
-.nav-links a.active{color:var(--accent);background:var(--accent-bg);}
-.nav-right{display:flex;align-items:center;gap:10px;flex-shrink:0;}
-.theme-wrap{display:flex;align-items:center;gap:7px;}
-.theme-lbl{font-size:12px;font-weight:700;color:var(--text3);width:24px;text-align:right;transition:color .3s;user-select:none;white-space:nowrap;}
-.theme-toggle{width:42px;height:24px;border-radius:12px;background:var(--toggle-bg);border:1px solid var(--border2);cursor:pointer;position:relative;flex-shrink:0;transition:background .3s;}
-.theme-toggle::after{content:'';position:absolute;width:16px;height:16px;border-radius:50%;background:var(--accent);top:3px;left:3px;transition:transform .3s cubic-bezier(.4,0,.2,1);}
-[data-theme="light"] .theme-toggle::after{transform:translateX(18px);}
-
-/* 컨테이너 */
 .container{max-width:960px;margin:0 auto;}
-section{padding:88px 24px;}
-.section-label{display:inline-block;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--accent);background:var(--accent-bg);border:1px solid var(--accent-bd);padding:4px 12px;border-radius:20px;margin-bottom:14px;}
-.section-title{font-size:32px;font-weight:900;margin-bottom:12px;line-height:1.2;}
-.section-desc{font-size:16px;color:var(--text2);line-height:1.8;max-width:560px;}
-
-/* 버튼 */
-.btn{display:inline-flex;align-items:center;gap:6px;padding:11px 24px;border-radius:9px;border:none;cursor:pointer;font-family:'Noto Sans KR',sans-serif;font-size:14px;font-weight:700;transition:all .2s;text-decoration:none;}
-.btn-primary{background:var(--accent);color:#fff;box-shadow:0 4px 16px rgba(79,99,210,.28);}
-.btn-primary:hover{background:var(--accent-h);transform:translateY(-2px);box-shadow:0 8px 24px rgba(79,99,210,.38);}
-.btn-secondary{background:var(--card);color:var(--text);border:1px solid var(--card-bd);}
-.btn-secondary:hover{border-color:var(--accent);color:var(--accent);transform:translateY(-2px);}
-.btn-ghost{background:transparent;color:var(--accent);border:1px solid var(--accent-bd);}
-.btn-ghost:hover{background:var(--accent-bg);}
-.btn-download{background:var(--tip-bg);color:var(--tip-tx);border:1px solid var(--tip-bd);}
-.btn-download:hover{opacity:.8;}
-.btn-lg{padding:15px 36px;font-size:15px;}
-
-/* 노트 박스 */
-.note{background:var(--accent-bg);border:1px solid var(--note-bd);border-left:3px solid var(--accent);border-radius:0 8px 8px 0;padding:13px 17px;font-size:13px;color:var(--text2);line-height:1.7;margin:14px 0;}
-.warn{background:var(--warn-bg);border:1px solid var(--warn-bd);border-left:3px solid var(--warn-tx);border-radius:0 8px 8px 0;padding:13px 17px;font-size:13px;color:var(--warn-tx);line-height:1.7;margin:14px 0;}
-.tip{background:var(--tip-bg);border:1px solid var(--tip-bd);border-left:3px solid var(--tip-tx);border-radius:0 8px 8px 0;padding:13px 17px;font-size:13px;color:var(--tip-tx);line-height:1.7;margin:14px 0;}
-
-/* 이미지 플레이스홀더 */
-.img-ph{width:100%;background:var(--img-bg);border:1px dashed var(--img-bd);border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--img-tx);font-size:11px;letter-spacing:1px;text-transform:uppercase;transition:background .3s;}
-.img-ph.h160{height:160px;}.img-ph.h200{height:200px;}.img-ph.h280{height:280px;}.img-ph.h360{height:360px;}
-
-/* 푸터 */
-footer{background:var(--bg2);border-top:1px solid var(--border);padding:32px 52px;display:flex;align-items:center;justify-content:space-between;transition:background .3s,border-color .3s;}
-.footer-logo{font-family:'Rajdhani',sans-serif;font-size:17px;font-weight:700;letter-spacing:3px;color:var(--text3);}
-.footer-logo em{color:var(--accent);font-style:normal;}
-footer p{font-size:12px;color:var(--text3);}
-
-/* 애니메이션 */
-@keyframes fadeUp{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:translateY(0);}}
-@keyframes ringPulse{0%,100%{opacity:.1;transform:translate(-50%,-50%) scale(1);}50%{opacity:.25;transform:translate(-50%,-50%) scale(1.035);}}
 
 /* ═══ 히어로 ═══ */
 #home{padding-top:148px;padding-bottom:110px;background:var(--hero-grad);text-align:center;position:relative;overflow:hidden;}
@@ -107,11 +17,11 @@ footer p{font-size:12px;color:var(--text3);}
 .hero-tag{display:inline-block;position:relative;z-index:1;background:var(--accent-bg);border:1px solid var(--accent-bd);color:var(--accent);font-size:11px;font-weight:700;padding:5px 16px;border-radius:20px;margin-bottom:28px;letter-spacing:2px;text-transform:uppercase;animation:fadeUp .6s ease both;}
 .hero-title{font-size:52px;font-weight:900;line-height:1.15;margin-bottom:20px;position:relative;z-index:1;animation:fadeUp .6s ease .1s both;}
 .hero-title em{color:var(--accent);font-style:normal;}
-.hero-desc{font-size:17px;color:var(--text2);max-width:500px;margin:0 auto 44px;line-height:1.8;position:relative;z-index:1;animation:fadeUp .6s ease .2s both;}
+.hero-desc{font-size:17px;color:var(--text2);max-width:500px;margin:0 auto 36px;line-height:1.8;position:relative;z-index:1;animation:fadeUp .6s ease .2s both;}
 .hero-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;position:relative;z-index:1;animation:fadeUp .6s ease .3s both;}
 
 /* ═══ 기능 ═══ */
-#features{background:var(--bg2);border-top:1px solid var(--border);border-bottom:1px solid var(--border);transition:background .3s,border-color .3s;}
+#features{background:var(--bg);border-top:1px solid var(--border);border-bottom:1px solid var(--border);transition:background .3s,border-color .3s;}
 .features-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:48px;}
 .feat-card{background:var(--card);border:1px solid var(--card-bd);border-radius:14px;padding:26px 24px;transition:border-color .2s,transform .2s,box-shadow .2s,background .3s;}
 .feat-card:hover{border-color:var(--accent-bd);transform:translateY(-4px);box-shadow:var(--shadow);}
@@ -150,14 +60,10 @@ footer p{font-size:12px;color:var(--text3);}
 .contact-text p{font-size:14px;color:var(--text2);line-height:1.7;max-width:440px;}
 
 @media(max-width:768px){
-  nav{padding:0 18px;}
-  .nav-links{display:none;}
   .hero-title{font-size:34px;}
   .features-grid,.prepare-grid{grid-template-columns:1fr;}
   .steps{grid-template-columns:1fr 1fr;}
   .contact-card{flex-direction:column;padding:28px;}
-  section{padding:64px 18px;}
-  footer{flex-direction:column;gap:10px;text-align:center;padding:24px 18px;}
 }
 </style>
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4097734794611688" crossorigin="anonymous"></script>
@@ -177,9 +83,9 @@ footer p{font-size:12px;color:var(--text3);}
 
 <!-- 네비 -->
 <nav>
-  <a href="index.html" class="logo">LO<em>I</em>L</a>
+  <a href="/" class="logo">LO<em>I</em>L</a>
   <ul class="nav-links">
-    <li><a href="index.html" class="active">홈</a></li>
+    <li><a href="/" class="active">홈</a></li>
     <li><a href="guide.html">가이드</a></li>
     <li><a href="contact.html">문의</a></li>
   </ul>
@@ -198,10 +104,11 @@ footer p{font-size:12px;color:var(--text3);}
   <div class="container">
     <div class="hero-tag">LOST ARK GUILD BOT</div>
     <h1 class="hero-title">길드 레이드,<br><em>더 스마트하게</em></h1>
-    <p class="hero-desc">구글 시트 연동 · AI 파티 편성 · 가능 시간 자동 감지<br>로스트아크 길드를 위한 Discord 자동화 봇</p>
+    <p class="hero-desc">엑셀 일괄 등록 · AI 파티 편성 · 가능 시간 자동 감지<br>로스트아크 길드를 위한 Discord 자동화 봇</p>
     <div class="hero-btns">
-      <button class="btn btn-primary btn-lg" onclick="window.open('#')">Discord에 추가하기</button>
-      <a href="guide.html" class="btn btn-secondary btn-lg">시작 가이드 보기</a>
+      <a href="https://discord.com/api/oauth2/authorize?client_id=1473199801695736030&permissions=311385517136&scope=bot%20applications.commands" target="_blank" class="btn btn-primary btn-lg">Discord에 추가하기</a>
+      <a href="/guild/join" class="btn btn-secondary btn-lg">길드 가입하기</a>
+      <a href="/admin" class="btn btn-secondary btn-lg">내 길드 보기</a>
     </div>
   </div>
 </section>
@@ -222,10 +129,10 @@ footer p{font-size:12px;color:var(--text3);}
   <div class="container">
     <div class="section-label">FEATURES</div>
     <h2 class="section-title">로일이 하는 일</h2>
-    <p class="section-desc">구글 시트만 있으면 바로 시작. 복잡한 설정 없이 길드 레이드를 자동화합니다.</p>
+    <p class="section-desc">엑셀 파일 하나면 바로 시작. 복잡한 설정 없이 길드 레이드를 자동화합니다.</p>
     <div class="features-grid">
       <div class="feat-card"><div class="feat-name">AI 파티 자동 편성</div><div class="feat-desc">가능 시간을 분석하고 서폿 배치·시너지를 고려해 최적의 파티를 자동 구성합니다.</div></div>
-      <div class="feat-card"><div class="feat-name">구글 시트 연동</div><div class="feat-desc">기존에 쓰던 시트를 그대로 사용합니다. URL 하나만 등록하면 즉시 연동됩니다.</div></div>
+      <div class="feat-card"><div class="feat-name">엑셀 일괄 등록</div><div class="feat-desc">레이드/길드원 명단을 엑셀 파일 하나로 한 번에 등록합니다. 재업로드해도 중복 걱정 없습니다.</div></div>
       <div class="feat-card"><div class="feat-name">레이드 카탈로그</div><div class="feat-desc">운영할 레이드만 활성화하고 슬롯 수와 소요시간을 길드별로 자유롭게 설정합니다.</div></div>
       <div class="feat-card"><div class="feat-name">개인 일정 조회</div><div class="feat-desc">버튼 하나로 이번 주 레이드 일정을 이미지로 생성해 스레드에 공유합니다.</div></div>
       <div class="feat-card"><div class="feat-name">시간 충돌 감지</div><div class="feat-desc">동시간 레이드 중복을 자동 감지하고 경고합니다.</div></div>
@@ -254,8 +161,8 @@ footer p{font-size:12px;color:var(--text3);}
           <a href="guide-gemini-api.html" class="prepare-link">발급 방법 보기 →</a>
         </div>
         <div class="prepare-item">
-          <strong>구글 시트 작성</strong>
-          <span>제공하는 템플릿에 길드원 정보를 입력하면 됩니다.</span>
+          <strong>엑셀 파일 작성</strong>
+          <span>안내하는 양식대로 레이드/길드원 정보를 채우면 됩니다.</span>
           <a href="guide-sheets.html" class="prepare-link">작성 방법 보기 →</a>
         </div>
       </div>
@@ -267,9 +174,8 @@ footer p{font-size:12px;color:var(--text3);}
           <a href="guide-bot-setup.html" class="prepare-link">봇 초대 방법 →</a>
         </div>
         <div class="prepare-item">
-          <strong>구글 시트 템플릿</strong>
-          <span>길드원 가능 시간·캐릭터 입력 양식이 미리 구성되어 있습니다. 복사해서 바로 사용하세요.</span>
-          <a href="#" class="btn btn-download" style="padding:7px 16px;font-size:12px;border-radius:6px;margin-top:4px;">템플릿 다운로드</a>
+          <strong>웹 관리 대시보드</strong>
+          <span>Discord 로그인 하나로 레이드 등록, 엑셀 업로드, AI 자동편성까지 웹에서 바로 처리합니다.</span>
         </div>
       </div>
     </div>
@@ -284,7 +190,7 @@ footer p{font-size:12px;color:var(--text3);}
     <p class="section-desc">설정부터 첫 파티 편성까지 보통 10분이면 충분합니다.</p>
     <div class="steps">
       <div class="step"><div class="step-num">1</div><h4>봇 초대</h4><p>Discord 서버에 봇을 초대합니다. 채널과 패널이 자동으로 생성됩니다.</p><div class="step-bg">1</div></div>
-      <div class="step"><div class="step-num">2</div><h4>시트 연동</h4><p>템플릿을 복사하고 봇설정 채널에서 시트 URL을 등록합니다.</p><div class="step-note">서비스 계정 이메일 공유 필수</div><div class="step-bg">2</div></div>
+      <div class="step"><div class="step-num">2</div><h4>엑셀로 명단 등록</h4><p>레이드/길드원 정보를 엑셀 파일 하나로 채워서 웹 관리 화면에서 업로드합니다.</p><div class="step-bg">2</div></div>
       <div class="step"><div class="step-num">3</div><h4>레이드 설정</h4><p>레이드설정 채널에서 운영할 레이드를 활성화하고 슬롯 수를 설정합니다.</p><div class="step-bg">3</div></div>
       <div class="step"><div class="step-num">4</div><h4>AI 편성 시작</h4><p>레이드편성 채널에서 주간 전체 편성 버튼을 누르면 완료입니다.</p><div class="step-bg">4</div></div>
     </div>

@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>길드 가입 신청 · 로일(LoIl)</title>
+<style>
+  :root, :root[data-theme="dark"] { --bg:#1E1F22; --card:#2B2D31; --card-dark:#232428; --accent: #7C5CFC; --support: #43B581; --dps: #F04747; --text:#FFFFFF; --text-gray:#B5BAC1; --divider:#3F4147; --blurple:#5865F2; }
+  :root[data-theme="light"] { --bg:#F7F7FB; --card:#FFFFFF; --card-dark:#F0F0F5; --accent:#7C5CFC; --support: #43B581; --dps: #F04747; --text:#1C1C28; --text-gray:#77778C; --divider:#E7E7F0; --blurple:#5865F2; }
+  * { box-sizing: border-box; }
+  body { margin:0; min-height:100vh; background:var(--bg); color:var(--text); font-family:"Malgun Gothic","Apple SD Gothic Neo","Noto Sans KR",sans-serif; display:flex; align-items:center; justify-content:center; padding:24px; }
+  .card { max-width: 420px; width: 100%; background: var(--card); border-radius: 12px; border-left: 4px solid var(--accent); padding: 32px 28px; }
+  .badge { display:inline-block; background:var(--blurple); color:#fff; font-size:11px; font-weight:bold; padding:3px 10px; border-radius:999px; margin-bottom:14px; }
+  h1 { margin: 0 0 8px; font-size: 20px; }
+  p { color: var(--text-gray); font-size: 13px; line-height: 1.6; margin: 0 0 20px; }
+  label { display:block; font-size:12px; color:var(--text-gray); margin-bottom:6px; font-weight:bold; }
+  input[type="text"], textarea { width:100%; background:var(--card-dark); color:var(--text); border:1px solid var(--divider); border-radius:8px; padding:10px 12px; font-size:14px; font-family:inherit; margin-bottom:16px; }
+  textarea { resize: vertical; min-height: 60px; }
+  button { width:100%; background:var(--blurple); color:#fff; border:none; border-radius:8px; padding:12px 16px; font-size:14px; font-weight:bold; cursor:pointer; }
+  button:hover { filter:brightness(1.08); }
+  .btn-link {
+    display:block; width:100%; box-sizing:border-box; text-align:center; text-decoration:none;
+    background:var(--card-dark); color:var(--text); border:1px solid var(--divider); border-radius:8px;
+    padding:12px 16px; font-size:14px; font-weight:bold;
+  }
+  .btn-link:hover { filter:brightness(1.1); }
+  .msg { font-size: 13px; font-weight: bold; padding: 10px 14px; border-radius: 8px; margin-bottom: 18px; }
+  .msg-error { background: rgba(237,66,69,0.15); color: var(--dps); }
+  .msg-done { background: rgba(87,242,135,0.15); color: var(--support); }
+  .hint { font-size: 11px; color: var(--text-gray); margin-top: 16px; margin-bottom:0; line-height:1.6; opacity:0.8; }
+  .theme-toggle { position: fixed; top: 18px; right: 18px; width: auto; margin-top: 0; background: var(--card); border: 1px solid var(--divider); color: var(--text); font-size: 11px; font-weight: bold; padding: 6px 10px; border-radius: 999px; cursor: pointer; }
+  .back-home { position: fixed; top: 18px; left: 18px; font-size: 12px; color: var(--text-gray); text-decoration: none; }
+  .back-home:hover { color: var(--text); }
+</style>
+</head>
+<body>
+  <a class="back-home" href="/">← 로일 홈</a>
+  <button class="theme-toggle" onclick="loilToggleTheme()">🌙/☀️</button>
+  <div class="card">
+    <span class="badge">로일 · LoIl</span>
+    <h1>길드 가입 신청</h1>
+
+    {% if dev_mode %}<div class="msg" style="background: rgba(237,66,69,0.15); color: var(--dps);">⚠ DEV MODE — 로그인 스킵됨</div>{% endif %}
+    {% if error %}<div class="msg msg-error">코드를 찾을 수 없습니다. 길드 관리자에게 코드를 다시 확인해주세요.</div>{% endif %}
+    {% if done %}
+      <div class="msg msg-done">신청 완료! 길드 관리자 승인을 기다려주세요. 결과는 Discord DM으로 알려드립니다.</div>
+      <a class="btn-link" href="/">홈으로 돌아가기</a>
+    {% else %}
+      <p>{{ user.username }}님으로 로그인됨 · 길드 관리자에게 받은 가입 코드를 입력하면 가입 신청이 들어갑니다. 관리자가 승인해야 정식 길드원으로 인정됩니다.</p>
+      <form method="post" action="/guild/join">
+        <label>가입 코드</label>
+        <input type="text" name="code" placeholder="예: A1B2C3" required maxlength="10" style="text-transform:uppercase;">
+        <label>표시 이름 (길드 내 닉네임)</label>
+        <input type="text" name="display_name" placeholder="본인을 알아볼 수 있는 이름" required maxlength="50">
+        <label>메모 (선택)</label>
+        <textarea name="note" placeholder="예: 카멘 딜러 거니입니다"></textarea>
+        <button type="submit">가입 신청</button>
+      </form>
+    {% endif %}
+
+    {% if not done %}
+    <p class="hint">Discord 로그인으로 신원을 확인해서 신청하며, 승인/거절 결과는 신청에 사용한 Discord 계정으로 DM 발송됩니다.</p>
+    {% endif %}
+  </div>
+  <script>
+    function loilToggleTheme() {
+      const html = document.documentElement;
+      const cur = html.dataset.theme || 'dark';
+      html.dataset.theme = cur === 'dark' ? 'light' : 'dark';
+      try { localStorage.setItem('loil-theme', html.dataset.theme); } catch (e) {}
+    }
+    (function () {
+      try {
+        const saved = localStorage.getItem('loil-theme');
+        if (saved) document.documentElement.dataset.theme = saved;
+      } catch (e) {}
+    })();
+  </script>
+</body>
+</html>

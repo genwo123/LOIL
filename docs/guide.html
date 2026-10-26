@@ -5,46 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>가이드 허브 — 로일(LoIl)</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/site.css">
 <style>
-[data-theme="dark"]{--bg:#0d0f14;--bg2:#111318;--border:#1e2330;--border2:#252d40;--text:#e8eaf0;--text2:#8b95b0;--text3:#3a4060;--accent:#4f63d2;--accent-h:#3d50c0;--accent-bg:rgba(79,99,210,.1);--accent-bd:rgba(79,99,210,.22);--card:#161922;--card-bd:#1e2330;--nav-bg:rgba(13,15,20,.9);--shadow:0 4px 32px rgba(0,0,0,.5);--hero-grad:radial-gradient(ellipse at 50% -5%,rgba(79,99,210,.14) 0%,transparent 65%);--toggle-bg:#252d40;--ad-bg:#0d0f14;--ad-bd:#1e2330;--ad-tx:#2a3050;--tip-bg:rgba(59,165,93,.06);--tip-bd:rgba(59,165,93,.2);--tip-tx:#57f287;}
-[data-theme="light"]{--bg:#f5f7fd;--bg2:#ffffff;--border:#e2e6f3;--border2:#d0d6f0;--text:#1a1d2e;--text2:#5a6394;--text3:#b0b8d4;--accent:#4f63d2;--accent-h:#3d50c0;--accent-bg:rgba(79,99,210,.07);--accent-bd:rgba(79,99,210,.18);--card:#ffffff;--card-bd:#e2e6f3;--nav-bg:rgba(245,247,253,.92);--shadow:0 4px 24px rgba(79,99,210,.08);--hero-grad:radial-gradient(ellipse at 50% -5%,rgba(79,99,210,.08) 0%,transparent 65%);--toggle-bg:#d0d6f0;--ad-bg:#eef0fa;--ad-bd:#d0d6f0;--ad-tx:#c0c8e0;--tip-bg:rgba(59,165,93,.05);--tip-bd:rgba(59,165,93,.18);--tip-tx:#1a7a40;}
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-html{scroll-behavior:smooth;}
-body{background:var(--bg);color:var(--text);font-family:'Noto Sans KR',sans-serif;line-height:1.6;transition:background .3s,color .3s;}
-a{text-decoration:none;color:inherit;}
-.ad-strip{background:var(--ad-bg);border-bottom:1px solid var(--ad-bd);display:flex;align-items:center;justify-content:center;min-height:64px;padding:10px;transition:background .3s,border-color .3s;}
-.ad-label{font-size:10px;color:var(--ad-tx);letter-spacing:2px;text-transform:uppercase;padding:12px 40px;border:1px dashed var(--ad-bd);border-radius:4px;}
-.ad-mid{background:var(--ad-bg);border-top:1px solid var(--ad-bd);border-bottom:1px solid var(--ad-bd);display:flex;align-items:center;justify-content:center;min-height:80px;padding:12px;transition:background .3s,border-color .3s;}
-nav{position:sticky;top:0;z-index:100;height:62px;background:var(--nav-bg);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 52px;transition:background .3s,border-color .3s;}
-.logo{font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;letter-spacing:4px;color:var(--text);flex-shrink:0;transition:color .3s;}
-.logo em{color:var(--accent);font-style:normal;}
-.nav-links{display:flex;align-items:center;gap:4px;list-style:none;}
-.nav-links a{padding:6px 13px;border-radius:6px;font-size:14px;font-weight:500;color:var(--text2);transition:color .2s,background .2s;}
-.nav-links a:hover{color:var(--text);background:var(--accent-bg);}
-.nav-links a.active{color:var(--accent);background:var(--accent-bg);}
-.nav-right{display:flex;align-items:center;gap:10px;flex-shrink:0;}
-.theme-wrap{display:flex;align-items:center;gap:7px;}
-.theme-lbl{font-size:12px;font-weight:700;color:var(--text3);width:24px;text-align:right;transition:color .3s;user-select:none;white-space:nowrap;}
-.theme-toggle{width:42px;height:24px;border-radius:12px;background:var(--toggle-bg);border:1px solid var(--border2);cursor:pointer;position:relative;flex-shrink:0;transition:background .3s;}
-.theme-toggle::after{content:'';position:absolute;width:16px;height:16px;border-radius:50%;background:var(--accent);top:3px;left:3px;transition:transform .3s cubic-bezier(.4,0,.2,1);}
-[data-theme="light"] .theme-toggle::after{transform:translateX(18px);}
 .container{max-width:960px;margin:0 auto;}
-.section-label{display:inline-block;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--accent);background:var(--accent-bg);border:1px solid var(--accent-bd);padding:4px 12px;border-radius:20px;margin-bottom:14px;}
-.section-title{font-size:32px;font-weight:900;margin-bottom:12px;line-height:1.2;}
-.section-desc{font-size:16px;color:var(--text2);line-height:1.8;max-width:560px;}
-.btn{display:inline-flex;align-items:center;gap:6px;padding:11px 24px;border-radius:9px;border:none;cursor:pointer;font-family:'Noto Sans KR',sans-serif;font-size:14px;font-weight:700;transition:all .2s;text-decoration:none;}
-.btn-primary{background:var(--accent);color:#fff;box-shadow:0 4px 16px rgba(79,99,210,.28);}
-.btn-primary:hover{background:var(--accent-h);transform:translateY(-2px);}
-.btn-ghost{background:transparent;color:var(--accent);border:1px solid var(--accent-bd);}
-.btn-ghost:hover{background:var(--accent-bg);}
-.btn-download{background:var(--tip-bg);color:var(--tip-tx);border:1px solid var(--tip-bd);}
-.btn-download:hover{opacity:.8;}
-footer{background:var(--bg2);border-top:1px solid var(--border);padding:32px 52px;display:flex;align-items:center;justify-content:space-between;transition:background .3s,border-color .3s;}
-.footer-logo{font-family:'Rajdhani',sans-serif;font-size:17px;font-weight:700;letter-spacing:3px;color:var(--text3);}
-.footer-logo em{color:var(--accent);font-style:normal;}
-footer p{font-size:12px;color:var(--text3);}
 
-/* 가이드 허브 전용 */
+/* 가이드 허브 전용 — .guide-hero는 가이드 스텝 페이지(site.css)와 값이 달라서 여기서 완전히 재정의함 */
 .guide-hero{padding:110px 24px 72px;background:var(--hero-grad);text-align:center;}
 .guide-hero h1{font-size:42px;font-weight:900;margin-bottom:14px;}
 .guide-hero p{font-size:16px;color:var(--text2);line-height:1.8;max-width:500px;margin:0 auto;}
@@ -91,9 +56,9 @@ footer p{font-size:12px;color:var(--text3);}
      data-full-width-responsive="true"></ins>
 <script>(adsbygoogle = window.adsbygoogle || []).push({});</script></div>
 <nav>
-  <a href="index.html" class="logo">LO<em>I</em>L</a>
+  <a href="/" class="logo">LO<em>I</em>L</a>
   <ul class="nav-links">
-    <li><a href="index.html">홈</a></li>
+    <li><a href="/">홈</a></li>
     <li><a href="guide.html" class="active">가이드</a></li>
     <li><a href="contact.html">문의</a></li>
   </ul>
@@ -119,12 +84,11 @@ footer p{font-size:12px;color:var(--text3);}
     <h2 class="section-title">전체 설정 흐름</h2>
     <div class="flow-row">
       <div class="flow-item"><div class="flow-dot">1</div><h4>봇 초대</h4><p>Discord 서버에 추가</p></div>
-      <div class="flow-item"><div class="flow-dot">2</div><h4>시트 템플릿</h4><p>복사 후 길드원 정보 입력</p></div>
-      <div class="flow-item"><div class="flow-dot">3</div><h4>시트 연동</h4><p>URL 등록 + 이메일 공유</p></div>
-      <div class="flow-item"><div class="flow-dot">4</div><h4>로아 API</h4><p>키 발급 후 봇에 등록</p></div>
-      <div class="flow-item"><div class="flow-dot">5</div><h4>Gemini API</h4><p>키 발급 후 봇에 등록</p></div>
-      <div class="flow-item"><div class="flow-dot">6</div><h4>레이드 설정</h4><p>운영 레이드 활성화</p></div>
-      <div class="flow-item"><div class="flow-dot">7</div><h4>편성 시작</h4><p>AI 파티 편성 완료</p></div>
+      <div class="flow-item"><div class="flow-dot">2</div><h4>엑셀 일괄 등록</h4><p>레이드/길드원 명단 업로드</p></div>
+      <div class="flow-item"><div class="flow-dot">3</div><h4>로아 API</h4><p>키 발급 후 봇에 등록</p></div>
+      <div class="flow-item"><div class="flow-dot">4</div><h4>Gemini API</h4><p>키 발급 후 봇에 등록</p></div>
+      <div class="flow-item"><div class="flow-dot">5</div><h4>레이드 설정</h4><p>운영 레이드 활성화</p></div>
+      <div class="flow-item"><div class="flow-dot">6</div><h4>편성 시작</h4><p>AI 파티 편성 완료</p></div>
     </div>
   </div>
 </div>
@@ -144,12 +108,11 @@ footer p{font-size:12px;color:var(--text3);}
       </div>
       <div class="hub-card" data-num="2">
         <div class="hub-num">2</div>
-        <h3>구글 시트 템플릿 작성</h3>
-        <p>제공하는 템플릿을 복사하고 길드원 정보를 입력하는 방법을 캡처 이미지로 안내합니다.</p>
-        <div class="hub-tags"><span class="hub-tag">Google Sheets</span><span class="hub-tag">가능시간</span><span class="hub-tag">캐릭터 등록</span></div>
+        <h3>엑셀로 길드원 명단 등록</h3>
+        <p>제공하는 엑셀 양식에 레이드/길드원 정보를 채워서 웹 관리 화면에서 한 번에 업로드하는 방법을 안내합니다.</p>
+        <div class="hub-tags"><span class="hub-tag">엑셀 업로드</span><span class="hub-tag">레이드 등록</span><span class="hub-tag">캐릭터 등록</span></div>
         <div class="hub-actions">
           <a href="guide-sheets.html" class="btn btn-ghost">작성 방법 보기 →</a>
-          <a href="#" class="btn btn-download">템플릿 다운로드</a>
         </div>
       </div>
       <div class="hub-card" data-num="3">
@@ -165,6 +128,13 @@ footer p{font-size:12px;color:var(--text3);}
         <p>Google AI Studio에서 Gemini API 키를 발급받고 봇에 등록하는 과정을 안내합니다.</p>
         <div class="hub-tags"><span class="hub-tag">Gemini</span><span class="hub-tag">Google AI Studio</span><span class="hub-tag">무료</span></div>
         <div class="hub-actions"><a href="guide-gemini-api.html" class="btn btn-ghost">발급 방법 보기 →</a></div>
+      </div>
+      <div class="hub-card" data-num="5">
+        <div class="hub-num">5</div>
+        <h3>웹 대시보드 사용법</h3>
+        <p>설정이 끝난 뒤 실제 운영에 쓰는 웹 대시보드 — 일정 관리, 시너지 분석, AI 자동편성까지 전체 화면을 훑어봅니다.</p>
+        <div class="hub-tags"><span class="hub-tag">일정 관리</span><span class="hub-tag">시너지 분석</span><span class="hub-tag">권한 차이</span></div>
+        <div class="hub-actions"><a href="guide-dashboard.html" class="btn btn-ghost">사용법 보기 →</a></div>
       </div>
     </div>
   </div>

@@ -45,6 +45,7 @@ GEMINI_API_KEY         = os.getenv('GEMINI_API_KEY')
 
 LOSTARK_API_KEYS_RAW   = os.getenv('LOSTARK_API_KEYS', '')
 LOSTARK_API_KEYS       = [k.strip() for k in LOSTARK_API_KEYS_RAW.split(',') if k.strip()]
+_MIN_LOSTARK_KEY_LEN   = 100  # 실제 로아 API 키(JWT)는 수백 자 — 이보다 짧으면 잘린 값으로 취급(과거 실제로 겪은 버그)
 
 # ==================== Google Sheets 설정 ====================
 
@@ -87,8 +88,25 @@ LOSTARK_API_BASE_URL    = 'https://developer-lostark.game.onstove.com'
 LOSTARK_API_RATE_LIMIT  = 100
 LOSTARK_API_CACHE_MINUTES = 5
 
-GEMINI_MODEL      = 'gemini-2.0-flash'
+GEMINI_MODEL      = 'gemini-flash-latest'
 GEMINI_MAX_TOKENS = 1000
+
+# ==================== 웹 대시보드 ====================
+# 편성 결과 조회 + 관리자 로그인/일정관리 웹 앱(web/) 주소. 로컬 개발 중엔 기본값 그대로 사용,
+# 배포 후에는 .env의 WEB_BASE_URL을 실제 도메인으로 교체.
+WEB_BASE_URL = os.getenv('WEB_BASE_URL', 'http://localhost:8000')
+
+# ── 웹 로그인 (Discord OAuth2, 길드장/부길드장 전용) ──
+# Discord Developer Portal > 봇이 등록된 애플리케이션 > OAuth2 탭에서 발급.
+DISCORD_CLIENT_ID     = os.getenv('DISCORD_CLIENT_ID')
+DISCORD_CLIENT_SECRET = os.getenv('DISCORD_CLIENT_SECRET')
+DISCORD_REDIRECT_URI  = os.getenv('DISCORD_REDIRECT_URI', 'http://localhost:8000/callback')
+# 세션 쿠키 서명용 랜덤 키. 반드시 .env에서 직접 값을 지정할 것 (기본값은 로컬 테스트 전용).
+SESSION_SECRET_KEY    = os.getenv('SESSION_SECRET_KEY', 'dev-insecure-session-key')
+
+# OAuth2 발급 전에도 웹 화면을 미리 볼 수 있도록 로그인을 건너뛰는 개발용 스위치.
+# 배포 전 반드시 .env에서 false로 되돌리거나 이 항목 자체를 지울 것.
+DEV_SKIP_LOGIN = os.getenv('DEV_SKIP_LOGIN', 'false').lower() == 'true'
 
 # ==================== 검증 ====================
 
@@ -125,6 +143,9 @@ def print_config():
     print(f"Discord Token : {'✅' if DISCORD_BOT_TOKEN else '❌'}")
     print(f"Gemini API    : {'✅' if GEMINI_API_KEY else '❌'}")
     print(f"로아 API Keys : {len(LOSTARK_API_KEYS)}개")
+    _short_keys = [k for k in LOSTARK_API_KEYS if len(k) < _MIN_LOSTARK_KEY_LEN]
+    if _short_keys:
+        print(f"⚠️ 로아 API 키 중 {len(_short_keys)}개가 비정상적으로 짧습니다(잘렸을 가능성 큼) — .env의 LOSTARK_API_KEYS 다시 확인해주세요")
     print(f"credentials   : {'✅' if GOOGLE_CREDENTIALS_PATH.exists() else '❌'}")
     print()
     print("📂 데이터 파일:")

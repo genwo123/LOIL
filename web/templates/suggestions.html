@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ guild.name }} · 길드 건의함 · 로일(LoIl)</title>
+<style>
+  :root, :root[data-theme="dark"] {
+    --bg: #0d0f14; --card: #161922; --accent: #4f63d2;
+    --support: #43B581; --dps: #F04747; --text: #FFFFFF; --text-gray: #8b95b0; --divider: #1e2330; --blurple: #4f63d2;
+  }
+  :root[data-theme="light"] {
+    --bg: #f5f7fd; --card: #FFFFFF; --accent: #4f63d2;
+    --support: #43B581; --dps: #F04747; --text: #1C1C28; --text-gray: #5a6394; --divider: #e2e6f3; --blurple: #4f63d2;
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font-family:"Noto Sans KR","Malgun Gothic","Apple SD Gothic Neo",sans-serif; padding:24px 16px 80px; }
+  .wrap { max-width: 600px; margin: 0 auto; }
+  @media (min-width: 860px) { .wrap { max-width: 800px; } }
+  .home-btn {
+    display: inline-flex; align-items: center; gap: 6px; text-decoration: none;
+    background: var(--card); border: 1px solid var(--divider); color: var(--text);
+    font-size: 13px; font-weight: bold; padding: 10px 16px; border-radius: 10px;
+  }
+  .home-btn:hover { border-color: var(--accent); background: rgba(79,99,210,.1); }
+  h1 { margin: 0 0 4px; font-size: 20px; }
+  p.lead { margin: 0 0 24px; color: var(--text-gray); font-size: 13px; }
+  .dev-banner { background:#ED4245; color:#fff; font-size:12px; font-weight:bold; text-align:center; padding:6px; border-radius:6px; margin-bottom:16px; }
+  .top-row { display: flex; justify-content: space-between; align-items: flex-start; }
+  .theme-toggle {
+    background: var(--card); border: 1px solid var(--divider); color: var(--text);
+    font-size: 11px; font-weight: bold; padding: 6px 10px; border-radius: 999px; cursor: pointer;
+  }
+  .sug-row {
+    background: var(--card); border-radius: 10px; padding: 14px 16px; margin-bottom: 10px;
+    border-left: 4px solid var(--divider);
+  }
+  .sug-row.urgent { border-left-color: var(--dps); }
+  .sug-row.normal { border-left-color: var(--blurple); }
+  .sug-row.resolved { opacity: 0.55; }
+  .sug-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
+  .tag { font-size: 11px; font-weight: bold; padding: 2px 8px; border-radius: 999px; }
+  .tag.urgent { background: rgba(237,66,69,0.15); color: var(--dps); }
+  .tag.normal { background: rgba(79,99,210,0.15); color: var(--blurple); }
+  .tag.done { background: rgba(87,242,135,0.15); color: var(--support); }
+  .sug-row .time { font-size: 11px; color: var(--text-gray); }
+  .sug-row .user { font-size: 12.5px; color: var(--text-gray); margin-bottom: 6px; }
+  .sug-row .content { font-size: 13.5px; line-height: 1.6; white-space: pre-wrap; }
+  .empty { text-align: center; color: var(--text-gray); padding: 40px 0; font-size: 13px; }
+  .resolve-form { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--divider); }
+  .resolve-form label { display: block; font-size: 11px; color: var(--text-gray); font-weight: bold; margin-bottom: 6px; }
+  .resolve-form textarea {
+    width: 100%; background: var(--bg); border: 1px solid var(--divider); color: var(--text);
+    border-radius: 6px; padding: 8px 10px; font-size: 12.5px; font-family: inherit;
+    resize: vertical; min-height: 44px; margin-bottom: 8px;
+  }
+  .resolve-form button {
+    font-family: inherit; font-size: 12.5px; font-weight: bold; border: none; border-radius: 6px;
+    padding: 8px 14px; cursor: pointer; background: rgba(87,242,135,0.15); color: var(--support);
+  }
+  .resolve-form .preview { font-size: 11px; color: var(--text-gray); margin-top: 6px; line-height: 1.6; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    {% if dev_mode %}<div class="dev-banner">⚠ DEV MODE — 로그인 스킵됨 (배포 전 반드시 해제)</div>{% endif %}
+    <div class="top-row">
+      <a class="home-btn" href="/admin/{{ guild.id }}">길드 홈</a>
+      <button class="theme-toggle" onclick="loilToggleTheme()">🌙/☀️</button>
+    </div>
+    <h1>{{ guild.name }} · 길드 건의함</h1>
+    <p class="lead">Discord 💌│건의함 채널에서 접수된 길드 건의 목록입니다. 최신순.</p>
+
+    {% if suggestions %}
+      {% for s in suggestions %}
+      <div class="sug-row {{ 'urgent' if s.urgency == '긴급' else 'normal' }}{{ ' resolved' if s.resolved else '' }}">
+        <div class="sug-head">
+          <span>
+            <span class="tag {{ 'urgent' if s.urgency == '긴급' else 'normal' }}">{{ s.urgency or '일반' }}</span>
+            {% if s.resolved %}<span class="tag done">처리됨</span>{% endif %}
+          </span>
+          <span class="time">{{ s.created_at[:16].replace('T', ' ') }}</span>
+        </div>
+        <div class="user">{{ s.user }}</div>
+        <div class="content">{{ s.content }}</div>
+        {% if is_admin and not s.resolved %}
+        <form class="resolve-form" method="post" action="/admin/{{ guild.id }}/suggestions/{{ s.id }}/resolve">
+          <label>답변 (DM으로 전달됩니다)</label>
+          <textarea name="reply" placeholder="예: 확인했습니다, 다음 주부터 반영할게요"></textarea>
+          <button type="submit">처리 완료 · DM 보내기</button>
+          <div class="preview">DM 미리보기 — "<b>{{ s.user }}</b>님이 <b>{{ guild.name }}</b>에 남기신 건의가 처리되었습니다. / Q. {{ s.content }} / A. (위 답변)"</div>
+        </form>
+        {% endif %}
+      </div>
+      {% endfor %}
+    {% else %}
+      <div class="empty">아직 접수된 건의가 없습니다.</div>
+    {% endif %}
+  </div>
+  <script>
+    function loilToggleTheme() {
+      const html = document.documentElement;
+      const cur = html.dataset.theme || 'dark';
+      html.dataset.theme = cur === 'dark' ? 'light' : 'dark';
+      try { localStorage.setItem('loil-theme', html.dataset.theme); } catch (e) {}
+    }
+    (function () {
+      try {
+        const saved = localStorage.getItem('loil-theme');
+        if (saved) document.documentElement.dataset.theme = saved;
+      } catch (e) {}
+    })();
+  </script>
+</body>
+</html>

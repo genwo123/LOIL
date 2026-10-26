@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ guild_name }} · {{ week_label }} 편성 결과</title>
+<style>
+  :root, :root[data-theme="dark"] {
+    --bg: #1E1F22;
+    --card: #2B2D31;
+    --card-dark: #232428;
+    --accent: #7C5CFC;
+    --support: #43B581;
+    --dps: #F04747;
+    --gold: #FAA61A;
+    --text: #FFFFFF;
+    --text-gray: #B5BAC1;
+    --divider: #3F4147;
+  }
+  :root[data-theme="light"] {
+    --bg: #F7F7FB;
+    --card: #FFFFFF;
+    --card-dark: #F0F0F5;
+    --accent: #7C5CFC;
+    --support: #43B581;
+    --dps: #F04747;
+    --gold: #FAA61A;
+    --text: #1C1C28;
+    --text-gray: #77778C;
+    --divider: #E7E7F0;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+    padding: 24px 16px 64px;
+  }
+  header { max-width: 1000px; margin: 0 auto 16px; }
+  header h1 { margin: 0 0 4px; font-size: 20px; }
+  header p  { margin: 0; color: var(--text-gray); font-size: 13px; }
+  .tabs {
+    max-width: 1000px;
+    margin: 0 auto 24px;
+    display: flex;
+    gap: 8px;
+    border-bottom: 1px solid var(--divider);
+  }
+  .tab-btn {
+    background: none;
+    border: none;
+    color: var(--text-gray);
+    font-size: 14px;
+    font-weight: bold;
+    padding: 10px 4px;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+  }
+  .tab-btn.active { color: var(--text); border-bottom-color: var(--accent); }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+  .grid {
+    max-width: 1000px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 16px;
+  }
+  .raid-card {
+    background: var(--card);
+    border-radius: 10px;
+    border-left: 4px solid var(--accent);
+    padding: 16px;
+  }
+  .raid-card .title-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 8px;
+    margin-bottom: 4px;
+  }
+  .raid-card h2 { margin: 0; font-size: 16px; }
+  .raid-card .time { color: var(--gold); font-size: 13px; font-weight: bold; white-space: nowrap; }
+  .raid-card .meta { color: var(--text-gray); font-size: 12px; margin-bottom: 12px; }
+  .party-block { background: var(--card-dark); border-radius: 8px; padding: 10px 12px; margin-top: 8px; }
+  .party-block .label { font-size: 11px; color: var(--text-gray); margin-bottom: 6px; }
+  .member { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; padding: 3px 0; border-bottom: 1px solid var(--divider); }
+  .member:last-child { border-bottom: none; }
+  .member .job { color: var(--text-gray); }
+  .member.support .name::before { content: "서폿 "; color: var(--support); font-size: 11px; font-weight: bold; }
+  .member.dps .name::before { content: ""; }
+  .conflict { color: var(--dps); font-size: 12px; margin-top: 10px; line-height: 1.6; }
+  .empty { text-align: center; color: var(--text-gray); margin-top: 80px; }
+  .member-select {
+    max-width: 1000px;
+    margin: 0 auto 16px;
+  }
+  .member-select select {
+    background: var(--card);
+    color: var(--text);
+    border: 1px solid var(--divider);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 14px;
+  }
+  .header-actions { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+  .theme-toggle {
+    background: var(--card); border: 1px solid var(--divider); color: var(--text);
+    font-size: 11px; font-weight: bold; padding: 6px 10px; border-radius: 999px; cursor: pointer;
+  }
+</style>
+</head>
+<body>
+  <header style="display:flex; justify-content:space-between; align-items:flex-start; max-width:1000px; margin:0 auto 16px;">
+    <div>
+      <h1>{{ guild_name }} · {{ week_label }} 편성 결과</h1>
+      <p>업데이트: {{ updated_at }} · 조회 전용 (저장/재편성은 Discord에서)</p>
+    </div>
+    <div class="header-actions">
+      <button class="theme-toggle" onclick="loilToggleTheme()">🌙/☀️</button>
+      <a href="{{ admin_url or '/admin' }}" style="color:var(--text-gray); font-size:12px; white-space:nowrap;">관리자이신가요? →</a>
+    </div>
+  </header>
+
+  <div class="tabs">
+    <button class="tab-btn" data-tab="party">파티 편성 결과</button>
+    <button class="tab-btn" data-tab="weekly">전체 일정</button>
+    <button class="tab-btn" data-tab="member">내 일정</button>
+  </div>
+
+  <div class="tab-panel" data-panel="party">
+    {% if raids %}
+    <div class="grid">
+      {% for raid in raids %}
+      <div class="raid-card">
+        <div class="title-row">
+          <h2>{{ raid.name }}</h2>
+          <span class="time">{% if raid.day and raid.day != '미정' %}{{ raid.day }}요일 {% endif %}{{ raid.time_str }}</span>
+        </div>
+        <div class="meta">총 {{ raid.total }}명 · 서폿 {{ raid.sup }}명 · 딜러 {{ raid.total - raid.sup }}명</div>
+
+        {% for party in raid.parties %}
+        <div class="party-block">
+          <div class="label">파티 {{ loop.index }}</div>
+          {% for m in party %}
+          <div class="member {{ 'support' if m.is_support else 'dps' }}">
+            <span class="name">{{ m.name }}</span>
+            <span class="job">{{ m.std_job or m.character }}</span>
+          </div>
+          {% endfor %}
+        </div>
+        {% endfor %}
+
+        {% if raid.conflicts %}
+        <div class="conflict">
+          {% for c in raid.conflicts %}⚠ {{ c.name }} — {{ c.other_raid }} 동시간 중복<br>{% endfor %}
+        </div>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty">아직 편성된 레이드가 없습니다.</div>
+    {% endif %}
+  </div>
+
+  <div class="tab-panel" data-panel="weekly">
+    {% if weekly_schedule %}
+    <div class="grid">
+      {% for raid in weekly_schedule %}
+      <div class="raid-card">
+        <div class="title-row">
+          <h2>{{ raid.name }}</h2>
+          <span class="time">{% if raid.day and raid.day != '미정' %}{{ raid.day }}요일 {% endif %}{{ raid.time_str }}</span>
+        </div>
+        <div class="meta">참여 {{ raid.member_count }}명</div>
+        <div class="party-block">
+          {% for m in raid.members %}
+          <div class="member {{ 'support' if m.is_support else 'dps' }}">
+            <span class="name">{{ m.name }}</span>
+            <span class="job">{{ m.std_job or m.character }}</span>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty">이번주 예정된 레이드가 없습니다.</div>
+    {% endif %}
+  </div>
+
+  <div class="tab-panel" data-panel="member">
+    {% if members %}
+    <div class="member-select">
+      <select id="member-picker">
+        {% for name in members.keys() %}
+        <option value="{{ name }}">{{ name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="grid" id="member-schedule-grid"></div>
+    {% else %}
+    <div class="empty">저장된 개인 일정이 없습니다.</div>
+    {% endif %}
+  </div>
+
+  <script>
+    function loilToggleTheme() {
+      const html = document.documentElement;
+      const cur = html.dataset.theme || 'dark';
+      html.dataset.theme = cur === 'dark' ? 'light' : 'dark';
+      try { localStorage.setItem('loil-theme', html.dataset.theme); } catch (e) {}
+    }
+    (function () {
+      try {
+        const saved = localStorage.getItem('loil-theme');
+        if (saved) document.documentElement.dataset.theme = saved;
+      } catch (e) {}
+    })();
+
+    const MEMBERS = {{ members | tojson }};
+
+    function renderMemberSchedule(name) {
+      const grid = document.getElementById('member-schedule-grid');
+      if (!grid) return;
+      const schedule = MEMBERS[name] || [];
+      if (!schedule.length) {
+        grid.innerHTML = '<div class="empty">이번주 예정된 레이드가 없습니다.</div>';
+        return;
+      }
+      grid.innerHTML = schedule.map(s => `
+        <div class="raid-card">
+          <div class="title-row">
+            <h2>${s.raid_name}</h2>
+            <span class="time">${s.day && s.day !== '미정' ? s.day + '요일 ' : ''}${s.time_str || ''}</span>
+          </div>
+          <div class="meta">${s.duration ? s.duration + '분' : ''}</div>
+          <div class="member ${s.is_support ? 'support' : 'dps'}">
+            <span class="name">${name}</span>
+            <span class="job">${s.std_job || s.character || ''}</span>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    const picker = document.getElementById('member-picker');
+    if (picker) {
+      picker.addEventListener('change', () => renderMemberSchedule(picker.value));
+    }
+
+    function activateTab(tab) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.dataset.panel === tab));
+      if (tab === 'member' && picker) renderMemberSchedule(picker.value);
+    }
+
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => activateTab(btn.dataset.tab));
+    });
+
+    const params = new URLSearchParams(window.location.search);
+    const requestedTab = params.get('tab');
+    const requestedMember = params.get('member');
+    if (requestedMember && picker && requestedMember in MEMBERS) {
+      picker.value = requestedMember;
+    }
+
+    let initialTab = requestedTab;
+    if (!initialTab || !document.querySelector(`.tab-panel[data-panel="${initialTab}"]`)) {
+      initialTab = {{ 'true' if raids else 'false' }} ? 'party'
+                 : {{ 'true' if weekly_schedule else 'false' }} ? 'weekly'
+                 : {{ 'true' if members else 'false' }} ? 'member'
+                 : 'party';
+    }
+    activateTab(initialTab);
+  </script>
+</body>
+</html>

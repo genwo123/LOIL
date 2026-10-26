@@ -4,14 +4,17 @@
 
 기능:
 - 레이드 카탈로그 활성/비활성 토글
-- 슬롯 수 (파티 수) 조정
 - 소요시간 조정
 - 변경사항 guild_settings.json 저장
+
+파티(공대) 수는 더 이상 여기서 미리 정하지 않는다 — 🛡│레이드편성에서 레이드를
+등록하면 일단 공대 1개가 "미정" 상태로 생기고, 실제로 갈 사람이 모이면(웹 개인
+가능시간 페이지의 참가 신청 수 기준) 공대를 늘리는 방식으로 바뀜.
 
 UI 구조 (단일 ephemeral 메시지, edit_message):
   Row 0: [그림자] [카제로스] [군단장] [어비스] [에픽]  ← 카테고리 탭
   Row 1: [드롭다운: 레이드 선택 ▼]                    ← 선택한 카테고리 레이드
-  Row 2: [활성/비활성] [−] [N슬롯] [+] [소요시간 ▼]  ← 선택한 레이드 설정
+  Row 2: [활성/비활성] [소요시간 ▼]                   ← 선택한 레이드 설정
   Row 3: [✅ 저장·시트반영] [닫기]
 """
 
@@ -23,9 +26,8 @@ import os
 
 from bot.utils.permissions import require_admin
 from bot.utils.sheets import RAID_LEVEL_MAP, CATEGORIES, get_raid_size, get_raid_default_duration
+from bot.utils.storage import load_settings, save_settings
 from bot.config.channels import CH_RAID_CONFIG, get_channel
-
-SETTINGS_FILE = "bot/data/guild_settings.json"
 
 # ==================== 카테고리 정의 ====================
 
@@ -53,20 +55,6 @@ def _dur_label(minutes: int) -> str:
 
 # ==================== 설정 로드/저장 ====================
 
-def load_settings() -> dict:
-    if not os.path.exists(SETTINGS_FILE):
-        return {}
-    try:
-        with open(SETTINGS_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except Exception:
-        return {}
-
-def save_settings(data: dict):
-    os.makedirs(os.path.dirname(SETTINGS_FILE), exist_ok=True)
-    with open(SETTINGS_FILE, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
-
 def get_raid_config(guild_id: int) -> dict:
     """
     길드별 레이드 설정 반환
@@ -82,8 +70,61 @@ def save_raid_config(guild_id: int, config: dict):
     settings[gid]["raid_config"] = config
     save_settings(settings)
 
-def get_sheet_url(guild_id: int) -> str:
-    return load_settings().get(str(guild_id), {}).get("sheet_url", "")
+
+def get_trai_status(guild_id: int) -> dict:
+    """이번 주 '트라이(진행 중/미클리어)' 표시된 레이드 목록.
+    구조: {"카멘 하드": {"priority": "high"}, ...} — 키는 시트에 실제 적히는 '레이드명 난이도' 문자열.
+    Google Sheets 스키마는 건드리지 않고 guild_settings.json에만 저장한다."""
+    return load_settings().get(str(guild_id), {}).get("trai_status", {})
+
+
+def set_trai_status(guild_id: int, raid_full_name: str, trai: bool, priority: str = "high"):
+    settings = load_settings()
+    gid = str(guild_id)
+    if gid not in settings:
+        settings[gid] = {}
+    status = settings[gid].get("trai_status", {})
+    if trai:
+        status[raid_full_name] = {"priority": priority}
+    else:
+        status.pop(raid_full_name, None)
+    settings[gid]["trai_status"] = status
+    save_settings(settings)
+
+
+TIME_POLICY_DAYS = ['수', '목', '금', '토', '일', '월', '화']
+
+
+def get_time_policy(guild_id: int) -> dict:
+    """길드 단위 요일별 허용 시간대(0~24시). 길드장/총무가 설정, 설정 안 한 요일은 기본 0~24(제한 없음).
+    구조: {"수": {"start": 20, "end": 24}, ...} — 야행성 파티가 있는 길드는 특정 요일만 늦게 열어둘 수 있음."""
+    saved = load_settings().get(str(guild_id), {}).get("time_policy", {})
+    return {day: saved.get(day, {"start": 0, "end": 24}) for day in TIME_POLICY_DAYS}
+
+
+def set_time_policy(guild_id: int, policy: dict):
+    settings = load_settings()
+    gid = str(guild_id)
+    if gid not in settings:
+        settings[gid] = {}
+    settings[gid]["time_policy"] = policy
+    save_settings(settings)
+
+
+def get_time_granularity(guild_id: int) -> int:
+    """개인 가능시간 그리드 기본 단위(분) — 길드장이 지정, 기본값 60분(1시간 단위).
+    30을 지정하면 길드원이 페이지를 열 때부터 30분 단위 그리드로 시작(그래도 개인이 그때그때 토글 가능)."""
+    return load_settings().get(str(guild_id), {}).get("time_granularity", 60)
+
+
+def set_time_granularity(guild_id: int, minutes: int):
+    settings = load_settings()
+    gid = str(guild_id)
+    if gid not in settings:
+        settings[gid] = {}
+    settings[gid]["time_granularity"] = 30 if minutes == 30 else 60
+    save_settings(settings)
+
 
 def _raid_key(raid_name: str, diff: str) -> str:
     """저장 키 생성: "세르카_나이트메어" """
@@ -168,11 +209,10 @@ class RaidConfigView(discord.ui.View):
             for r in raids[:25]:
                 cfg     = self.config.get(r["key"], {})
                 active  = cfg.get("active", False)
-                slots   = cfg.get("slots", 1)
                 dur     = cfg.get("duration", r["duration"])
                 icon    = "✅" if active else "○"
                 options.append(discord.SelectOption(
-                    label=f"{icon}  {r['raid_name']} {r['diff']}  ·  {r['size']}인  ·  {slots}슬롯  ·  {_dur_label(dur)}",
+                    label=f"{icon}  {r['raid_name']} {r['diff']}  ·  {r['size']}인  ·  {_dur_label(dur)}",
                     value=r["key"],
                     default=(r["key"] == self.selected_key),
                 ))
@@ -189,7 +229,6 @@ class RaidConfigView(discord.ui.View):
         if self.selected_key:
             cfg    = self.config.get(self.selected_key, {})
             active = cfg.get("active", False)
-            slots  = cfg.get("slots", 1)
             dur    = cfg.get("duration", 60)
 
             # 활성/비활성 토글
@@ -201,36 +240,6 @@ class RaidConfigView(discord.ui.View):
             )
             toggle_btn.callback = self._on_toggle
             self.add_item(toggle_btn)
-
-            # 슬롯 −
-            dec_btn = discord.ui.Button(
-                label="−",
-                style=discord.ButtonStyle.secondary,
-                custom_id="rc_dec",
-                row=2,
-            )
-            dec_btn.callback = self._on_dec
-            self.add_item(dec_btn)
-
-            # 슬롯 수 표시 (비활성 버튼)
-            slot_btn = discord.ui.Button(
-                label=f"{slots} 슬롯",
-                style=discord.ButtonStyle.secondary,
-                custom_id="rc_slot_display",
-                disabled=True,
-                row=2,
-            )
-            self.add_item(slot_btn)
-
-            # 슬롯 +
-            inc_btn = discord.ui.Button(
-                label="+",
-                style=discord.ButtonStyle.secondary,
-                custom_id="rc_inc",
-                row=2,
-            )
-            inc_btn.callback = self._on_inc
-            self.add_item(inc_btn)
 
             # 소요시간 셀렉트
             dur_options = []
@@ -313,28 +322,6 @@ class RaidConfigView(discord.ui.View):
             return
         cfg = self.config.setdefault(self.selected_key, {"active": False, "slots": 1, "duration": 60})
         cfg["active"] = not cfg.get("active", False)
-        self._build()
-        await interaction.response.edit_message(
-            embed=self._build_embed(),
-            view=self,
-        )
-
-    async def _on_inc(self, interaction: discord.Interaction):
-        if not self.selected_key:
-            return
-        cfg = self.config.setdefault(self.selected_key, {"active": False, "slots": 1, "duration": 60})
-        cfg["slots"] = min(10, cfg.get("slots", 1) + 1)
-        self._build()
-        await interaction.response.edit_message(
-            embed=self._build_embed(),
-            view=self,
-        )
-
-    async def _on_dec(self, interaction: discord.Interaction):
-        if not self.selected_key:
-            return
-        cfg = self.config.setdefault(self.selected_key, {"active": False, "slots": 1, "duration": 60})
-        cfg["slots"] = max(1, cfg.get("slots", 1) - 1)
         self._build()
         await interaction.response.edit_message(
             embed=self._build_embed(),

@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>길드 선택 · 로일(LoIl)</title>
+<style>
+  :root, :root[data-theme="dark"] {
+    --bg: #1E1F22;
+    --card: #2B2D31;
+    --accent: #7C5CFC;
+    --text: #FFFFFF;
+    --text-gray: #B5BAC1;
+    --divider: #3F4147;
+  }
+  :root[data-theme="light"] {
+    --bg: #F7F7FB;
+    --card: #FFFFFF;
+    --accent: #7C5CFC;
+    --text: #1C1C28;
+    --text-gray: #77778C;
+    --divider: #E7E7F0;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+    padding: 40px 16px;
+  }
+  .wrap { max-width: 480px; margin: 0 auto; }
+  header { margin-bottom: 8px; }
+  header h1 { margin: 0 0 4px; font-size: 20px; }
+  header p { margin: 0; color: var(--text-gray); font-size: 13px; }
+  .logout { color: var(--text-gray); font-size: 12px; text-decoration: none; }
+  .back-home { position: fixed; top: 18px; left: 18px; font-size: 12px; color: var(--text-gray); text-decoration: none; }
+  .back-home:hover { color: var(--text); }
+  .top-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 24px; }
+  .guild-list { display: flex; flex-direction: column; gap: 10px; }
+  .guild-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 14px;
+    background: var(--card);
+    border-radius: 10px;
+    border-left: 4px solid var(--accent);
+    padding: 12px 18px;
+    text-decoration: none;
+    color: var(--text);
+  }
+  .guild-item:hover { filter: brightness(1.1); }
+  .guild-item .info { display: flex; align-items: center; gap: 12px; min-width: 0; }
+  .guild-item .avatar {
+    width: 44px; height: 44px; border-radius: 10px; object-fit: cover; flex-shrink: 0;
+    background: var(--bg);
+  }
+  .guild-item .name { font-size: 15px; font-weight: bold; }
+  .guild-item .arrow { color: var(--text-gray); flex-shrink: 0; }
+  .empty {
+    background: var(--card);
+    border-radius: 10px;
+    padding: 24px;
+    text-align: center;
+    color: var(--text-gray);
+    font-size: 14px;
+    line-height: 1.7;
+  }
+  .dev-banner {
+    background: #ED4245;
+    color: #fff;
+    font-size: 12px;
+    font-weight: bold;
+    text-align: center;
+    padding: 6px;
+    border-radius: 6px;
+    margin-bottom: 16px;
+  }
+  .header-actions { display: flex; align-items: center; gap: 12px; }
+  .theme-toggle {
+    background: var(--card); border: 1px solid var(--divider); color: var(--text);
+    font-size: 11px; font-weight: bold; padding: 6px 10px; border-radius: 999px; cursor: pointer;
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    {% if dev_mode %}<div class="dev-banner">⚠ DEV MODE — 로그인 스킵됨 (배포 전 반드시 해제)</div>{% endif %}
+    <a class="back-home" href="/">← 로일 홈</a>
+    <div class="top-row">
+      <header>
+        <h1>관리 가능한 길드</h1>
+        <p>{{ user.username }}님으로 로그인됨</p>
+      </header>
+      <div class="header-actions">
+        <button class="theme-toggle" onclick="loilToggleTheme()">🌙/☀️</button>
+        <a class="logout" href="/logout">로그아웃</a>
+      </div>
+    </div>
+
+    {% if guilds %}
+    <div class="guild-list">
+      {% for g in guilds %}
+      <a class="guild-item" href="/admin/{{ g.id }}">
+        <span class="info">
+          <img class="avatar" src="{{ g.banner_url or '/static/loil/Loil_icon.png' }}" alt="{{ g.name }}">
+          <span class="name">{{ g.name }}</span>
+        </span>
+        <span class="arrow">→</span>
+      </a>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty">
+      관리 가능한 길드가 없습니다.<br>
+      로일 봇이 이미 초대되어 있는 서버에서, 서버 관리자 권한을 가진 계정으로 로그인해주세요.
+    </div>
+    {% endif %}
+  </div>
+  <script>
+    function loilToggleTheme() {
+      const html = document.documentElement;
+      const cur = html.dataset.theme || 'dark';
+      html.dataset.theme = cur === 'dark' ? 'light' : 'dark';
+      try { localStorage.setItem('loil-theme', html.dataset.theme); } catch (e) {}
+    }
+    (function () {
+      try {
+        const saved = localStorage.getItem('loil-theme');
+        if (saved) document.documentElement.dataset.theme = saved;
+      } catch (e) {}
+    })();
+  </script>
+</body>
+</html>

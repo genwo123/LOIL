@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ guild.name }} · 요일별 시간 정책 · 로일(LoIl)</title>
+<style>
+  :root, :root[data-theme="dark"] {
+    --bg: #0d0f14;
+    --card: #161922;
+    --card-dark: #10131a;
+    --accent: #4f63d2;
+    --support: #43B581;
+    --text: #FFFFFF;
+    --text-gray: #8b95b0;
+    --divider: #1e2330;
+    --blurple: #4f63d2;
+  }
+  :root[data-theme="light"] {
+    --bg: #f5f7fd;
+    --card: #FFFFFF;
+    --card-dark: #eef0fa;
+    --accent: #4f63d2;
+    --support: #43B581;
+    --text: #1C1C28;
+    --text-gray: #5a6394;
+    --divider: #e2e6f3;
+    --blurple: #4f63d2;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Noto Sans KR", "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+    padding: 24px 16px 80px;
+  }
+  .wrap { max-width: 600px; margin: 0 auto; }
+  @media (min-width: 860px) { .wrap { max-width: 800px; } }
+  .top-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 20px; }
+  header h1 { margin: 0 0 4px; font-size: 20px; }
+  header p { margin: 0; color: var(--text-gray); font-size: 13px; line-height: 1.6; }
+  .logout { color: var(--text-gray); font-size: 12px; text-decoration: none; }
+  .dev-banner {
+    background: #ED4245; color: #fff; font-size: 12px; font-weight: bold;
+    text-align: center; padding: 6px; border-radius: 6px; margin-bottom: 16px;
+  }
+  .saved-banner {
+    background: rgba(87,242,135,0.15); color: var(--support);
+    font-size: 13px; font-weight: bold; padding: 10px 14px; border-radius: 8px; margin-bottom: 18px;
+  }
+  .day-row {
+    background: var(--card);
+    border-radius: 10px;
+    border-left: 4px solid var(--accent);
+    padding: 12px 16px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .day-row .day-label { font-size: 14px; font-weight: bold; width: 60px; }
+  .time-inputs { display: flex; align-items: center; gap: 6px; }
+  input[type="number"] {
+    width: 60px;
+    background: var(--card-dark);
+    color: var(--text);
+    border: 1px solid var(--divider);
+    border-radius: 6px;
+    padding: 7px 8px;
+    font-size: 13px;
+    font-family: inherit;
+  }
+  .time-inputs span { color: var(--text-gray); font-size: 12px; }
+  button {
+    font-family: inherit; font-size: 14px; font-weight: bold;
+    border: none; border-radius: 8px; padding: 12px 16px; cursor: pointer;
+    background: var(--blurple); color: #fff; width: 100%; margin-top: 16px;
+  }
+  .hint { font-size: 12px; color: var(--text-gray); margin-top: 14px; line-height: 1.6; }
+  .back { color: var(--text-gray); font-size: 12px; text-decoration: none; display: inline-block; margin-bottom: 16px; }
+  .home-btn {
+    display: inline-flex; align-items: center; gap: 6px; text-decoration: none;
+    background: var(--card); border: 1px solid var(--divider); color: var(--text);
+    font-size: 13px; font-weight: bold; padding: 10px 16px; border-radius: 10px; margin-bottom: 16px;
+  }
+  .home-btn:hover { border-color: var(--accent); background: rgba(79,99,210,.1); }
+  .header-actions { display: flex; align-items: center; gap: 12px; }
+  .theme-toggle {
+    background: var(--card-dark); border: 1px solid var(--divider); color: var(--text);
+    font-size: 11px; font-weight: bold; padding: 6px 10px; border-radius: 999px; cursor: pointer;
+    width: auto; margin-top: 0; flex-shrink: 0;
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    {% if dev_mode %}<div class="dev-banner">⚠ DEV MODE — 로그인 스킵됨 (배포 전 반드시 해제)</div>{% endif %}
+    <a class="home-btn" href="/admin/{{ guild.id }}">길드 홈</a>
+    <div class="top-row">
+      <header>
+        <h1>{{ guild.name }} · 요일별 시간 정책</h1>
+        <p>길드원 가능시간 제출, 트라이 시간 배정할 때 이 범위 안에서만 잡습니다. 평일은 늦게, 주말은 더 늦게처럼 요일마다 다르게 설정할 수 있어요(24시 = 자정).</p>
+      </header>
+      <div class="header-actions">
+        <button class="theme-toggle" onclick="loilToggleTheme()">🌙/☀️</button>
+        <a class="logout" href="/logout">로그아웃</a>
+      </div>
+    </div>
+
+    {% if saved %}<div class="saved-banner">저장됐습니다.</div>{% endif %}
+
+    <form method="post" action="/admin/{{ guild.id }}/time-policy">
+      <div class="day-row">
+        <span class="day-label">기본 단위</span>
+        <div class="time-inputs">
+          <select name="granularity" style="width:auto;" {{ 'disabled' if not is_admin else '' }}>
+            <option value="60" {{ 'selected' if granularity == 60 else '' }}>1시간</option>
+            <option value="30" {{ 'selected' if granularity == 30 else '' }}>30분</option>
+          </select>
+          <span>단위로 개인 가능시간 그리드가 시작됩니다 (길드원이 그때그때 바꿀 수 있음)</span>
+        </div>
+      </div>
+      {% for d in days %}
+      <div class="day-row">
+        <span class="day-label">{{ d }}요일</span>
+        <div class="time-inputs">
+          <input type="number" name="start_{{ d }}" min="0" max="24" value="{{ policy[d].start }}" {{ 'disabled' if not is_admin else '' }}>
+          <span>시 ~</span>
+          <input type="number" name="end_{{ d }}" min="0" max="24" value="{{ policy[d].end }}" {{ 'disabled' if not is_admin else '' }}>
+          <span>시</span>
+        </div>
+      </div>
+      {% endfor %}
+      {% if is_admin %}<button type="submit">저장</button>{% endif %}
+    </form>
+
+    <p class="hint">기본값은 0~24시(제한 없음)입니다. 야행성 파티가 있는 길드는 그 요일만 늦게(예: 22~26 대신 22~24 + 다음 요일 0~2로 나눠서) 열어두면 됩니다.</p>
+  </div>
+  <script>
+    function loilToggleTheme() {
+      const html = document.documentElement;
+      const cur = html.dataset.theme || 'dark';
+      html.dataset.theme = cur === 'dark' ? 'light' : 'dark';
+      try { localStorage.setItem('loil-theme', html.dataset.theme); } catch (e) {}
+    }
+    (function () {
+      try {
+        const saved = localStorage.getItem('loil-theme');
+        if (saved) document.documentElement.dataset.theme = saved;
+      } catch (e) {}
+    })();
+  </script>
+</body>
+</html>

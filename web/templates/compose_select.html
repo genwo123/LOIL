@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ guild.name }} · AI 자동편성 · 로일(LoIl)</title>
+<style>
+  :root, :root[data-theme="dark"] {
+    --bg: #0d0f14; --card: #161922; --card-dark: #10131a; --accent: #4f63d2;
+    --support: #43B581; --dps: #F04747; --text: #FFFFFF; --text-gray: #8b95b0; --divider: #1e2330; --blurple: #4f63d2;
+  }
+  :root[data-theme="light"] {
+    --bg: #f5f7fd; --card: #FFFFFF; --card-dark: #eef0fa; --accent: #4f63d2;
+    --support: #43B581; --dps: #F04747; --text: #1C1C28; --text-gray: #5a6394; --divider: #e2e6f3; --blurple: #4f63d2;
+  }
+  * { box-sizing: border-box; }
+  html { scrollbar-gutter: stable; overflow-y: scroll; }
+  body { margin:0; background:var(--bg); color:var(--text); font-family:"Noto Sans KR","Malgun Gothic","Apple SD Gothic Neo",sans-serif; padding:24px 16px 80px; }
+  .wrap { max-width: 720px; margin: 0 auto; }
+  @media (min-width: 1000px) { .wrap { max-width: 980px; } }
+  @media (min-width: 1300px) { .wrap { max-width: 1280px; } }
+  .top-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 20px; }
+  header h1 { margin: 0 0 4px; font-size: 20px; }
+  header p { margin: 0; color: var(--text-gray); font-size: 13px; }
+  .dev-banner { background:#ED4245; color:#fff; font-size:12px; font-weight:bold; text-align:center; padding:6px; border-radius:6px; margin-bottom:16px; }
+  .header-actions { display: flex; align-items: center; gap: 12px; }
+  .theme-toggle { background: var(--card-dark); border: 1px solid var(--divider); color: var(--text); font-size: 11px; font-weight: bold; padding: 6px 10px; border-radius: 999px; cursor: pointer; }
+  .back { color: var(--text-gray); font-size: 12px; text-decoration: none; display:inline-block; margin-bottom:10px; }
+  .home-btn {
+    display: inline-flex; align-items: center; gap: 6px; text-decoration: none;
+    background: var(--card); border: 1px solid var(--divider); color: var(--text);
+    font-size: 13px; font-weight: bold; padding: 10px 16px; border-radius: 10px; margin-bottom: 20px;
+  }
+  .home-btn:hover { border-color: var(--accent); background: rgba(79,99,210,.1); }
+  .toolbar {
+    display: flex; align-items: center; gap: 8px; margin-bottom: 12px; padding: 10px 0;
+    position: sticky; top: 0; background: var(--bg); z-index: 5;
+  }
+  .toolbar button { font-family: inherit; font-size: 12px; font-weight: bold; border: 1px solid var(--divider); background: var(--card); color: var(--text); border-radius: 6px; padding: 6px 12px; cursor: pointer; }
+  .toolbar .count { margin-left: auto; font-size: 12px; color: var(--text-gray); }
+
+  .accordion-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 10px; align-items: start; margin-bottom: 90px;
+  }
+  .accordion-section { background: var(--card); border-radius: 12px; overflow: hidden; min-width: 0; }
+  .accordion-header {
+    display: flex; align-items: center; gap: 10px; padding: 14px 16px; cursor: pointer;
+    border-left: 4px solid var(--accent); min-width: 0;
+  }
+  .accordion-header input[type="checkbox"] { width: 18px; height: 18px; flex-shrink: 0; cursor: pointer; }
+  .raid-icon {
+    width: 34px; height: 34px; border-radius: 9px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: bold; color: #fff; overflow: hidden;
+  }
+  .raid-icon img { width: 100%; height: 100%; object-fit: cover; }
+  .accordion-header .info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+  .accordion-header .name { font-size: 15px; font-weight: bold; }
+  .accordion-header .agg { font-size: 11.5px; color: var(--text-gray); }
+  .accordion-header .chev { color: var(--text-gray); font-size: 12px; transition: transform 0.15s; flex-shrink: 0; }
+  .accordion-section.open .chev { transform: rotate(90deg); }
+  .accordion-body { display: none; padding: 0 12px 12px; }
+  .accordion-section.open .accordion-body { display: block; }
+
+  .raid-row {
+    background: var(--card-dark); border-radius: 8px; padding: 10px 12px; margin-top: 8px;
+    display: flex; align-items: center; gap: 10px; cursor: pointer;
+  }
+  .raid-row:has(input:checked) { outline: 2px solid var(--accent); }
+  .raid-row input[type="checkbox"] { width: 18px; height: 18px; flex-shrink: 0; cursor: pointer; }
+  .raid-row .name { font-size: 13px; font-weight: bold; }
+  .raid-row .meta { font-size: 11.5px; color: var(--text-gray); }
+  .empty { text-align: center; color: var(--text-gray); padding: 40px 0; font-size: 13px; }
+  .submit-bar {
+    position: sticky; bottom: 0; padding: 14px 0; margin-top: -8px;
+    background: linear-gradient(to top, var(--bg) 60%, transparent);
+  }
+  button.btn-primary {
+    width: 100%; font-family: inherit; font-size: 14px; font-weight: bold; border: none;
+    border-radius: 8px; padding: 14px; cursor: pointer; background: var(--blurple); color: #fff;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.25);
+  }
+  button.btn-primary:hover { filter: brightness(1.08); }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    {% if dev_mode %}<div class="dev-banner">⚠ DEV MODE — 로그인 스킵됨 (배포 전 반드시 해제)</div>{% endif %}
+    <a class="back" href="/admin/{{ guild.id }}/schedule">← 일정 관리로 돌아가기</a><br>
+    <a class="home-btn" href="/admin/{{ guild.id }}">길드 홈</a>
+    <div class="top-row">
+      <header>
+        <h1>{{ guild.name }} · AI 자동편성</h1>
+        <p>편성할 레이드를 고르세요 — 배정된 인원의 가능시간을 기준으로 시간과 파티를 자동으로 짭니다.</p>
+      </header>
+      <button class="theme-toggle" onclick="loilToggleTheme()">🌙/☀️</button>
+    </div>
+
+    {% if groups %}
+    <form method="post" action="/admin/{{ guild.id }}/compose/run">
+      <div class="toolbar">
+        <button type="button" onclick="setAll(true)">전체 선택</button>
+        <button type="button" onclick="setAll(false)">전체 해제</button>
+        <span class="count" id="selCount"></span>
+      </div>
+
+      <div class="accordion-grid">
+        {% for group in groups %}
+        <div class="accordion-section" id="cgrp-{{ loop.index }}">
+          <div class="accordion-header" onclick="document.getElementById('cgrp-{{ loop.index }}').classList.toggle('open')">
+            <input type="checkbox" checked onclick="event.stopPropagation(); toggleGroup({{ loop.index }}, this.checked);" id="gchk-{{ loop.index }}">
+            <div class="raid-icon" style="background: {{ group.color }};">
+              {% if group.icon_url %}<img src="{{ group.icon_url }}" alt="{{ group.name }}">{% else %}{{ group.name[0] }}{% endif %}
+            </div>
+            <div class="info">
+              <span class="name">{{ group.name }}</span>
+              <span class="agg">{{ group.raids|length }}공대</span>
+            </div>
+            <span class="chev">▶</span>
+          </div>
+          <div class="accordion-body">
+            {% for raid in group.raids %}
+            <label class="raid-row">
+              <input type="checkbox" name="cols" value="{{ raid.col }}" checked class="grp-{{ loop.index }}-item" onchange="onItemChange({{ loop.index }});" data-group="{{ loop.index }}">
+              <div>
+                <div class="name">{{ raid.diff }}</div>
+                <div class="meta">{% if raid.day == '미정' %}시간 미정{% else %}{{ raid.day }}요일 {{ raid.time_str }}{% endif %} · {{ raid.duration }}분</div>
+              </div>
+            </label>
+            {% endfor %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+      <div class="submit-bar">
+        <button type="submit" class="btn-primary">자동 편성 실행</button>
+      </div>
+    </form>
+    {% else %}
+      <div class="empty">예정된 레이드가 없습니다. 일정 관리에서 먼저 레이드를 추가/예정 처리해주세요.</div>
+    {% endif %}
+  </div>
+  <script>
+    function setAll(checked) {
+      document.querySelectorAll('input[name="cols"]').forEach(cb => cb.checked = checked);
+      document.querySelectorAll('[id^="gchk-"]').forEach(cb => { cb.checked = checked; cb.indeterminate = false; });
+      updateCount();
+    }
+    function toggleGroup(idx, checked) {
+      document.querySelectorAll('.grp-' + idx + '-item').forEach(cb => cb.checked = checked);
+      updateCount();
+    }
+    function onItemChange(idx) {
+      const items = document.querySelectorAll('.grp-' + idx + '-item');
+      const checkedCount = document.querySelectorAll('.grp-' + idx + '-item:checked').length;
+      const gchk = document.getElementById('gchk-' + idx);
+      if (gchk) {
+        gchk.checked = checkedCount > 0;
+        gchk.indeterminate = checkedCount > 0 && checkedCount < items.length;
+      }
+      updateCount();
+    }
+    function updateCount() {
+      const boxes = document.querySelectorAll('input[name="cols"]');
+      const n = document.querySelectorAll('input[name="cols"]:checked').length;
+      const el = document.getElementById('selCount');
+      if (el) el.textContent = n + ' / ' + boxes.length + '개 선택';
+    }
+    updateCount();
+    function loilToggleTheme() {
+      const html = document.documentElement;
+      const cur = html.dataset.theme || 'dark';
+      html.dataset.theme = cur === 'dark' ? 'light' : 'dark';
+      try { localStorage.setItem('loil-theme', html.dataset.theme); } catch (e) {}
+    }
+    (function () {
+      try {
+        const saved = localStorage.getItem('loil-theme');
+        if (saved) document.documentElement.dataset.theme = saved;
+      } catch (e) {}
+    })();
+  </script>
+</body>
+</html>

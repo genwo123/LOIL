@@ -6,14 +6,17 @@ import discord
 from discord.ext import commands
 from discord import app_commands
 import asyncio
-import json, os
 from datetime import datetime, timezone, timedelta
+from urllib.parse import quote
 
-from bot.utils.sheets import get_all_data, get_user_schedule, get_weekly_summary, copy_ai_to_manual, get_members
-from bot.utils.image_renderer import render_my_schedule, render_weekly_raids, render_weekly_timeline
-from bot.utils.member_link import get_sheet_name
+from bot.utils.raid_schedule import get_user_schedule, get_weekly_summary
+from bot.utils.member_link import get_all_members, get_absences, get_sheet_name
+from bot.utils.web_results import save_member_schedule_snapshot, save_weekly_schedule_snapshot, build_web_url, get_guild_name
 from bot.utils.permissions import require_admin
+from bot.utils.channel_cleanup import purge_channel as _purge_channel
 from bot.config.channels import CH_SCHEDULE, CH_SCHEDULE_THREAD, CH_NOTICE, CH_PARTY, get_channel
+
+KST = timezone(timedelta(hours=9))
 
 def _get_week_label() -> str:
     now = datetime.now(KST)
@@ -24,22 +27,6 @@ def _get_week_label() -> str:
     first_wed = first_day + timedelta(days=(2 - first_day.weekday()) % 7)
     week_num  = (now - first_wed).days // 7 + 1
     return f"{month}월 {week_num}주차"
-
-SETTINGS_FILE = "bot/data/guild_settings.json"
-KST = timezone(timedelta(hours=9))
-
-def get_guild_setting(guild_id: int) -> dict:
-    try:
-        with open(SETTINGS_FILE, "r", encoding="utf-8") as f:
-            return json.load(f).get(str(guild_id), {})
-    except Exception:
-        return {}
-
-def get_sheet_url(guild_id: int) -> str:
-    return get_guild_setting(guild_id).get("sheet_url", "")
-
-def get_guild_name(guild_id: int) -> str:
-    return get_guild_setting(guild_id).get("guild_name", "로일길드")
 
 
 # ==================== 일정조회 패널 임베드 ====================
@@ -73,20 +60,11 @@ class ScheduleViewPanel(discord.ui.View):
     async def my_schedule(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.defer(ephemeral=True)
 
-        url = get_sheet_url(interaction.guild_id)
-        if not url:
-            await interaction.followup.send("❌ 시트가 연동되지 않았습니다.", ephemeral=True)
-            return
-
-        try:
-            data    = get_all_data(url, ai=True) or get_all_data(url)
-            members = get_members(data)
-            names   = [m['name'] for m in members if not m.get('absent')]
-        except Exception:
-            names = []
+        absent_names = set(get_absences(interaction.guild_id))
+        names = [n for n in get_all_members(interaction.guild_id).values() if n not in absent_names]
 
         if not names:
-            await interaction.followup.send("❌ 길드원 목록을 불러올 수 없습니다.", ephemeral=True)
+            await interaction.followup.send("❌ 등록된 길드원이 없습니다.", ephemeral=True)
             return
 
         my_sheet = get_sheet_name(interaction.guild_id, interaction.user.id)
@@ -96,7 +74,6 @@ class ScheduleViewPanel(discord.ui.View):
             guild=interaction.guild,
             guild_id=interaction.guild_id,
             user=interaction.user,
-            url=url
         )
         await interaction.followup.send("누구의 일정을 볼까요?", view=view, ephemeral=True)
 
@@ -107,13 +84,8 @@ class ScheduleViewPanel(discord.ui.View):
         row=0
     )
     async def all_schedule(self, interaction: discord.Interaction, button: discord.ui.Button):
-        view = ScheduleSourceSelectView(
-            mode="all", guild=interaction.guild,
-            guild_id=interaction.guild_id, user=interaction.user
-        )
-        await interaction.response.send_message(
-            "어떤 일정 기준으로 볼까요?", view=view, ephemeral=True
-        )
+        await interaction.response.defer(ephemeral=True)
+        await _send_weekly_schedule(interaction, interaction.guild, interaction.guild_id, interaction.user)
 
     @discord.ui.button(
         label="공지 →",
@@ -142,50 +114,18 @@ class ScheduleViewPanel(discord.ui.View):
         )
 
     @discord.ui.button(
-        label="🤖 AI편성 → 주간레이드 복사",
-        style=discord.ButtonStyle.danger,
-        custom_id="sv_copy_ai",
-        row=2
-    )
-    async def copy_ai(self, interaction: discord.Interaction, button: discord.ui.Button):
-        if not await require_admin(interaction): return
-        await interaction.response.defer(ephemeral=True)
-        url = get_sheet_url(interaction.guild_id)
-        if not url:
-            await interaction.followup.send("❌ 시트가 연동되지 않았습니다.", ephemeral=True)
-            return
-        ok = copy_ai_to_manual(url)
-        if ok:
-            await interaction.followup.send(
-                "✅ AI편성 탭 복사 완료! 구글 시트에서 직접 수정 가능합니다.",
-                ephemeral=True
-            )
-        else:
-            await interaction.followup.send("❌ 복사 실패. AI편성 탭이 비어있거나 오류가 발생했습니다.", ephemeral=True)
-
-    @discord.ui.button(
         label="🧹 채널 청소",
         style=discord.ButtonStyle.danger,
         custom_id="sv_purge",
-        row=2
+        row=1
     )
     async def purge_channel(self, interaction: discord.Interaction, button: discord.ui.Button):
         if not await require_admin(interaction): return
         await interaction.response.defer(ephemeral=True)
         channel = interaction.channel
         try:
-            pinned = await channel.pins()
-            pinned_ids = {m.id for m in pinned}
-            deleted = 0
-            async for msg in channel.history(limit=200):
-                if msg.id not in pinned_ids:
-                    try:
-                        await msg.delete()
-                        deleted += 1
-                    except Exception:
-                        pass
+            deleted = await _purge_channel(channel)
 
-            # 패널 맨 아래 재전송
             sv_cog = interaction.client.cogs.get("ScheduleViewCog")
             if sv_cog:
                 await sv_cog.send_schedule_panel(channel)
@@ -195,18 +135,18 @@ class ScheduleViewPanel(discord.ui.View):
                 ephemeral=True
             )
         except Exception as e:
-            await interaction.followup.send(f"❌ 청소 실패: {e}", ephemeral=True)
+            print(f"[schedule_view] 청소 실패: {e}")
+            await interaction.followup.send("❌ 채널 청소에 실패했습니다. 잠시 후 다시 시도해주세요.", ephemeral=True)
 
 
 # ==================== 길드원 선택 드롭다운 ====================
 
 class MemberSelectView(discord.ui.View):
-    def __init__(self, names: list, default_name: str, guild, guild_id, user, url):
+    def __init__(self, names: list, default_name: str, guild, guild_id, user):
         super().__init__(timeout=60)
         self.guild    = guild
         self.guild_id = guild_id
         self.user     = user
-        self.url      = url
         self.selected = default_name or (names[0] if names else None)
 
         options = [
@@ -232,48 +172,44 @@ class MemberSelectView(discord.ui.View):
         self.selected = select.values[0]
         await interaction.response.defer()
 
-    @discord.ui.button(label="📋 주간레이드 탭", style=discord.ButtonStyle.secondary, row=1)
-    async def use_manual(self, interaction: discord.Interaction, button: discord.ui.Button):
+    @discord.ui.button(label="일정 보기", style=discord.ButtonStyle.primary, row=1)
+    async def send(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.defer(ephemeral=True)
-        await self._send(interaction, ai=False)
 
-    @discord.ui.button(label="🤖 AI편성 탭", style=discord.ButtonStyle.primary, row=1)
-    async def use_ai(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.defer(ephemeral=True)
-        await self._send(interaction, ai=True)
-
-    async def _send(self, interaction, ai: bool):
         if not self.selected:
             await interaction.followup.send("❌ 길드원을 선택해주세요.", ephemeral=True)
             return
 
-        data       = get_all_data(self.url, ai=ai) or get_all_data(self.url)
         guild_name = get_guild_name(self.guild_id)
         week_label = _get_week_label()
 
-        # 스레드는 📋│일정확인 채널에 생성
         thread_ch = get_channel(self.guild, CH_SCHEDULE_THREAD)
         if not thread_ch:
             await interaction.followup.send("❌ 일정확인 채널을 찾을 수 없습니다.", ephemeral=True)
             return
 
-        schedule = get_user_schedule(data, self.selected)
+        schedule = get_user_schedule(self.guild_id, self.selected)
         if not schedule:
             await interaction.followup.send(
                 f"**{self.selected}** 님의 이번주 예정 레이드가 없습니다!", ephemeral=True
             )
             return
 
-        buf     = render_my_schedule(self.selected, schedule, guild_name=guild_name)
-        src_tag = "AI편성" if ai else "수동"
-        thread  = await thread_ch.create_thread(
-            name=f"📅 {week_label} {self.selected} 개인 일정 ({src_tag})",
+        # 웹 조회 페이지에서 전체 길드원을 바로 골라볼 수 있도록, 이 시점에 전체 멤버 일정을 함께 저장
+        absent_names = set(get_absences(self.guild_id))
+        members_schedule = {
+            name: get_user_schedule(self.guild_id, name)
+            for name in get_all_members(self.guild_id).values() if name not in absent_names
+        }
+        slug = save_member_schedule_snapshot(self.guild_id, week_label, members_schedule, guild_name=guild_name)
+
+        thread = await thread_ch.create_thread(
+            name=f"📅 {week_label} {self.selected} 개인 일정",
             auto_archive_duration=1440,
             type=discord.ChannelType.public_thread
         )
         await thread.send(
-            content=self.user.mention,
-            file=discord.File(fp=buf, filename="my_schedule.png")
+            content=f"{self.user.mention}\n🔗 일정 보기: {build_web_url(slug)}?tab=member&member={quote(self.selected)}"
         )
         await interaction.followup.send(
             f"{thread.mention} 에서 확인하세요! (24시간 후 자동 삭제)", ephemeral=True
@@ -281,61 +217,36 @@ class MemberSelectView(discord.ui.View):
         asyncio.create_task(_delete_thread_after(thread, 86400))
 
 
-# ==================== 데이터 소스 선택 (전체 일정용) ====================
+# ==================== 전체 일정 ====================
 
-class ScheduleSourceSelectView(discord.ui.View):
-    def __init__(self, mode, guild, guild_id, user, sheet_name=None, url=None):
-        super().__init__(timeout=60)
-        self.mode       = mode
-        self.guild      = guild
-        self.guild_id   = guild_id
-        self.user       = user
-        self.sheet_name = sheet_name
-        self.url        = url or get_sheet_url(guild_id)
+async def _send_weekly_schedule(interaction, guild, guild_id, user):
+    guild_name = get_guild_name(guild_id)
+    week_label = _get_week_label()
 
-    @discord.ui.button(label="📋 주간레이드 탭", style=discord.ButtonStyle.secondary)
-    async def use_manual(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.defer(ephemeral=True)
-        await self._send_schedule(interaction, ai=False)
+    thread_ch = get_channel(guild, CH_SCHEDULE_THREAD)
+    if not thread_ch:
+        await interaction.followup.send("❌ 일정확인 채널을 찾을 수 없습니다.", ephemeral=True)
+        return
 
-    @discord.ui.button(label="🤖 AI편성 탭", style=discord.ButtonStyle.primary)
-    async def use_ai(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.defer(ephemeral=True)
-        await self._send_schedule(interaction, ai=True)
+    summary = get_weekly_summary(guild_id)
+    if not summary:
+        await interaction.followup.send("이번주 예정된 레이드가 없습니다!", ephemeral=True)
+        return
 
-    async def _send_schedule(self, interaction, ai: bool):
-        guild_name = get_guild_name(self.guild_id)
-        week_label = _get_week_label()
+    slug = save_weekly_schedule_snapshot(guild_id, week_label, summary, guild_name=guild_name)
 
-        # 스레드는 📋│일정확인 채널에 생성
-        thread_ch = get_channel(self.guild, CH_SCHEDULE_THREAD)
-        if not thread_ch:
-            await interaction.followup.send("❌ 일정확인 채널을 찾을 수 없습니다.", ephemeral=True)
-            return
-
-        data    = get_all_data(self.url, ai=ai) or get_all_data(self.url)
-        summary = get_weekly_summary(data)
-        if not summary:
-            await interaction.followup.send("이번주 예정된 레이드가 없습니다!", ephemeral=True)
-            return
-
-        src_tag = "AI편성" if ai else "수동"
-        thread  = await thread_ch.create_thread(
-            name=f"📋 {week_label} 전체 레이드 일정 ({src_tag})",
-            auto_archive_duration=1440,
-            type=discord.ChannelType.public_thread
-        )
-        buf_card     = render_weekly_raids(summary, guild_name=guild_name)
-        buf_timeline = render_weekly_timeline(summary, guild_name=guild_name)
-        await thread.send(
-            content=self.user.mention,
-            files=[discord.File(fp=buf_card,     filename="weekly_card.png"),
-                   discord.File(fp=buf_timeline, filename="weekly_timeline.png")]
-        )
-        await interaction.followup.send(
-            f"{thread.mention} 에서 확인하세요! (24시간 후 자동 삭제)", ephemeral=True
-        )
-        asyncio.create_task(_delete_thread_after(thread, 86400))
+    thread = await thread_ch.create_thread(
+        name=f"📋 {week_label} 전체 레이드 일정",
+        auto_archive_duration=1440,
+        type=discord.ChannelType.public_thread
+    )
+    await thread.send(
+        content=f"{user.mention}\n🔗 전체 일정 보기: {build_web_url(slug)}?tab=weekly"
+    )
+    await interaction.followup.send(
+        f"{thread.mention} 에서 확인하세요! (24시간 후 자동 삭제)", ephemeral=True
+    )
+    asyncio.create_task(_delete_thread_after(thread, 86400))
 
 
 async def _delete_thread_after(thread: discord.Thread, seconds: int):

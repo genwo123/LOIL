@@ -7,26 +7,10 @@
 import discord
 from discord.ext import commands
 from discord import app_commands
-import json
-import os
-from typing import Optional
 
-from bot.utils.sheets import get_all_data, get_weekly_summary
+from bot.utils.raid_schedule import get_weekly_summary
 from bot.utils.image_renderer import render_weekly_raids
 from bot.config.channels import CH_SCHEDULE, get_channel
-
-# ==================== 설정 ====================
-
-SETTINGS_FILE = "bot/data/guild_settings.json"
-
-def get_sheet_url(guild_id: int) -> Optional[str]:
-    if not os.path.exists(SETTINGS_FILE):
-        return None
-    try:
-        with open(SETTINGS_FILE, "r", encoding="utf-8") as f:
-            return json.load(f).get(str(guild_id), {}).get("sheet_url")
-    except Exception:
-        return None
 
 
 # ==================== ScheduleCog ====================
@@ -39,17 +23,12 @@ class ScheduleCog(commands.Cog, name="ScheduleCog"):
     async def update_weekly_channel(self, guild: discord.Guild) -> bool:
         """
         🗒│일정조회 채널에 이번주 전체 레이드 이미지 갱신
-        main.py 수요일 스케줄러에서 호출
+        main.py 수요일 스케줄러 또는 /이번주갱신에서 호출
         """
-        url = get_sheet_url(guild.id)
-        if not url:
+        summary = get_weekly_summary(guild.id)
+        if not summary:
             return False
 
-        data = get_all_data(url)
-        if not data:
-            return False
-
-        summary  = get_weekly_summary(data)
         buf      = render_weekly_raids(summary)
         img_file = discord.File(fp=buf, filename="weekly.png")
 
@@ -89,7 +68,7 @@ class ScheduleCog(commands.Cog, name="ScheduleCog"):
             )
         else:
             await interaction.followup.send(
-                "❌ 시트가 연동되지 않았습니다.\n⚙│봇설정 채널에서 먼저 설정해주세요.",
+                "❌ 이번주 예정된 레이드가 없습니다.",
                 ephemeral=True
             )
 

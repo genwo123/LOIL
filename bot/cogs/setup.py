@@ -15,24 +15,10 @@ import os
 from bot.config.settings import BOT_VERSION
 from bot.config.channels import CH_SETUP, get_channel
 from bot.utils.permissions import require_admin
+from bot.utils.storage import load_settings, save_settings
+from bot.cogs.guild_connect import GuildConnectModal
 
 # ==================== 설정 저장 ====================
-
-SETTINGS_FILE = "bot/data/guild_settings.json"
-
-def load_settings() -> dict:
-    if not os.path.exists(SETTINGS_FILE):
-        return {}
-    try:
-        with open(SETTINGS_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except Exception:
-        return {}
-
-def save_settings(data: dict):
-    os.makedirs(os.path.dirname(SETTINGS_FILE), exist_ok=True)
-    with open(SETTINGS_FILE, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
 
 def get_guild_setting(guild_id: int) -> dict:
     return load_settings().get(str(guild_id), {})
@@ -47,34 +33,6 @@ def update_guild_setting(guild_id: int, key: str, value):
 
 
 # ==================== Modal 정의 ====================
-
-class SheetUrlModal(discord.ui.Modal, title="📋 구글 시트 연동"):
-    url = discord.ui.TextInput(
-        label="구글 스프레드시트 URL",
-        placeholder="https://docs.google.com/spreadsheets/d/...",
-        style=discord.TextStyle.short,
-        min_length=40,
-        max_length=500,
-        required=True
-    )
-
-    async def on_submit(self, interaction: discord.Interaction):
-        url_value = self.url.value.strip()
-        if "docs.google.com/spreadsheets" not in url_value:
-            await interaction.response.send_message(
-                "❌ 올바른 구글 시트 URL이 아닙니다!\n"
-                "예시: `https://docs.google.com/spreadsheets/d/...`",
-                ephemeral=True
-            )
-            return
-        update_guild_setting(interaction.guild_id, "sheet_url", url_value)
-        await interaction.response.send_message(
-            "✅ 구글 시트 URL이 저장되었습니다!", ephemeral=True
-        )
-        setup_cog = interaction.client.cogs.get("SetupCog")
-        if setup_cog:
-            await setup_cog.refresh_setup_panel(interaction.guild)
-
 
 class LoaApiKeyModal(discord.ui.Modal, title="🗝 로아 API 키 등록"):
     keys = discord.ui.TextInput(
@@ -166,21 +124,20 @@ class StyleSelectView(discord.ui.View):
 # ==================== 설정 패널 임베드 빌더 ====================
 
 def build_setup_embed(guild_setting: dict) -> discord.Embed:
-    """B+C+A 혼합형 설정 패널 임베드"""
+    """API 키 등록 + 웹 대시보드 연결 안내용 설정 패널 임베드.
+    구글 시트 등록은 웹 대시보드 이전 작업이 끝나면서 제거됨."""
 
-    sheet_url    = guild_setting.get("sheet_url", "")
     loa_keys_raw = guild_setting.get("loa_api_keys", "")
     gemini_key   = guild_setting.get("gemini_api_key", "")
     style        = guild_setting.get("schedule_style", "B")
 
     loa_keys = [k for k in loa_keys_raw.split(",") if k.strip()] if loa_keys_raw else []
 
-    sheet_ok  = bool(sheet_url)
     loa_ok    = bool(loa_keys)
     gemini_ok = bool(gemini_key)
-    all_done  = sheet_ok and loa_ok
+    all_done  = loa_ok
 
-    color = 0x57F287 if all_done else 0x9B59B6
+    color = 0x57F287 if all_done else 0xFEE75C
 
     embed = discord.Embed(
         title="⚙️ 로일 설정 패널",
@@ -194,11 +151,6 @@ def build_setup_embed(guild_setting: dict) -> discord.Embed:
     )
 
     # ── 상태 그리드 ──
-    embed.add_field(
-        name="📋 구글 시트",
-        value=(f"✅ 연동됨\n[시트 열기]({sheet_url})" if sheet_ok else "❌ 미연동"),
-        inline=True
-    )
     embed.add_field(
         name="🗝 로아 API",
         value=(f"✅ {len(loa_keys)}개 등록" if loa_ok else "❌ 미등록"),
@@ -214,8 +166,6 @@ def build_setup_embed(guild_setting: dict) -> discord.Embed:
         value=f"{'B — 타임라인' if style == 'B' else 'D — 다크카드'}",
         inline=True
     )
-    embed.add_field(name="\u200b", value="\u200b", inline=True)
-    embed.add_field(name="\u200b", value="\u200b", inline=True)
 
     # ── 스텝 가이드 ──
     def step(done: bool, num: str, text: str, sub: str, optional: bool = False) -> str:
@@ -228,10 +178,9 @@ def build_setup_embed(guild_setting: dict) -> discord.Embed:
         return f"{icon} **{num}. {text}** — {sub} `{status}`"
 
     guide = "\n".join([
-        step(sheet_ok,  "1", "구글 시트 연동",      "시트 URL 등록"),
-        step(loa_ok,    "2", "로아 API 키 등록",    "최대 3개 풀링"),
-        step(gemini_ok, "3", "Gemini API 키 등록", "없으면 기본 키 사용", optional=True),
-        step(True,      "4", "일정 스타일 선택",    f"현재: {'B — 타임라인' if style == 'B' else 'D — 다크카드'}"),
+        step(loa_ok,    "1", "로아 API 키 등록",    "최대 3개 풀링"),
+        step(gemini_ok, "2", "Gemini API 키 등록", "없으면 기본 키 사용", optional=True),
+        step(True,      "3", "일정 스타일 선택",    f"현재: {'B — 타임라인' if style == 'B' else 'D — 다크카드'}"),
     ])
     embed.add_field(name="🚀 설정 가이드", value=guide, inline=False)
 
@@ -240,8 +189,7 @@ def build_setup_embed(guild_setting: dict) -> discord.Embed:
             name="💡 도움말",
             value=(
                 "• 로아 API 키 → [개발자 센터](https://developer-lostark.game.onstove.com/)\n"
-                "• Gemini API 키 → [Google AI Studio](https://aistudio.google.com/)\n"
-                "• 구글 시트 → `loli-sheet@loil-487100.iam.gserviceaccount.com` 편집자 공유 필요"
+                "• Gemini API 키 → [Google AI Studio](https://aistudio.google.com/)"
             ),
             inline=False
         )
@@ -259,16 +207,6 @@ class SetupPanelView(discord.ui.View):
         super().__init__(timeout=None)
 
     # ── Row 0: 등록 버튼 ──
-
-    @discord.ui.button(
-        label="📋 시트 URL 등록",
-        style=discord.ButtonStyle.primary,
-        custom_id="setup_sheet_url",
-        row=0
-    )
-    async def setup_sheet(self, interaction: discord.Interaction, button: discord.ui.Button):
-        if not await require_admin(interaction): return
-        await interaction.response.send_modal(SheetUrlModal())
 
     @discord.ui.button(
         label="🗝 API 키 등록",
@@ -319,6 +257,34 @@ class SetupPanelView(discord.ui.View):
         if setup_cog:
             await setup_cog.refresh_setup_panel(interaction.guild)
         await interaction.response.send_message("🔄 설정 패널이 업데이트되었습니다!", ephemeral=True)
+
+    @discord.ui.button(
+        label="🔗 길드 연결",
+        style=discord.ButtonStyle.secondary,
+        custom_id="setup_guild_connect",
+        row=1
+    )
+    async def guild_connect(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if not await require_admin(interaction): return
+        await interaction.response.send_modal(GuildConnectModal())
+
+    @discord.ui.button(
+        label="🌐 대시보드 홈",
+        style=discord.ButtonStyle.secondary,
+        custom_id="setup_dashboard_home",
+        row=2
+    )
+    async def dashboard_home(self, interaction: discord.Interaction, button: discord.ui.Button):
+        from bot.config.settings import WEB_BASE_URL
+        from bot.utils.guild_url import get_url_name, sync_guild_name
+        url_name = get_url_name(interaction.guild_id)
+        if not url_name:
+            sync_guild_name(interaction.guild_id, interaction.guild.name)
+            url_name = get_url_name(interaction.guild_id)
+        url = f"{WEB_BASE_URL.rstrip('/')}/{url_name}/홈"
+        view = discord.ui.View()
+        view.add_item(discord.ui.Button(label="🌐 대시보드 열기", style=discord.ButtonStyle.link, url=url))
+        await interaction.response.send_message(view=view, ephemeral=True)
 
     @discord.ui.button(
         label="🗑 설정 초기화",

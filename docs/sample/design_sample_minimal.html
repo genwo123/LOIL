@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>[샘플 B: 미니멀 대시보드] 로일(LoIl)</title>
+<style>
+  :root {
+    --bg: #FAFAFC;
+    --card: #FFFFFF;
+    --card-border: #ECECF3;
+    --accent: #7C5CFC;
+    --support: #1FAE73;
+    --dps: #E04A5F;
+    --gold: #C9971E;
+    --text: #1C1C28;
+    --text-gray: #86869C;
+    --divider: #EFEFF5;
+    --shadow: 0 1px 2px rgba(20,20,40,0.04), 0 8px 24px rgba(20,20,40,0.06);
+  }
+  [data-theme="dark"] {
+    --bg: #17171F;
+    --card: #1E1E29;
+    --card-border: #2B2B38;
+    --text: #F1F1F6;
+    --text-gray: #8C8CA0;
+    --divider: #2B2B38;
+    --shadow: 0 1px 2px rgba(0,0,0,0.2), 0 8px 24px rgba(0,0,0,0.35);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Pretendard", "Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+    padding: 32px 20px 90px;
+    transition: background .2s, color .2s;
+  }
+  .wrap { max-width: 720px; margin: 0 auto; }
+  .preview-banner {
+    background: var(--accent);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 600;
+    text-align: center;
+    padding: 8px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+  }
+  .top-row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px; gap: 12px; }
+  header h1 { margin: 0 0 6px; font-size: 22px; font-weight: 700; letter-spacing: -0.3px; }
+  header p { margin: 0; color: var(--text-gray); font-size: 13px; }
+  .theme-toggle {
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    color: var(--text);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 8px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    box-shadow: var(--shadow);
+    white-space: nowrap;
+  }
+  h2.section-title {
+    font-size: 13px; color: var(--text-gray); margin: 30px 0 14px; font-weight: 600;
+  }
+  .stat-row { display: flex; gap: 10px; margin-bottom: 8px; }
+  .stat {
+    flex: 1; background: var(--card); border: 1px solid var(--card-border); border-radius: 12px;
+    padding: 14px 16px; box-shadow: var(--shadow);
+  }
+  .stat .num { font-size: 20px; font-weight: 700; }
+  .stat .label { font-size: 11px; color: var(--text-gray); margin-top: 2px; }
+
+  .raid-row {
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: 14px;
+    padding: 16px 18px;
+    margin-bottom: 10px;
+    box-shadow: var(--shadow);
+  }
+  .raid-row .view-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+  .raid-row .info { display: flex; flex-direction: column; gap: 5px; }
+  .raid-row .name { font-size: 15px; font-weight: 700; }
+  .raid-row .meta { font-size: 12px; color: var(--text-gray); display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  .tag {
+    display: inline-flex; align-items: center; gap: 3px;
+    padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;
+  }
+  .tag-cleared { background: rgba(31,174,115,0.12); color: var(--support); }
+  .tag-fixed { background: rgba(201,151,30,0.12); color: var(--gold); }
+  .tag-trai { background: rgba(224,74,95,0.12); color: var(--dps); }
+  .raid-row .actions { display: flex; gap: 6px; flex-shrink: 0; }
+
+  button, .btn {
+    font-family: inherit; font-size: 12.5px; font-weight: 600;
+    border: none; border-radius: 8px; padding: 7px 13px; cursor: pointer;
+  }
+  .btn-edit { background: var(--divider); color: var(--text); }
+  .btn-delete { background: rgba(224,74,95,0.1); color: var(--dps); }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { filter: brightness(1.06); }
+
+  .field-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 12px; }
+  .field-grid .full { grid-column: 1 / -1; }
+  label { display: block; font-size: 11px; color: var(--text-gray); margin-bottom: 5px; font-weight: 600; }
+  input, select {
+    width: 100%;
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--card-border);
+    border-radius: 8px;
+    padding: 9px 11px;
+    font-size: 13px;
+    font-family: inherit;
+  }
+  .add-card {
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: 14px;
+    padding: 18px;
+    box-shadow: var(--shadow);
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="preview-banner">🖼 디자인 샘플 B — 미니멀 대시보드 (실제 데이터 없음)</div>
+
+    <div class="top-row">
+      <header>
+        <h1>다크히어로즈 · 일정 관리</h1>
+        <p>Google Sheets에 바로 반영됩니다</p>
+      </header>
+      <button class="theme-toggle" onclick="toggleTheme()">☀️ / 🌙 테마 전환</button>
+    </div>
+
+    <div class="stat-row">
+      <div class="stat"><div class="num">5</div><div class="label">활성 레이드</div></div>
+      <div class="stat"><div class="num">24</div><div class="label">등록 캐릭터</div></div>
+      <div class="stat"><div class="num">1</div><div class="label">진행 중 트라이</div></div>
+    </div>
+
+    <h2 class="section-title">등록된 레이드</h2>
+
+    <div class="raid-row">
+      <div class="view-row">
+        <div class="info">
+          <span class="name">카멘 하드</span>
+          <span class="meta">시간 미정 · 120분 <span class="tag tag-cleared">클리어</span></span>
+        </div>
+        <div class="actions">
+          <button type="button" class="btn-edit">수정</button>
+          <button type="button" class="btn-delete">삭제</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="raid-row">
+      <div class="view-row">
+        <div class="info">
+          <span class="name">아브렐슈드 하드</span>
+          <span class="meta">시간 미정 · 90분 <span class="tag tag-fixed">고정멤버</span> <span class="tag tag-trai">🔥 트라이</span></span>
+        </div>
+        <div class="actions">
+          <button type="button" class="btn-edit">수정</button>
+          <button type="button" class="btn-delete">삭제</button>
+        </div>
+      </div>
+    </div>
+
+    <h2 class="section-title">새 레이드 추가</h2>
+    <div class="add-card">
+      <div class="field-grid">
+        <div class="full"><label>레이드명</label><input type="text" placeholder="예: 카멘"></div>
+        <div><label>난이도</label><select><option>노말</option><option selected>하드</option><option>나이트메어</option></select></div>
+        <div><label>인원수</label><select><option>4인</option><option selected>8인</option></select></div>
+        <div><label>소요시간(분)</label><input type="number" value="120"></div>
+        <div class="full" style="display:flex; align-items:center; gap:8px;">
+          <input type="checkbox" checked style="width:auto;"> <label style="margin:0;">🔥 트라이</label>
+        </div>
+        <div class="full" style="display:flex; gap:16px; align-items:center;">
+          <label style="margin:0; display:flex; align-items:center; gap:4px; font-size:12px;"><input type="radio" name="p" checked style="width:auto;"> 트라이 우선</label>
+          <label style="margin:0; display:flex; align-items:center; gap:4px; font-size:12px;"><input type="radio" name="p" style="width:auto;"> 트라이 후순위</label>
+        </div>
+      </div>
+      <button type="button" class="btn-primary">추가</button>
+    </div>
+  </div>
+
+  <script>
+    function toggleTheme() {
+      const html = document.documentElement;
+      html.dataset.theme = html.dataset.theme === 'dark' ? 'light' : 'dark';
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,471 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ guild.name }} · 일정 관리 · 로일(LoIl)</title>
+<style>
+  :root, :root[data-theme="dark"] {
+    --bg: #0d0f14;
+    --card: #161922;
+    --card-dark: #10131a;
+    --accent: #4f63d2;
+    --support: #43B581;
+    --dps: #F04747;
+    --gold: #FAA61A;
+    --text: #FFFFFF;
+    --text-gray: #8b95b0;
+    --divider: #1e2330;
+    --blurple: #4f63d2;
+  }
+  :root[data-theme="light"] {
+    --bg: #f5f7fd;
+    --card: #FFFFFF;
+    --card-dark: #eef0fa;
+    --accent: #4f63d2;
+    --support: #43B581;
+    --dps: #F04747;
+    --gold: #FAA61A;
+    --text: #1C1C28;
+    --text-gray: #5a6394;
+    --divider: #e2e6f3;
+    --blurple: #4f63d2;
+  }
+  * { box-sizing: border-box; }
+  html { scrollbar-gutter: stable; overflow-y: scroll; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Noto Sans KR", "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+    padding: 24px 16px 80px;
+  }
+  .wrap { max-width: 720px; margin: 0 auto; }
+  @media (min-width: 1000px) { .wrap { max-width: 980px; } }
+  @media (min-width: 1300px) { .wrap { max-width: 1280px; } }
+  .accordion-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 10px;
+    align-items: start;
+    margin-bottom: 10px;
+  }
+  .accordion-grid .accordion-section { margin-bottom: 0; min-width: 0; }
+  .top-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 24px; }
+  header h1 { margin: 0 0 4px; font-size: 20px; }
+  header p { margin: 0; color: var(--text-gray); font-size: 13px; }
+  .logout { color: var(--text-gray); font-size: 12px; text-decoration: none; }
+
+  h2.section-title { font-size: 14px; color: var(--text-gray); margin: 32px 0 12px; font-weight: normal; }
+
+  .raid-icon {
+    width: 40px; height: 40px; border-radius: 10px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; font-weight: bold; color: #fff; overflow: hidden;
+  }
+  .raid-icon img { width: 100%; height: 100%; object-fit: cover; }
+  .diff-pill {
+    font-size: 10.5px; font-weight: bold; padding: 2px 9px; border-radius: 999px; color: #fff;
+    background: #8B8FA3;
+  }
+  .diff-노말 { background: #8B8FA3; }
+  .diff-하드 { background: var(--gold); }
+  .diff-나이트메어 { background: var(--accent); }
+  .cleared-badge {
+    font-size: 10.5px; font-weight: bold; padding: 2px 9px; border-radius: 999px;
+    background: var(--support); color: #fff;
+  }
+  .full-badge {
+    font-size: 10.5px; font-weight: bold; padding: 2px 9px; border-radius: 999px;
+    background: var(--support); color: #fff; margin-left: 6px;
+  }
+  .guest-badge {
+    font-size: 10.5px; font-weight: bold; padding: 2px 9px; border-radius: 999px;
+    background: var(--card); border: 1px solid var(--divider); color: var(--text-gray); margin-left: 6px;
+  }
+  .fixed-badge { font-size: 10.5px; font-weight: bold; padding: 2px 9px; border-radius: 999px; background: var(--gold); color: #1C1C28; }
+  .trai-badge { font-size: 10.5px; font-weight: bold; padding: 2px 9px; border-radius: 999px; background: var(--dps); color: #fff; }
+
+  /* ---- 아코디언 (레이드명 기준 그룹) ---- */
+  .accordion-section { background: var(--card); border-radius: 12px; margin-bottom: 10px; overflow: hidden; }
+  .accordion-header {
+    display: flex; align-items: center; gap: 12px; padding: 14px 16px; cursor: pointer;
+    border-left: 4px solid var(--accent); min-width: 0; flex-wrap: wrap;
+  }
+  .accordion-header .info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+  .accordion-header .name { font-size: 15px; font-weight: bold; }
+  .accordion-header .agg { font-size: 11.5px; color: var(--text-gray); }
+  .accordion-header .chev { color: var(--text-gray); font-size: 12px; transition: transform 0.15s; flex-shrink: 0; }
+  .accordion-section.open .chev { transform: rotate(90deg); }
+  .accordion-body { display: none; padding: 0 12px 12px; }
+  .accordion-section.open .accordion-body { display: block; }
+
+  .pending-toggle {
+    font-family: inherit; font-size: 11.5px; color: var(--text-gray); background: none;
+    border: 1px dashed var(--divider); border-radius: 8px; padding: 9px 12px; cursor: pointer;
+    width: 100%; text-align: left; margin-top: 4px;
+  }
+  .pending-list { display: none; flex-direction: column; gap: 8px; margin-top: 8px; }
+  .pending-list.open { display: flex; }
+
+  /* ---- 공대(squad) 카드 — 아코디언 안에 들어가는 개별 항목 ---- */
+  .squad-row { background: var(--card-dark); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; min-width: 0; }
+  .squad-row:last-child { margin-bottom: 0; }
+  .squad-row.is-cleared { background: rgba(67,181,129,0.2); }
+  .squad-row .view-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .squad-row .squad-info { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 12.5px; color: var(--text-gray); }
+  .squad-row .squad-time { color: var(--text); }
+  .squad-row .actions { display: flex; gap: 6px; flex-shrink: 0; flex-wrap: wrap; justify-content: flex-end; }
+
+  button, .btn {
+    font-family: inherit;
+    font-size: 12.5px;
+    font-weight: bold;
+    border: none;
+    border-radius: 6px;
+    padding: 7px 12px;
+    cursor: pointer;
+  }
+  .btn-edit { background: var(--card-dark); color: var(--text); }
+  .btn-delete { background: var(--card-dark); color: var(--dps); }
+  .btn-primary { background: var(--blurple); color: #fff; }
+  .btn-primary:hover { filter: brightness(1.08); }
+
+  .edit-form { display: none; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--divider); }
+  .edit-form.open { display: block; }
+  .field-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 10px; }
+  .field-grid .full { grid-column: 1 / -1; }
+  .add-card .field-grid { grid-template-columns: repeat(2, 1fr); }
+  label { display: block; font-size: 11px; color: var(--text-gray); margin-bottom: 4px; }
+  input, select {
+    width: 100%;
+    background: var(--card-dark);
+    color: var(--text);
+    border: 1px solid var(--divider);
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-size: 13px;
+    font-family: inherit;
+  }
+  .form-actions { display: flex; gap: 8px; }
+
+  .modal-backdrop {
+    display: none;
+    position: fixed; inset: 0; background: rgba(0,0,0,0.55);
+    align-items: center; justify-content: center; padding: 20px; z-index: 100;
+  }
+  .modal-backdrop.open { display: flex; }
+  .add-card {
+    background: var(--card);
+    border-radius: 12px;
+    border-left: 4px solid var(--blurple);
+    padding: 20px;
+    width: 100%; max-width: 480px; max-height: 90vh; overflow-y: auto;
+  }
+  .empty { text-align: center; color: var(--text-gray); padding: 32px 0; }
+  .dev-banner {
+    background: #ED4245;
+    color: #fff;
+    font-size: 12px;
+    font-weight: bold;
+    text-align: center;
+    padding: 6px;
+    border-radius: 6px;
+    margin-bottom: 16px;
+  }
+  .header-actions { display: flex; align-items: center; gap: 12px; }
+  .theme-toggle {
+    background: var(--card-dark);
+    border: 1px solid var(--divider);
+    color: var(--text);
+    font-size: 11px;
+    font-weight: bold;
+    padding: 6px 10px;
+    border-radius: 999px;
+    cursor: pointer;
+  }
+  .section-tabs { display: flex; gap: 6px; margin: 32px 0 12px; }
+  .section-tab {
+    font-family: inherit; font-size: 12.5px; font-weight: bold; padding: 8px 14px; border-radius: 999px;
+    border: 1px solid var(--divider); background: var(--card); color: var(--text-gray); cursor: pointer;
+  }
+  .section-tab.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .badge-legend-toggle {
+    font-family: inherit; font-size: 11.5px; color: var(--text-gray); background: none;
+    border: 1px dashed var(--divider); border-radius: 8px; padding: 8px 12px; cursor: pointer;
+    width: 100%; text-align: left; margin-bottom: 10px;
+  }
+  .badge-legend { display: none; background: var(--card); border-radius: 10px; padding: 12px 16px; margin-bottom: 12px; font-size: 12px; color: var(--text-gray); line-height: 1.8; }
+  .badge-legend.open { display: block; }
+  .badge-legend b { color: var(--text); }
+  .accordion-header form { display: inline; }
+  .home-btn {
+    display: inline-flex; align-items: center; gap: 6px; text-decoration: none;
+    background: var(--card); border: 1px solid var(--divider); color: var(--text);
+    font-size: 13px; font-weight: bold; padding: 10px 16px; border-radius: 10px; margin-bottom: 20px;
+  }
+  .home-btn:hover { border-color: var(--accent); background: rgba(79,99,210,.1); }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    {% if dev_mode %}<div class="dev-banner">⚠ DEV MODE — 로그인 스킵됨 (배포 전 반드시 해제)</div>{% endif %}
+    <div class="top-row">
+      <header>
+        <h1>{{ guild.name }} · 일정 관리</h1>
+        <p>{{ user.username }}님 · {{ '여기서 바꾸면 바로 반영됩니다' if is_admin else '등록된 레이드 조회 (수정은 관리자만)' }}</p>
+      </header>
+      <div class="header-actions">
+        {% if is_admin %}<button class="btn-primary" onclick="document.getElementById('addRaidModal').classList.add('open')">+ 레이드 추가</button>{% endif %}
+        <button class="theme-toggle" onclick="loilToggleTheme()">🌙/☀️</button>
+        <a class="logout" href="/logout">로그아웃</a>
+      </div>
+    </div>
+
+    <a class="home-btn" href="/admin/{{ guild.id }}">길드 홈</a>
+
+    {% if is_admin %}
+    <div class="modal-backdrop" id="addRaidModal" onclick="if (event.target === this) this.classList.remove('open')">
+    <div class="add-card">
+      <h2 class="section-title" style="margin-top:0;">새 레이드 추가</h2>
+      <form method="post" action="/admin/{{ guild.id }}/schedule/add">
+        <div class="field-grid">
+          <div class="full">
+            <label>레이드명</label>
+            <input type="text" name="name" placeholder="예: 카멘" required>
+          </div>
+          <div>
+            <label>난이도</label>
+            <select name="diff">
+              {% for d in diffs %}
+              <option value="{{ d }}">{{ d }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div>
+            <label>목표 인원수 (선택)</label>
+            <input type="number" name="size" min="1" max="16" placeholder="비우면 카탈로그 기준">
+          </div>
+          <div>
+            <label>소요시간(분)</label>
+            <input type="number" name="duration_minutes" min="30" step="30" value="60" required>
+          </div>
+          <div class="full" style="display:flex; align-items:center; gap:8px;">
+            <input type="checkbox" name="trai" value="true" id="add-trai" style="width:auto;" onchange="document.getElementById('trai-priority-row').style.display = this.checked ? 'flex' : 'none';">
+            <label for="add-trai" style="margin:0;">트라이 (진행 중 / 미클리어)</label>
+          </div>
+          <div class="full" id="trai-priority-row" style="display:none; gap:16px; align-items:center;">
+            <label style="margin:0; display:flex; align-items:center; gap:4px;"><input type="radio" name="trai_priority" value="high" checked style="width:auto;"> 트라이 우선</label>
+            <label style="margin:0; display:flex; align-items:center; gap:4px;"><input type="radio" name="trai_priority" value="low" style="width:auto;"> 트라이 후순위</label>
+          </div>
+        </div>
+        <p class="meta" style="margin:0 0 10px;">요일/시간은 입력하지 않습니다 — 일단 공대 1개만 "미정"으로 만들고, 사람이 더 모이면 레이드 카드에서 "+공대 추가"로 늘려주세요. (참고: 이번 주 불참 아닌 길드원 {{ going_hint }}명 — 실제로 이 레이드에 갈 인원과는 다를 수 있어요)<br>목표 인원수는 원래 그 레이드의 정원과 달라도 됩니다 — 예: 8인 레이드를 4명이서만 갈 계획이면 4로 입력. 나중에 공대 수정에서 언제든 바꿀 수 있어요.</p>
+        <div class="form-actions">
+          <button type="submit" class="btn-primary">추가</button>
+          <button type="button" class="btn-edit" onclick="document.getElementById('addRaidModal').classList.remove('open')">취소</button>
+        </div>
+      </form>
+    </div>
+    </div>
+    {% endif %}
+
+    {% macro squad_card(raid) %}
+      <div class="squad-row{{ ' is-cleared' if raid.cleared else '' }}">
+        <div class="view-row">
+          <div class="squad-info">
+            <span class="diff-pill diff-{{ raid.diff }}">{{ raid.diff or '?' }}</span>
+            <span class="squad-time">{% if raid.day == '미정' %}시간 미정{% else %}{{ raid.day }}요일 {{ raid.time_str }}{% endif %} · {{ raid.duration }}분</span>
+            <span class="squad-count"><b style="color:{{ 'var(--support)' if raid.signup_count >= raid.size else 'var(--text)' }};">{{ raid.signup_count }}/{{ raid.size }}</b>{% if raid.size_override %}<span title="목표 인원수를 직접 지정함">*</span>{% endif %}{% if raid.signup_count >= raid.size %}<span class="full-badge">풀팟</span>{% endif %}{% if raid.guest_count %}<span class="guest-badge">게스트 {{ raid.guest_count }}명</span>{% endif %}</span>
+            {% if raid.cleared %}<span class="cleared-badge">클리어</span>{% endif %}
+            {% if raid.fixed %}<span class="fixed-badge">고정멤버</span>{% endif %}
+            {% if raid.full_name in trai_status %}<span class="trai-badge">트라이{% if trai_status[raid.full_name].priority == 'high' %}(우선){% else %}(후순위){% endif %}</span>{% endif %}
+          </div>
+          {% if is_admin %}
+          <div class="actions">
+            <form method="post" action="/admin/{{ guild.id }}/schedule/add-squad" style="display:inline;"
+                  onsubmit="return confirm('{{ raid.name }} {{ raid.diff }} 공대를 하나 더 만들까요? (사람이 더 모였을 때만 눌러주세요)');">
+              <input type="hidden" name="name" value="{{ raid.name }}">
+              <input type="hidden" name="diff" value="{{ raid.diff }}">
+              <input type="hidden" name="duration_minutes" value="{{ raid.duration }}">
+              <button type="submit" class="btn-edit">+공대 추가</button>
+            </form>
+            <button type="button" class="btn-edit" onclick="toggleEdit({{ raid.col }})">수정</button>
+            <form method="post" action="/admin/{{ guild.id }}/schedule/{{ raid.col }}/guest" style="display:inline;">
+              <input type="hidden" name="delta" value="1">
+              <button type="submit" class="btn-edit" title="길드원 아닌 지인 등을 데려와서 채운 인원 +1">+게스트</button>
+            </form>
+            {% if raid.guest_count %}
+            <form method="post" action="/admin/{{ guild.id }}/schedule/{{ raid.col }}/guest" style="display:inline;">
+              <input type="hidden" name="delta" value="-1">
+              <button type="submit" class="btn-edit">-게스트</button>
+            </form>
+            {% endif %}
+            <form method="post" action="/admin/{{ guild.id }}/schedule/{{ raid.col }}/toggle-scheduled" style="display:inline;">
+              <input type="hidden" name="scheduled" value="{{ 'false' if raid.scheduled else 'true' }}">
+              <button type="submit" class="btn-edit">{{ '미예정으로' if raid.scheduled else '예정으로' }}</button>
+            </form>
+            {% if not raid.cleared %}
+            <form method="post" action="/admin/{{ guild.id }}/schedule/{{ raid.col }}/clear" style="display:inline;"
+                  onsubmit="return confirm('{{ raid.name }} {{ raid.diff }} 을(를) 클리어 처리할까요?');">
+              <button type="submit" class="btn-edit">클리어 처리</button>
+            </form>
+            {% endif %}
+            <form method="post" action="/admin/{{ guild.id }}/schedule/{{ raid.col }}/delete"
+                  onsubmit="return confirm('{{ raid.name }} {{ raid.diff }} 을(를) 삭제할까요?');" style="display:inline;">
+              <button type="submit" class="btn-delete">삭제</button>
+            </form>
+          </div>
+          {% endif %}
+        </div>
+
+        <form class="edit-form" id="edit-{{ raid.col }}" method="post" action="/admin/{{ guild.id }}/schedule/{{ raid.col }}/update">
+          <div class="field-grid">
+            <div>
+              <label>레이드명</label>
+              <input type="text" name="name" value="{{ raid.name }}" required>
+            </div>
+            <div>
+              <label>난이도</label>
+              <select name="diff">
+                {% for d in diffs %}
+                <option value="{{ d }}" {{ 'selected' if d == raid.diff else '' }}>{{ d }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div>
+              <label>요일</label>
+              <select name="day" id="edit-day-{{ raid.col }}">
+                {% for d in days %}
+                <option value="{{ d }}" {{ 'selected' if d == raid.day else '' }}>{{ d }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div>
+              <label>시(0~23)</label>
+              <input type="number" name="hour" id="edit-hour-{{ raid.col }}" min="0" max="23" value="{{ raid.hour }}" required>
+            </div>
+            <div>
+              <label>분</label>
+              <select name="minute" id="edit-minute-{{ raid.col }}">
+                <option value="0" {{ 'selected' if raid.minute == 0 else '' }}>00</option>
+                <option value="30" {{ 'selected' if raid.minute == 30 else '' }}>30</option>
+              </select>
+            </div>
+            <div>
+              <label>소요시간(분)</label>
+              <input type="number" name="duration_minutes" min="30" step="30" value="{{ raid.duration }}" required>
+            </div>
+            <div>
+              <label>목표 인원수</label>
+              <input type="number" name="size" min="1" max="16" value="{{ raid.size_override or '' }}" placeholder="자동: {{ raid.size }}명">
+            </div>
+          </div>
+
+          {% if raid.candidates %}
+          <div class="full" style="margin-bottom:10px;">
+            <label>추천 시간대 (참가 신청자 가능시간 기준, 클릭하면 채워짐)</label>
+            <div style="display:flex; gap:6px; flex-wrap:wrap;">
+              {% for c in raid.candidates %}
+              <button type="button" class="btn-edit"
+                      onclick="document.getElementById('edit-day-{{ raid.col }}').value='{{ c.day }}'; document.getElementById('edit-hour-{{ raid.col }}').value={{ c.hour }}; document.getElementById('edit-minute-{{ raid.col }}').value={{ c.minute }};">
+                {{ c.day }}요일 {{ c.hour }}:{{ '%02d' % c.minute }} ({{ c.available_count }}/{{ c.total_signups }}명)
+              </button>
+              {% endfor %}
+            </div>
+          </div>
+          {% endif %}
+
+          <div class="form-actions">
+            <button type="submit" class="btn-primary">저장</button>
+            <button type="button" class="btn-edit" onclick="toggleEdit({{ raid.col }})">취소</button>
+          </div>
+        </form>
+      </div>
+    {% endmacro %}
+
+    {% macro render_group(group, idx, is_active) %}
+      <div class="accordion-section" id="{{ 'acc-' if is_active else 'iacc-' }}{{ idx }}">
+        <div class="accordion-header" onclick="document.getElementById('{{ 'acc-' if is_active else 'iacc-' }}{{ idx }}').classList.toggle('open')">
+          <div class="raid-icon" style="background: {{ group.color }};">
+            {% if group.icon_url %}<img src="{{ group.icon_url }}" alt="{{ group.name }}">{% else %}{{ group.name[0] }}{% endif %}
+          </div>
+          <div class="info">
+            <span class="name">{{ group.name }}</span>
+            <span class="agg">총 {{ group.scheduled|length + group.pending|length }}공대 · 예정 {{ group.scheduled|length }}개 · 미정 {{ group.pending|length }}개</span>
+          </div>
+          {% if is_admin %}
+          <form method="post" action="/admin/{{ guild.id }}/schedule/group/{{ group.name }}/toggle-active" onclick="event.stopPropagation();">
+            <input type="hidden" name="active" value="{{ 'false' if is_active else 'true' }}">
+            <button type="submit" class="btn-edit">{{ '비활성화' if is_active else '활성화' }}</button>
+          </form>
+          {% endif %}
+          <span class="chev">▶</span>
+        </div>
+        <div class="accordion-body">
+          {% for raid in group.scheduled %}{{ squad_card(raid) }}{% endfor %}
+          {% if group.pending %}
+          <button type="button" class="pending-toggle" onclick="this.nextElementSibling.classList.toggle('open'); this.textContent = this.nextElementSibling.classList.contains('open') ? '▲ 미정 대기 {{ group.pending|length }}개 접기' : '▼ 미정 대기 {{ group.pending|length }}개 (아직 시간 안 잡힘) — 펼쳐보기';">▼ 미정 대기 {{ group.pending|length }}개 (아직 시간 안 잡힘) — 펼쳐보기</button>
+          <div class="pending-list">
+            {% for raid in group.pending %}{{ squad_card(raid) }}{% endfor %}
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    {% endmacro %}
+
+    <div class="section-tabs">
+      <button type="button" class="section-tab active" id="tabActive" onclick="document.getElementById('activeView').style.display='block'; document.getElementById('inactiveView').style.display='none'; this.classList.add('active'); document.getElementById('tabInactive').classList.remove('active');">등록된 레이드</button>
+      <button type="button" class="section-tab" id="tabInactive" onclick="document.getElementById('activeView').style.display='none'; document.getElementById('inactiveView').style.display='block'; this.classList.add('active'); document.getElementById('tabActive').classList.remove('active');">비활성화 레이드 보기{% if inactive_groups %} ({{ inactive_groups|length }}){% endif %}</button>
+    </div>
+
+    <button type="button" class="badge-legend-toggle" onclick="this.nextElementSibling.classList.toggle('open'); this.textContent = this.nextElementSibling.classList.contains('open') ? '▲ 배지 설명 접기' : 'ⓘ 미정 · 예정 · 고정멤버 · 트라이 · 클리어 · 활성/비활성이 뭔가요?';">ⓘ 미정 · 예정 · 고정멤버 · 트라이 · 클리어 · 활성/비활성이 뭔가요?</button>
+    <div class="badge-legend">
+      <p><b>미정</b> — 아직 요일/시간이 안 잡힌 공대. <b>예정</b> — 요일/시간이 확정된 공대.</p>
+      <p><b>고정멤버</b> — 매주 같은 인원으로 고정 진행하는 공대라는 표시(관리자가 직접 남김, AI 자동편성이 참고용으로 씀).</p>
+      <p><b>트라이</b> — 아직 클리어 못 해서 진행 중인 레이드. 우선/후순위는 다른 레이드와 시간이 겹칠 때 어느 쪽을 먼저 배정할지의 우선순위.</p>
+      <p><b>클리어</b> — 이번 주 이미 클리어 처리된 공대(초록색으로 표시됨).</p>
+      <p><b>활성/비활성</b> — 비활성화하면 AI 자동편성 대상에서 빠지고 "비활성화 레이드 보기" 탭으로 옮겨감. 삭제되는 건 아니라서 나중에 다시 활성화할 수 있음.</p>
+    </div>
+
+    <div id="activeView">
+      {% if groups %}
+        <div class="accordion-grid">
+        {% for group in groups %}{{ render_group(group, loop.index, true) }}{% endfor %}
+        </div>
+      {% else %}
+        <div class="empty">등록된 레이드가 없습니다. 아래에서 추가해주세요.</div>
+      {% endif %}
+    </div>
+
+    <div id="inactiveView" style="display:none;">
+      {% if inactive_groups %}
+        <div class="accordion-grid">
+        {% for group in inactive_groups %}{{ render_group(group, loop.index, false) }}{% endfor %}
+        </div>
+      {% else %}
+        <div class="empty">비활성화된 레이드가 없습니다.</div>
+      {% endif %}
+    </div>
+
+  </div>
+
+  <script>
+    function toggleEdit(col) {
+      const form = document.getElementById('edit-' + col);
+      if (form) form.classList.toggle('open');
+    }
+    function loilToggleTheme() {
+      const html = document.documentElement;
+      const cur = html.dataset.theme || 'dark';
+      html.dataset.theme = cur === 'dark' ? 'light' : 'dark';
+      try { localStorage.setItem('loil-theme', html.dataset.theme); } catch (e) {}
+    }
+    (function () {
+      try {
+        const saved = localStorage.getItem('loil-theme');
+        if (saved) document.documentElement.dataset.theme = saved;
+      } catch (e) {}
+    })();
+  </script>
+</body>
+</html>
