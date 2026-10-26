@@ -144,17 +144,20 @@ docs/reports/YYYY-MM-DD_제목.md
 │   ├── onboarding.py             ← /guild/new, /guild/join
 │   ├── auth.py                   ← Discord OAuth2
 │   ├── static/css/site.css       ← 홍보 사이트(홈+가이드 9페이지) 공용 디자인 시스템 — 공통 CSS는 여기 한 곳만 고침
+│   ├── static/css/mobile.css     ← 대시보드 22개 템플릿 공용 모바일(640px 이하) 보정
+│   ├── static/js/viewtoggle.js   ← 폰에서 "PC 버전으로 보기" 전환 막대(모든 페이지 viewport 메타 뒤에서 로드)
 │   ├── static/                   ← guild_banners/, raid_icons/, loil/ (기본 브랜딩)
 │   └── templates/                ← 템플릿 22개 (index.html = 실제 홈 포함)
 ├── docs/                          ← 가이드 정적 페이지(웹서버가 /guide/*로 서빙) + 문서
 │   ├── guide.html / guide-*.html / contact.html  ← 홍보·가이드 사이트 (상단 nav 구성 전부 동일 유지)
 │   ├── index.html                 ← 옛 홈 사본. /guide, /guide/index.html은 서버가 / 로 리다이렉트하므로 더 이상 동기화 불필요
+│   ├── img/                       ← 가이드 페이지 캡처(데모 데이터로 만든 것만. 실데이터·개인정보 캡처 금지)
 │   ├── dev/                       ← 개발 문서 (START_GUIDE, API_REFERENCE 등 .md)
 │   ├── user/                      ← 사용자 문서 (COMMANDS, SETUP_GUIDE 등)
 │   ├── reports/                   ← 작업 보고서 (YYYY-MM-DD_제목.md)
 │   ├── sample/                    ← 디자인 시안·목업 등 외형만 보여주는 자료
 │   └── 웹_UI_텍스트_카탈로그.md, 할일_2026-08-31.md
-├── deploy/                        ← 실서버 이전용 systemd 서비스 템플릿 + README(체크리스트)
+├── deploy/                        ← 실서버 이전용: systemd 템플릿, README, 서버 설치 스크립트(setup-server/install-app/finalize-env/setup-caddy/make-bundle .sh)
 ├── logs/                          ← 실행 로그 (.gitignore 대상)
 ├── CHANGELOG/
 ├── CLAUDE.md
@@ -201,17 +204,20 @@ docs/reports/YYYY-MM-DD_제목.md
 - **관리자/길드원 화면 구분 + 미리보기**(`?as=member`)
 - **홈페이지(`/`)와 가이드(`/guide/*`)**: 손수 만든 디자인 톤으로 통일, 공용 CSS(`site.css`) 하나로 통합, 홈 히어로는 3버튼(Discord에 추가 / 길드 가입 / 내 길드 보기)
 - **운영 안전장치**: `storage.py`(원자적 저장+락+백업), `app_logging.py`(로그 파일), 문제해결 매뉴얼
+- **모바일 대응**: 반응형(같은 주소, 폭에 따라 CSS 변경 — `m.` 주소 없음). 대시보드 상단 압축, 길드 홈 카드 2열, 가능시간 표 요일 헤더 고정, 폰에서 "PC 버전으로 보기" 전환 막대
+- **문의 박스**: 홈/가이드 하단 묶음 박스(1:1 문의 / 디스코드 "준비 중" / 시작 가이드). 디스코드 서버가 생기면 비활성 `<span>`을 링크로 교체(9곳)
+- **가이드 캡처**: `guide-sheets.html`은 데모 데이터 캡처로 채움(나머지 가이드 11곳은 Discord/Google/로아 개발자 포털 화면이라 사용자 캡처 필요)
 - **Gemini SDK 이전**: 단종된 `google-generativeai` → `google-genai`, 모델 `gemini-flash-latest` (코드 쪽은 완료)
 - **웹 시뮬레이션 검증**: pending 길드 포함 온보딩 웹 흐름 34개 체크 통과(`int(guild_id)` 계열 버그 전수 수정 — `web/admin.py`에서 `int(guild_id)` 금지)
 
 **미완료 / 확인 필요**
 - 🔴 **Gemini API 키 유출·차단**: `.env`와 `guild_settings.json`(길드 `1473254272433913961`)의 키가 구글에 의해 차단됨 → AI 자동편성/파티추천 현재 동작 안 함. 새 키 발급 후 두 군데 교체 필요 (사용자가 "나중에"로 보류 중)
-- 🔴 **작업물 미커밋**: 마지막 커밋 2026-07-27, 이후 변경 약 70개 파일(새 파일 다수)이 워킹트리에만 있음
+- ✅ 작업물 커밋 완료(2026-10-26, 로컬 `master`). **푸시는 아직 안 함** — 저장소 공개 여부 확인 후
 - **GitHub 저장소(`genwo123/LOIL`) 공개 여부 확인** — 옛 커밋(`248c859`)에 키가 평문으로 남아 있음. 히스토리 재작성은 파괴적이라 사용자 승인 필요
-- **실서버 이전 안 됨**: 지금은 개발 PC 수동 실행. `WEB_BASE_URL`/`DISCORD_REDIRECT_URI`가 localhost라 외부 사용자는 로그인 불가. 체크리스트는 `deploy/README.md`
+- **실서버 이전 진행 중(Hetzner VPS + DuckDNS 무료 서브도메인 + Caddy HTTPS)**: 지금은 개발 PC 수동 실행이라 `WEB_BASE_URL`/`DISCORD_REDIRECT_URI`가 localhost, 외부 사용자는 로그인 불가. Hetzner 신분증 인증 대기 중. SSH 키(`~/.ssh/id_ed25519_loil`, 비밀번호 없음 — 이전 후 삭제/교체)와 `deploy/*.sh`는 준비됨. 서버 설정은 Claude가 SSH로 직접 진행하기로 승인받음. 단계는 `docs/reports/2026-10-08_Hetzner-서버이전-체크리스트.md`
 - **Discord 봇 라이브 테스트 미확인**: 새 명령어 슬래시 동기화, 실제 서버 온보딩(초대→연결→가입)은 사람이 직접 해봐야 함(자동화 불가)
-- **문의 창구 없음**: `docs/contact.html`의 "Discord 서버 입장하기"가 링크 없는 스텁 (사용자가 고민 중)
-- **모바일 UI**: 전체 틀이 잡힌 뒤 진행하기로 보류
+- **문의 창구**: Discord 서버는 나중에 만들 예정 — 지금은 "준비 중" 임시 표기
+- **모바일**: 375px 폭 점검·보정 완료. 실제 폰 기기에서의 터치 동작(가능시간 드래그 등)은 사용자 확인 필요
 - 광고 위치/방식 결정, 테스트 길드 `web_1bcb30f58f8e` 정리 여부 (`docs/할일_2026-08-31.md`)
 - `DEV_SKIP_LOGIN`은 현재 `false`. 개발용으로 켜면 **배포 전 반드시 끌 것**
 
@@ -219,12 +225,12 @@ docs/reports/YYYY-MM-DD_제목.md
 
 ## 다음 목표 (우선순위 — 2026-10-08 기준)
 
-1. **작업물 로컬 커밋** (secrets 포함 여부 확인 후) — 소실 방지
+1. ~~작업물 로컬 커밋~~ 완료 (2026-10-26)
 2. **GitHub 공개 여부 확인 → 필요 시 비공개 전환**
-3. **실서버 이전** — 비용 없이 시작하려면 개발 PC + 무료 터널(고정 도메인)로 먼저 테스트하는 방법 있음. 상시 가동은 `deploy/README.md` 체크리스트
+3. **실서버 이전**(진행 중) — Hetzner + DuckDNS. 정식 오픈 때 광고(애드센스)를 쓰려면 본인 도메인 필요(무료 서브도메인은 승인 어려울 가능성 높음)
 4. **Discord 봇 실제 재시작 + 온보딩 라이브 테스트** (사람이 직접)
 5. **Gemini 키 교체 + AI 자동편성 실호출 검증**
-6. **모바일 UI**, 레이아웃 고도화(주간 7일 그리드, 월간 캘린더, 퀵 대시보드)
+6. 레이아웃 고도화(주간 7일 그리드, 월간 캘린더, 퀵 대시보드), 가이드 캡처 11곳 채우기(사용자 캡처 필요)
 7. **아이템레벨 기반 자격 필터링**, 길드별 커스텀 테마
 8. **DB 마이그레이션(`guild_settings.json` → DB)** — 더 장기
 

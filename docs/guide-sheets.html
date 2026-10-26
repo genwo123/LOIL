@@ -40,19 +40,39 @@
       <p class="step-desc">.xlsx 파일 하나에 시트 탭을 2개 만듭니다. 탭 이름에 <code>레이드</code>, <code>멤버</code> 글자가 들어가면 자동으로 인식되고, 첫 행은 헤더로 사용합니다.</p>
       <div class="tip"><strong>레이드 탭</strong> — 레이드명(필수), 난이도(필수, 노말·하드·나이트메어), 요일(선택), 시간(선택, 예: 21:00), 소요시간(선택, 분 단위, 비우면 60)</div>
       <div class="tip" style="margin-top:10px;"><strong>멤버 탭</strong> — 닉네임(선택, 비우면 캐릭터명 사용), 캐릭터명(필수), 권한(선택, 길드장·부길드장·공란, 길드장은 1명만)</div>
-      <div class="img-ph h200"><span>[ 엑셀 파일 탭 구조 ]</span><span style="font-size:10px;margin-top:4px;opacity:.6;">캡처 이미지 삽입 예정</span></div>
+      <div class="xl-wrap">
+        <div class="xl-tabs"><span class="xl-tab active">레이드</span><span class="xl-tab">멤버</span></div>
+        <div class="xl-scroll"><table class="xl-table">
+          <tr><th></th><th>A</th><th>B</th><th>C</th><th>D</th><th>E</th></tr>
+          <tr><td class="rn">1</td><td class="hd">레이드명</td><td class="hd">난이도</td><td class="hd">요일</td><td class="hd">시간</td><td class="hd">소요시간</td></tr>
+          <tr><td class="rn">2</td><td>종막</td><td>하드</td><td>수</td><td>21:00</td><td>90</td></tr>
+          <tr><td class="rn">3</td><td>세르카</td><td>나이트메어</td><td></td><td></td><td></td></tr>
+          <tr><td class="rn">4</td><td>벨가르딘</td><td>노말</td><td></td><td></td><td></td></tr>
+        </table></div>
+        <div class="xl-tabs" style="margin-top:14px;"><span class="xl-tab">레이드</span><span class="xl-tab active">멤버</span></div>
+        <div class="xl-scroll"><table class="xl-table">
+          <tr><th></th><th>A</th><th>B</th><th>C</th></tr>
+          <tr><td class="rn">1</td><td class="hd">닉네임</td><td class="hd">캐릭터명</td><td class="hd">권한</td></tr>
+          <tr><td class="rn">2</td><td>라온</td><td>라온블레이드</td><td>길드장</td></tr>
+          <tr><td class="rn">3</td><td>하늘</td><td>하늘소서</td><td>부길드장</td></tr>
+          <tr><td class="rn">4</td><td>별이</td><td>별이서폿</td><td></td></tr>
+        </table></div>
+        <p class="xl-cap">예시 파일 (위: "레이드" 탭, 아래: "멤버" 탭)</p>
+      </div>
     </div>
     <div class="divider"></div>
     <div class="step-block">
       <div class="step-header"><div class="step-badge">2</div><h2>웹 관리 화면에서 업로드하기</h2></div>
       <p class="step-desc">길드 대시보드 → <strong>길드원 명단</strong> → <strong>+ 엑셀로 일괄 등록</strong>에서 방금 만든 파일을 선택하고 미리보기를 눌러주세요.</p>
-      <div class="img-ph h200"><span>[ 엑셀 업로드 화면 ]</span><span style="font-size:10px;margin-top:4px;opacity:.6;">캡처 이미지 삽입 예정</span></div>
+      <img class="guide-shot" src="/guide/img/sheets-upload.jpg" alt="엑셀 업로드 화면" loading="lazy">
+      <p class="shot-cap">엑셀 업로드 화면 (예시 데이터)</p>
     </div>
     <div class="divider"></div>
     <div class="step-block">
       <div class="step-header"><div class="step-badge">3</div><h2>미리보기 확인 후 등록 확정</h2></div>
       <p class="step-desc">형식이 안 맞는 행은 "건너뛴 항목"으로 따로 표시됩니다. 레이드/멤버 개수를 확인하고 이상 없으면 <strong>이대로 등록</strong>을 누르면 바로 반영됩니다.</p>
-      <div class="img-ph h280"><span>[ 업로드 미리보기 화면 ]</span><span style="font-size:10px;margin-top:4px;opacity:.6;">캡처 이미지 삽입 예정</span></div>
+      <img class="guide-shot" src="/guide/img/sheets-preview.jpg" alt="업로드 미리보기 화면" loading="lazy">
+      <p class="shot-cap">업로드 미리보기 화면 (예시 데이터)</p>
     </div>
     <div class="divider"></div>
     <div class="step-block">
