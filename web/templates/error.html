@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="ko" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="/static/js/viewtoggle.js"></script>
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/static/loil/favicon-32.png">
+<link rel="apple-touch-icon" href="/static/loil/apple-touch-icon.png">
+<meta name="theme-color" content="#0d0f14">
+<meta name="robots" content="noindex">
+<title>{{ title }} · 로일(LoIl)</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/site.css">
+<style>
+.err-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:32px 20px;background:var(--hero-grad),var(--bg);}
+.err-card{max-width:460px;width:100%;text-align:center;}
+.err-logo{display:inline-block;font-family:'Rajdhani',sans-serif;font-size:26px;font-weight:700;letter-spacing:4px;margin-bottom:28px;}
+.err-logo em{color:var(--accent);font-style:normal;}
+.err-code{font-family:'Rajdhani',sans-serif;font-size:96px;font-weight:700;line-height:1;color:var(--accent);opacity:.9;}
+.err-title{font-size:24px;font-weight:900;margin:14px 0 10px;}
+.err-msg{font-size:15px;color:var(--text2);line-height:1.8;margin-bottom:28px;}
+.err-actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;}
+</style>
+</head>
+<body>
+<div class="err-wrap">
+  <div class="err-card">
+    <a href="/" class="err-logo">LO<em>I</em>L</a>
+    <div class="err-code">{{ code }}</div>
+    <h1 class="err-title">{{ title }}</h1>
+    <p class="err-msg">{{ message }}</p>
+    <div class="err-actions">
+      <a class="btn btn-primary" href="/">홈으로</a>
+      <a class="btn btn-secondary" href="/guide/guide.html">시작 가이드</a>
+      <a class="btn btn-secondary" href="/guide/contact.html">문의</a>
+    </div>
+  </div>
+</div>
+<script>
+(function(){try{var s=localStorage.getItem('loil-theme');if(s)document.documentElement.dataset.theme=s;}catch(e){}})();
+</script>
+</body>
+</html>

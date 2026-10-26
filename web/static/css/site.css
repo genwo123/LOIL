@@ -139,6 +139,8 @@ code{background:var(--code-bg);border:1px solid var(--code-bd);color:var(--code-
 a.support-btn:hover{border-color:var(--accent);color:var(--accent);}
 .support-btn small{font-size:11px;color:var(--text2);margin-left:2px;}
 .support-btn.is-soon{opacity:.6;cursor:default;}
+.support-links{text-align:center;margin-top:14px;font-size:12px;color:var(--text3);}
+.support-links a:hover{color:var(--accent);}
 
 /* 가이드 캡처/엑셀 예시 */
 .guide-shot{display:block;width:100%;max-width:560px;height:auto;margin:6px auto 0;border-radius:12px;border:1px solid var(--border);box-shadow:var(--shadow);}

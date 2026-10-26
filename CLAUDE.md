@@ -146,6 +146,7 @@ docs/reports/YYYY-MM-DD_제목.md
 │   ├── static/css/site.css       ← 홍보 사이트(홈+가이드 9페이지) 공용 디자인 시스템 — 공통 CSS는 여기 한 곳만 고침
 │   ├── static/css/mobile.css     ← 대시보드 22개 템플릿 공용 모바일(640px 이하) 보정
 │   ├── static/js/viewtoggle.js   ← 폰에서 "PC 버전으로 보기" 전환 막대(모든 페이지 viewport 메타 뒤에서 로드)
+│   ├── static/loil/              ← 브랜딩(Loil_icon/banner), favicon(.ico/32/192/apple-touch), og-image.png(링크 공유 미리보기 1200x630)
 │   ├── static/                   ← guild_banners/, raid_icons/, loil/ (기본 브랜딩)
 │   └── templates/                ← 템플릿 22개 (index.html = 실제 홈 포함)
 ├── docs/                          ← 가이드 정적 페이지(웹서버가 /guide/*로 서빙) + 문서
@@ -205,6 +206,7 @@ docs/reports/YYYY-MM-DD_제목.md
 - **홈페이지(`/`)와 가이드(`/guide/*`)**: 손수 만든 디자인 톤으로 통일, 공용 CSS(`site.css`) 하나로 통합, 홈 히어로는 3버튼(Discord에 추가 / 길드 가입 / 내 길드 보기)
 - **운영 안전장치**: `storage.py`(원자적 저장+락+백업), `app_logging.py`(로그 파일), 문제해결 매뉴얼
 - **모바일 대응**: 반응형(같은 주소, 폭에 따라 CSS 변경 — `m.` 주소 없음). 대시보드 상단 압축, 길드 홈 카드 2열, 가능시간 표 요일 헤더 고정, 폰에서 "PC 버전으로 보기" 전환 막대
+- **오류 화면·아이콘·공유 미리보기·개인정보 안내**: `web/templates/error.html`(404/403/500 등 브라우저 요청에만, API/JSON 요청은 JSON 유지), `/favicon.ico` 라우트와 전 페이지 favicon 링크, 홈 OG 태그(절대 주소는 `WEB_BASE_URL` 기준 — 서버 이전 후 실제 도메인으로 자동 반영), `docs/privacy.html`(`/privacy`로도 접근, 하단 박스에서 링크. 데이터 처리 내용이 바뀌면 이 페이지도 같이 고칠 것)
 - **문의 박스**: 홈/가이드 하단 묶음 박스(1:1 문의 / 디스코드 "준비 중" / 시작 가이드). 디스코드 서버가 생기면 비활성 `<span>`을 링크로 교체(9곳)
 - **가이드 캡처**: `guide-sheets.html`은 데모 데이터 캡처로 채움(나머지 가이드 11곳은 Discord/Google/로아 개발자 포털 화면이라 사용자 캡처 필요)
 - **Gemini SDK 이전**: 단종된 `google-generativeai` → `google-genai`, 모델 `gemini-flash-latest` (코드 쪽은 완료)

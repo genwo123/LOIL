@@ -22,9 +22,10 @@ import json
 from pathlib import Path
 
 from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.sessions import SessionMiddleware
 
 from fastapi.responses import RedirectResponse
@@ -70,7 +71,55 @@ templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request):
     # 길드 목록/링크는 여기서 노출하지 않음 — 길드별 링크는 각자 Discord에서만 받음
-    return templates.TemplateResponse("index.html", {"request": request, "user": _current_user(request)})
+    return templates.TemplateResponse("index.html", {
+        "request": request,
+        "user": _current_user(request),
+        "base_url": WEB_BASE_URL.rstrip("/"),
+    })
+
+
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon():
+    return FileResponse(STATIC_DIR / "loil" / "favicon.ico")
+
+
+@app.get("/privacy", include_in_schema=False)
+async def privacy_redirect():
+    return RedirectResponse("/guide/privacy.html")
+
+
+_ERROR_TEXT = {
+    403: ("접근 권한이 없어요", "이 페이지를 볼 수 있는 권한이 없습니다. 길드 관리자에게 문의해 주세요."),
+    404: ("페이지를 찾을 수 없어요", "주소가 잘못됐거나 사라진 페이지예요. 아래 버튼으로 돌아가 주세요."),
+    405: ("지원하지 않는 요청이에요", "이 주소는 요청하신 방식으로는 쓸 수 없어요."),
+}
+
+
+def _error_page(request: Request, code: int):
+    title, message = _ERROR_TEXT.get(code, ("문제가 생겼어요", "잠시 후 다시 시도해 주세요. 계속되면 문의 페이지로 알려주세요."))
+    return templates.TemplateResponse(
+        "error.html",
+        {"request": request, "code": code, "title": title, "message": message},
+        status_code=code,
+    )
+
+
+def _wants_html(request: Request) -> bool:
+    return "text/html" in request.headers.get("accept", "")
+
+
+@app.exception_handler(StarletteHTTPException)
+async def http_exception_page(request: Request, exc: StarletteHTTPException):
+    if _wants_html(request):
+        return _error_page(request, exc.status_code)
+    return JSONResponse({"detail": exc.detail}, status_code=exc.status_code, headers=getattr(exc, "headers", None))
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_page(request: Request, exc: Exception):
+    if _wants_html(request):
+        return _error_page(request, 500)
+    return JSONResponse({"detail": "Internal Server Error"}, status_code=500)
 
 
 def _load_snapshot(slug: str) -> dict | None:
