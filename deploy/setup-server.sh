@@ -3,6 +3,16 @@
 set -euo pipefail
 export DEBIAN_FRONTEND=noninteractive
 
+MEM_MB=$(awk '/MemTotal/ {print int($2/1024)}' /proc/meminfo)
+if [ "$MEM_MB" -lt 1900 ] && [ -z "$(swapon --show --noheadings)" ]; then
+  fallocate -l 2G /swapfile
+  chmod 600 /swapfile
+  mkswap /swapfile
+  swapon /swapfile
+  grep -q '/swapfile' /etc/fstab || echo '/swapfile none swap sw 0 0' >> /etc/fstab
+  echo "메모리 ${MEM_MB}MB — 2GB 스왑 생성"
+fi
+
 apt-get update -y
 apt-get upgrade -y
 apt-get install -y python3-venv python3-pip ufw curl gnupg debian-keyring debian-archive-keyring apt-transport-https
